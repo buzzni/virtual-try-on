@@ -5,6 +5,7 @@ from core.litellm_hander.schema import ClothesImageAnalysis, LiteLLMUsageData
 from core.litellm_hander.process import LiteLLMHandler
 from google import genai
 from google.genai import types
+import os
 from PIL import Image as PILImage
 from configs import settings
 
@@ -200,51 +201,97 @@ async def virtual_tryon_inference(client, contents, temperature: float = 1.0):
 
 
 async def virtual_tryon(
-    image_path_1: str, 
-    image_path_2: str, 
+    front_image_path: Optional[str], 
+    back_image_path: Optional[str], 
     prompt: str, 
     temperature: float = 1.0,
-    image_count: int = 1
+    image_count: int = 1,
+    model_folder: str = "default"
 ) -> Dict:
     """
-    Virtual Try-On: 두 이미지와 프롬프트로 가상 착장 생성 (vto_mino 방식)
+    Virtual Try-On: 앞면/뒷면 이미지와 프롬프트로 가상 착장 생성 (vto_mino의 virtual_tryon_fixed 방식)
     
     Args:
-        image_path_1: 첫 번째 이미지 경로 (사람)
-        image_path_2: 두 번째 이미지 경로 (의류)
+        front_image_path: 앞면 의류 이미지 경로 (Optional)
+        back_image_path: 뒷면 의류 이미지 경로 (Optional)
         prompt: VTO 프롬프트
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
+        model_folder: 사용할 모델 폴더 (기본값: "default")
     
     Returns:
-        Dict: 응답 결과 (이미지 리스트 및 비용 정보)
+        Dict: 응답 결과 (앞면/뒷면/측면 이미지 리스트 및 비용 정보)
     """
+    # 입력 검증 - 최소 1개 이미지 필요
+    if not front_image_path and not back_image_path:
+        raise ValueError("최소 1개의 이미지(앞면 또는 뒷면)를 제공해야 합니다.")
+    
     # Google Genai SDK를 직접 사용
     client = genai.Client(api_key=settings.gemini_api_key)
     aio_client = client.aio
     
-    # 이미지 로드
-    image_1 = PILImage.open(image_path_1)
-    image_2 = PILImage.open(image_path_2)
+    # 고정 사람 모델 이미지 로드
+    model_front_path = os.path.join("assets", "default_model", model_folder, "front.png")
+    model_back_path = os.path.join("assets", "default_model", model_folder, "back.png")
+    model_side_path = os.path.join("assets", "default_model", model_folder, "side.png")
     
-    # Contents 구성
-    contents = [prompt, image_1, image_2]
+    # 파일 존재 확인
+    if not os.path.exists(model_front_path):
+        raise FileNotFoundError(f"정면 모델 이미지를 찾을 수 없습니다: {model_front_path}")
+    if not os.path.exists(model_back_path):
+        raise FileNotFoundError(f"뒷면 모델 이미지를 찾을 수 없습니다: {model_back_path}")
+    if not os.path.exists(model_side_path):
+        raise FileNotFoundError(f"측면 모델 이미지를 찾을 수 없습니다: {model_side_path}")
+    
+    model_front_img = PILImage.open(model_front_path)
+    model_back_img = PILImage.open(model_back_path)
+    model_side_img = PILImage.open(model_side_path)
+    
+    # 의류 이미지 로드
+    front_clothes_img = PILImage.open(front_image_path) if front_image_path else None
+    back_clothes_img = PILImage.open(back_image_path) if back_image_path else None
+    
+    # 로깅
+    uploaded_types = []
+    if front_clothes_img:
+        uploaded_types.append("앞면")
+    if back_clothes_img:
+        uploaded_types.append("뒷면")
     
     print(f"\n=== Virtual Try-On 실행 ===")
-    print(f"생성할 이미지 개수: {image_count}")
+    print(f"업로드된 의류 이미지: {', '.join(uploaded_types)}")
+    print(f"생성할 이미지 개수 (각 뷰당): {image_count}")
     print(f"Temperature: {temperature}")
+    print(f"모델 폴더: {model_folder}")
     print(f"프롬프트: {prompt[:100]}...")
     print(f"========================\n")
     
-    # 동일한 contents로 image_count 만큼 병렬 호출 (vto_mino 방식)
-    tasks = [virtual_tryon_inference(aio_client, contents, temperature) for _ in range(image_count)]
+    # contents_list 구성: 각 조합에 대해 image_count만큼 생성
+    contents_list = []
+    
+    # 정면 뷰: model_front + front_clothes (앞면 의류가 있으면)
+    if front_clothes_img:
+        for _ in range(image_count):
+            contents_list.append([prompt, model_front_img, front_clothes_img])
+    
+    # 뒷면 뷰: model_back + back_clothes (뒷면 의류가 있으면)
+    if back_clothes_img:
+        for _ in range(image_count):
+            contents_list.append([prompt, model_back_img, back_clothes_img])
+    
+    # 측면 뷰: model_side + front_clothes (앞면 의류가 있으면)
+    # if front_clothes_img:
+    #     for _ in range(image_count):
+    #         contents_list.append([prompt, model_side_img, front_clothes_img])
+    
+    print(f"총 생성할 이미지 수: {len(contents_list)}")
+    
+    # 모든 조합에 대해 병렬 호출 (vto_mino 방식)
+    tasks = [virtual_tryon_inference(aio_client, contents, temperature) for contents in contents_list]
     responses = await asyncio.gather(*tasks)
     
     # 결과 분리
-    image_list, usage_data_list = zip(*responses)
-    
-    # None이 아닌 이미지만 필터링
-    image_list = [img for img in image_list if img is not None]
+    result_image_list, usage_data_list = zip(*responses) if responses else ([], [])
     
     # None이 아닌 usage_data만 필터링
     usage_data_list = [usage for usage in usage_data_list if usage is not None]
@@ -255,16 +302,48 @@ async def virtual_tryon(
     else:
         total_usage = calculate_vto_cost(None)
     
+    # 결과 이미지를 뷰별로 분리 (vto_mino의 virtual_tryon_fixed 방식)
+    front_image_list = []
+    back_image_list = []
+    side_image_list = []
+    
+    idx = 0
+    # 정면 의류가 있으면 정면 결과가 먼저 생성됨
+    if front_clothes_img:
+        front_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+        idx += image_count
+    
+    # 뒷면 의류가 있으면 뒷면 결과가 생성됨
+    if back_clothes_img:
+        back_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+        idx += image_count
+    
+    # 정면 의류가 있으면 측면 결과가 마지막에 생성됨
+    if front_clothes_img:
+        side_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+    
+    # 모든 이미지를 하나의 리스트로 합침
+    all_images = front_image_list + back_image_list # + side_image_list
+    
     print(f"\n=== Virtual Try-On 완료 ===")
-    print(f"생성된 이미지 개수: {len(image_list)}")
+    print(f"정면 이미지: {len(front_image_list)}개")
+    print(f"뒷면 이미지: {len(back_image_list)}개")
+    # print(f"측면 이미지: {len(side_image_list)}개")
+    print(f"총 생성된 이미지: {len(all_images)}개")
     print(f"========================\n")
     
     return {
-        "response": image_list,  # 이미지 리스트 반환
+        "response": all_images,  # 모든 이미지 리스트 반환
+        "front_images": front_image_list,
+        "back_images": back_image_list,
+        # "side_images": side_image_list,
         "usage": total_usage,
         "debug_info": {
-            "image_count": len(image_list),
-            "requested_count": image_count,
+            "front_count": len(front_image_list),
+            "back_count": len(back_image_list),
+            # "side_count": len(side_image_list),
+            "total_count": len(all_images),
+            "requested_count_per_view": image_count,
             "model_name": "gemini-2.5-flash-image",
         }
     }

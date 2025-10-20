@@ -118,7 +118,7 @@ def vto_tab(settings: Dict[str, str]):
         with col1:
             uploaded_file = st.file_uploader(
                 "이미지 선택",
-                type=["jpg", "jpeg", "png"],
+                type=["jpg", "jpeg", "png", "webp"],
                 key="upload_1"
             )
         with col2:
@@ -129,26 +129,26 @@ def vto_tab(settings: Dict[str, str]):
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("**이미지 A**")
+            st.markdown("**앞면 이미지**")
             uploaded_file_a = st.file_uploader(
-                "이미지 A 선택",
-                type=["jpg", "jpeg", "png"],
+                "앞면 이미지 선택",
+                type=["jpg", "jpeg", "png", "webp"],
                 key="upload_a"
             )
             if uploaded_file_a:
                 image_a = Image.open(uploaded_file_a)
-                st.image(image_a, caption="이미지 A", width='stretch')
+                st.image(image_a, caption="앞면 이미지", width='stretch')
         
         with col2:
-            st.markdown("**이미지 B**")
+            st.markdown("**뒷면 이미지**")
             uploaded_file_b = st.file_uploader(
-                "이미지 B 선택",
-                type=["jpg", "jpeg", "png"],
+                "뒷면 이미지 선택",
+                type=["jpg", "jpeg", "png", "webp"],
                 key="upload_b"
             )
             if uploaded_file_b:
                 image_b = Image.open(uploaded_file_b)
-                st.image(image_b, caption="이미지 B", width='stretch')
+                st.image(image_b, caption="뒷면 이미지", width='stretch')
 
     st.divider()
 
@@ -263,94 +263,115 @@ def vto_tab(settings: Dict[str, str]):
         help="먼저 프롬프트를 생성해주세요." if vto_button_disabled else None
     ):
         # 이미지 가져오기
-        if num_uploads == 1:
-            st.warning("⚠️ Virtual Try-On은 2개의 이미지가 필요합니다.")
+        first_image = uploaded_file if num_uploads == 1 else uploaded_file_a
+        second_image = None if num_uploads == 1 else uploaded_file_b
+        
+        if first_image is None:
+            st.error("❌ 최소 하나의 이미지를 업로드해주세요.")
         else:
-            if uploaded_file_a is None or uploaded_file_b is None:
-                st.error("❌ 두 개의 이미지를 모두 업로드해주세요.")
-            else:
-                with st.spinner("Virtual Try-On을 실행 중입니다..."):
-                    # 임시 파일로 저장
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file_1:
-                        uploaded_file_a.seek(0)
-                        tmp_file_1.write(uploaded_file_a.read())
-                        tmp_path_1 = tmp_file_1.name
+            with st.spinner("Virtual Try-On을 실행 중입니다..."):
+                tmp_front_path = None
+                tmp_back_path = None
+                
+                try:
+                    # 앞면 이미지 임시 파일로 저장
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                        first_image.seek(0)
+                        tmp_file.write(first_image.read())
+                        tmp_front_path = tmp_file.name
                     
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file_2:
-                        uploaded_file_b.seek(0)
-                        tmp_file_2.write(uploaded_file_b.read())
-                        tmp_path_2 = tmp_file_2.name
+                    # 뒷면 이미지가 있으면 임시 파일로 저장
+                    if second_image is not None:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                            second_image.seek(0)
+                            tmp_file.write(second_image.read())
+                            tmp_back_path = tmp_file.name
                     
-                    try:
-                        # text_area에서 현재 프롬프트 가져오기 (사용자가 수정했을 수 있음)
-                        prompt_key = f"prompt_editor_{st.session_state.prompt_version}"
-                        prompt = st.session_state.get(prompt_key, st.session_state.generated_prompt)
-                        
-                        # Virtual Try-On 실행 (slider에서 선택한 옵션 사용)
-                        result = asyncio.run(virtual_tryon(
-                            tmp_path_1, 
-                            tmp_path_2, 
-                            prompt,
-                            temperature=temperature,
-                            image_count=image_count
-                        ))
-                        st.session_state.vto_result = result
-                        st.success("✅ Virtual Try-On 완료!")
-                    except Exception as e:
-                        st.error(f"❌ Virtual Try-On 중 오류 발생: {str(e)}")
-                    finally:
-                        # 임시 파일 삭제
-                        if os.path.exists(tmp_path_1):
-                            os.unlink(tmp_path_1)
-                        if os.path.exists(tmp_path_2):
-                            os.unlink(tmp_path_2)
+                    # text_area에서 현재 프롬프트 가져오기 (사용자가 수정했을 수 있음)
+                    prompt_key = f"prompt_editor_{st.session_state.prompt_version}"
+                    prompt = st.session_state.get(prompt_key, st.session_state.generated_prompt)
+                    
+                    # Virtual Try-On 실행 (앞면/뒷면 이미지 경로 전달)
+                    result = asyncio.run(virtual_tryon(
+                        front_image_path=tmp_front_path,
+                        back_image_path=tmp_back_path,
+                        prompt=prompt,
+                        temperature=temperature,
+                        image_count=image_count
+                    ))
+                    st.session_state.vto_result = result
+                    st.success("✅ Virtual Try-On 완료!")
+                except Exception as e:
+                    st.error(f"❌ Virtual Try-On 중 오류 발생: {str(e)}")
+                finally:
+                    # 임시 파일 삭제
+                    if tmp_front_path and os.path.exists(tmp_front_path):
+                        os.unlink(tmp_front_path)
+                    if tmp_back_path and os.path.exists(tmp_back_path):
+                        os.unlink(tmp_back_path)
     
     # VTO 결과 출력
     if st.session_state.vto_result:
         st.subheader("📊 Virtual Try-On 결과")
-        st.markdown("**생성된 이미지:**")
         
         try:
-            # 응답에서 이미지 리스트 추출 (vto_mino 방식 적용)
-            response_data = st.session_state.vto_result["response"]
+            # 앞면/뒷면/측면 이미지 개별 추출
+            front_images = st.session_state.vto_result.get("front_images", [])
+            back_images = st.session_state.vto_result.get("back_images", [])
+            side_images = st.session_state.vto_result.get("side_images", [])
+            debug_info = st.session_state.vto_result.get("debug_info", {})
             
-            if response_data is None or len(response_data) == 0:
-                st.error("❌ 응답에 이미지 데이터가 없습니다. 디버깅 정보를 확인해주세요.")
-                        # 디버깅 옵션
-                with st.expander("🔍 디버깅 정보 (응답 구조 확인)"):
-                    if "debug_info" in st.session_state.vto_result:
-                        st.json(st.session_state.vto_result["debug_info"])
-                    
-                    response_data = st.session_state.vto_result["response"]
-                    st.write("응답 타입:", type(response_data).__name__)
-                    st.write("응답이 None인가?", response_data is None)
-                    
-                    if response_data is not None:
-                        if isinstance(response_data, str):
-                            st.write("응답 길이:", len(response_data))
-                            st.write("응답 시작 부분 (최대 200자):", response_data[:200])
-                        else:
-                            st.write("응답 내용:", response_data)
-                            
-            elif isinstance(response_data, list):
-                # 이미지 리스트를 그리드로 표시
-                st.markdown(f"**총 {len(response_data)}개의 이미지가 생성되었습니다.**")
-                
-                # 이미지 개수에 따라 컬럼 개수 조정
-                num_cols = min(len(response_data), 3)  # 최대 2개씩 표시
-                cols = st.columns(num_cols)
-                
-                for idx, image_bytes in enumerate(response_data):
-                    with cols[idx % num_cols]:
-                        if isinstance(image_bytes, bytes):
-                            # 바이너리 데이터를 PIL Image로 변환
-                            image = Image.open(BytesIO(image_bytes))
-                            st.image(image, caption=f"결과 #{idx+1}", width='stretch')
-                        else:
-                            st.warning(f"⚠️ 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+            total_count = len(front_images) + len(back_images) + len(side_images)
+            
+            if total_count == 0:
+                st.error("❌ 생성된 이미지가 없습니다.")
+                with st.expander("🔍 디버깅 정보"):
+                    st.json(debug_info)
             else:
-                st.warning(f"⚠️ 예상하지 못한 응답 형식입니다: {type(response_data).__name__}")
-                st.text_area("원본 응답 데이터 (최대 500자)", value=str(response_data)[:500], height=150, disabled=True)
+                st.markdown(f"**총 {total_count}개의 이미지가 생성되었습니다.**")
+                
+                # 앞면 이미지 표시
+                if front_images:
+                    st.markdown("### 🔵 정면 뷰")
+                    num_cols = image_count
+                    cols = st.columns(num_cols)
+                    for idx, image_bytes in enumerate(front_images):
+                        with cols[idx % num_cols]:
+                            if isinstance(image_bytes, bytes):
+                                image = Image.open(BytesIO(image_bytes))
+                                st.image(image, caption=f"정면 #{idx+1}", width='stretch')
+                            else:
+                                st.warning(f"⚠️ 정면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                
+                # 뒷면 이미지 표시
+                if back_images:
+                    st.markdown("### 🔴 후면 뷰")
+                    num_cols = image_count
+                    cols = st.columns(num_cols)
+                    for idx, image_bytes in enumerate(back_images):
+                        with cols[idx % num_cols]:
+                            if isinstance(image_bytes, bytes):
+                                image = Image.open(BytesIO(image_bytes))
+                                st.image(image, caption=f"후면 #{idx+1}", width='stretch')
+                            else:
+                                st.warning(f"⚠️ 후면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                
+                # # 측면 이미지 표시
+                # if side_images:
+                #     st.markdown("### 🟢 측면 뷰")
+                #     num_cols = min(len(side_images), 3)
+                #     cols = st.columns(num_cols)
+                #     for idx, image_bytes in enumerate(side_images):
+                #         with cols[idx % num_cols]:
+                #             if isinstance(image_bytes, bytes):
+                #                 image = Image.open(BytesIO(image_bytes))
+                #                 st.image(image, caption=f"측면 #{idx+1}", width='stretch')
+                #             else:
+                #                 st.warning(f"⚠️ 측면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                
+                # 디버깅 정보 (옵션)
+                with st.expander("🔍 생성 상세 정보"):
+                    st.json(debug_info)
                 
         except Exception as e:
             st.error(f"❌ 이미지 표시 중 오류 발생: {str(e)}")

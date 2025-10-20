@@ -294,3 +294,138 @@ def calculate_cost_info_multi(dict_list) -> str:
 - **총 비용:** ${total_cost:.6f} (약 {total_cost_krw:,.2f}원)
 """  
 
+async def virtual_tryon_fixed(clothing_info, images, text_input, image_count=1, temperature=1.0) -> tuple[List[Image.Image] | None, str]:
+    """
+    멀티 이미지 가상 착용 함수
+    
+    Args:
+        clothing_info: 의상 정보 딕셔너리
+            - {"category": str, "item": str, "subcategory": str}
+        images: 옷 이미지 딕셔너리 (numpy 배열)
+            - {"front": front_image or None, "back": back_image or None}
+        text_input: 사용자가 입력한 프롬프트
+        image_count: 생성할 결과 이미지 개수 (기본값: 1)
+        temperature: 생성 옵션 (기본값: 1.0)
+    Returns:
+        tuple: (결과이미지, 정보텍스트)
+    """
+    client = genai.Client(api_key=PRODUCT_ATTRIBUTE_GEMINI_API_KEY)
+    
+    # 의상 정보 추출
+    category = clothing_info.get("category")
+    item = clothing_info.get("item")
+    subcategory = clothing_info.get("subcategory")
+    
+    print(f"의상 정보 - category: {category}, item: {item}, subcategory: {subcategory}")
+    
+    # 입력 검증 - 딕셔너리에서 None이 아닌 이미지만 추출
+    front_img = images.get("front")
+    back_img = images.get("back")
+    
+    # None이 아닌 이미지만 리스트로 변환
+    clothes_images = []
+    if front_img is not None:
+        clothes_images.append(front_img)
+    if back_img is not None:
+        clothes_images.append(back_img)
+    
+    # 최소 1개 이미지 필요
+    if len(clothes_images) == 0:
+        return [], [], [], "최소 1개의 이미지를 업로드해주세요."
+    
+    # 로깅 - 어떤 이미지가 업로드되었는지 출력
+    uploaded_types = []
+    if front_img is not None:
+        uploaded_types.append("Front")
+    if back_img is not None:
+        uploaded_types.append("Back")
+    print(f"업로드된 이미지: {', '.join(uploaded_types)}")
+    
+    try:
+        if category == "상의":
+            model_folder = "top"
+        elif category == "하의":
+            model_folder = "bottom"
+        elif category == "원피스" or category == "스포츠/레저":
+            model_folder = "top_bottom"
+        else:
+            model_folder = "default"
+            
+        # 고정 사람 이미지 로드
+        front_image_path = os.path.join("assets", "model", model_folder, "front.png")
+        back_image_path = os.path.join("assets", "model", model_folder, "back.png")
+        side_image_path = os.path.join("assets", "model", model_folder, "side.png")
+        
+        if not os.path.exists(front_image_path):
+            return None, f"정면 이미지 파일을 찾을 수 없습니다: {front_image_path}"
+        if not os.path.exists(back_image_path):
+            return None, f"뒷면 이미지 파일을 찾을 수 없습니다: {back_image_path}"
+        if not os.path.exists(side_image_path):
+            return None, f"측면 이미지 파일을 찾을 수 없습니다: {side_image_path}"
+        
+        front_pil_image = Image.open(front_image_path)
+        back_pil_image = Image.open(back_image_path)
+        side_pil_image = Image.open(side_image_path)
+        
+        # 옷 이미지 처리 - front와 back을 각각 PIL 이미지로 변환
+        front_clothes_pil = Image.fromarray(front_img) if front_img is not None else None
+        back_clothes_pil = Image.fromarray(back_img) if back_img is not None else None
+        
+        # 로깅
+        print(f"고정 사람 이미지: {front_image_path}, {back_image_path}, {side_image_path}")
+        print(f"옷 이미지 개수: {len(clothes_images)}")
+        print(f"Temperature: {temperature}")
+        print(f"생성할 이미지 개수: {image_count}")
+        print(f"프롬프트: {text_input}")      
+
+        # contents 구성: 사람 이미지별로 매칭되는 옷 이미지만 결합
+        contents_list = []
+        
+        # front_pil_image + front_clothes (있으면)
+        if front_clothes_pil is not None:
+            for _ in range(image_count):
+                contents_list.append([text_input, front_pil_image, front_clothes_pil])
+        
+        # back_pil_image + back_clothes (있으면)
+        if back_clothes_pil is not None:
+            for _ in range(image_count):
+                contents_list.append([text_input, back_pil_image, back_clothes_pil])
+        
+        # side_pil_image + front_clothes (있으면)
+        if front_clothes_pil is not None:
+            for _ in range(image_count):
+                contents_list.append([text_input, side_pil_image, front_clothes_pil])
+        
+        tasks = [virtual_tryon_inference(client.aio, contents, temperature) for contents in contents_list]
+        
+        responses = await asyncio.gather(*tasks)
+        
+        result_image_list, info_dict_list = zip(*responses)
+        
+        info_text = calculate_cost_info_multi(info_dict_list)
+        
+        # 결과 이미지를 동적으로 분리 (어떤 이미지가 업로드되었는지에 따라)
+        front_image_list = []
+        back_image_list = []
+        side_image_list = []
+        
+        idx = 0
+        # front_clothes가 있으면 front 결과가 먼저 생성됨
+        if front_clothes_pil is not None:
+            front_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+            idx += image_count
+        
+        # back_clothes가 있으면 back 결과가 생성됨
+        if back_clothes_pil is not None:
+            back_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+            idx += image_count
+        
+        # front_clothes가 있으면 side 결과가 마지막에 생성됨
+        if front_clothes_pil is not None:
+            side_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+        
+        return front_image_list, back_image_list, side_image_list, info_text
+            
+    except Exception as e:
+        print(f"Error: {e}")
+        return [], [], [], f"이미지 생성 중 오류가 발생했습니다: {str(e)}"
