@@ -4,6 +4,8 @@ import streamlit as st
 from PIL import Image
 import tempfile
 import os
+import base64
+from io import BytesIO
 from core.litellm_hander.utils import (
     clothes_category,
     gender_options,
@@ -11,7 +13,8 @@ from core.litellm_hander.utils import (
     sleeve_options,
     length_options
 )
-from core.vto_service.service import analyze_clothes_image
+from core.vto_service.service import analyze_clothes_image, virtual_tryon
+from prompts.vto_prompts import assemble_prompt
 
 def sidebar():
     st.header("⚙️ 설정")
@@ -123,7 +126,7 @@ def vto_tab(settings: Dict[str, str]):
         with col2:
             if uploaded_file:
                 image = Image.open(uploaded_file)
-                st.image(image, caption="업로드된 이미지", use_container_width=True)
+                st.image(image, caption="업로드된 이미지", width='stretch')
     else:
         col1, col2 = st.columns(2)
         
@@ -136,7 +139,7 @@ def vto_tab(settings: Dict[str, str]):
             )
             if uploaded_file_a:
                 image_a = Image.open(uploaded_file_a)
-                st.image(image_a, caption="이미지 A", use_container_width=True)
+                st.image(image_a, caption="이미지 A", width='stretch')
         
         with col2:
             st.markdown("**이미지 B**")
@@ -147,7 +150,7 @@ def vto_tab(settings: Dict[str, str]):
             )
             if uploaded_file_b:
                 image_b = Image.open(uploaded_file_b)
-                st.image(image_b, caption="이미지 B", use_container_width=True)
+                st.image(image_b, caption="이미지 B", width='stretch')
 
     st.divider()
 
@@ -158,7 +161,7 @@ def vto_tab(settings: Dict[str, str]):
     if "analys" not in st.session_state:
         st.session_state.analys = None
     
-    if st.button("🔍 첫 번째 이미지 분석", use_container_width=True):
+    if st.button("🔍 첫 번째 이미지 분석", width='stretch'):
         # 첫 번째 이미지 가져오기
         first_image = uploaded_file if num_uploads == 1 else uploaded_file_a
         
@@ -192,4 +195,183 @@ def vto_tab(settings: Dict[str, str]):
     st.divider()
 
     # 실행 버튼 섹션
-    st.subheader("🚀 실행")    
+    st.subheader("🚀 실행")
+    
+    # 세션 상태 초기화
+    if "vto_result" not in st.session_state:
+        st.session_state.vto_result = None
+    if "generated_prompt" not in st.session_state:
+        st.session_state.generated_prompt = None
+    
+    # 프롬프트 생성 버튼
+    col_btn1, col_btn2 = st.columns(2)
+    
+    with col_btn1:
+        if st.button("📝 프롬프트 생성", width='stretch'):
+            # 프롬프트 생성
+            prompt = assemble_prompt(
+                category=settings["main_category"],
+                target="garment",
+                replacement="clothing",
+                gender=settings["gender"],
+                fit=settings["fit"] if settings["fit"] != "none" else None,
+                sleeve=settings["sleeve"] if settings["sleeve"] != "none" else None,
+                length=settings["length"] if settings["length"] != "none" else None,
+            )
+            st.session_state.generated_prompt = prompt
+            st.success("✅ 프롬프트가 생성되었습니다!")
+    
+    # 생성된 프롬프트 표시 및 수정
+    if st.session_state.generated_prompt:
+        st.markdown("**생성된 프롬프트 (수정 가능):**")
+        edited_prompt = st.text_area(
+            "프롬프트",
+            value=st.session_state.generated_prompt,
+            height=200,
+            key="prompt_editor",
+            help="필요시 프롬프트를 수정할 수 있습니다."
+        )
+        # 수정된 프롬프트를 세션에 저장
+        st.session_state.generated_prompt = edited_prompt
+    
+    # VTO 실행 버튼
+    with col_btn2:
+        vto_button_disabled = st.session_state.generated_prompt is None
+        if st.button(
+            "🚀 Virtual Try-On 실행", 
+            width='stretch',
+            disabled=vto_button_disabled,
+            help="먼저 프롬프트를 생성해주세요." if vto_button_disabled else None
+        ):
+            # 이미지 가져오기
+            if num_uploads == 1:
+                st.warning("⚠️ Virtual Try-On은 2개의 이미지가 필요합니다.")
+            else:
+                if uploaded_file_a is None or uploaded_file_b is None:
+                    st.error("❌ 두 개의 이미지를 모두 업로드해주세요.")
+                else:
+                    with st.spinner("Virtual Try-On을 실행 중입니다..."):
+                        # 임시 파일로 저장
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file_1:
+                            uploaded_file_a.seek(0)
+                            tmp_file_1.write(uploaded_file_a.read())
+                            tmp_path_1 = tmp_file_1.name
+                        
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file_2:
+                            uploaded_file_b.seek(0)
+                            tmp_file_2.write(uploaded_file_b.read())
+                            tmp_path_2 = tmp_file_2.name
+                        
+                        try:
+                            # 세션에 저장된 프롬프트 사용
+                            prompt = st.session_state.generated_prompt
+                            
+                            # Virtual Try-On 실행
+                            # temperature: 결과의 다양성 (0.0~2.0, 기본값 1.0)
+                            result = asyncio.run(virtual_tryon(
+                                tmp_path_1, 
+                                tmp_path_2, 
+                                prompt,
+                                temperature=1.0
+                            ))
+                            st.session_state.vto_result = result
+                            st.success("✅ Virtual Try-On 완료!")
+                        except Exception as e:
+                            st.error(f"❌ Virtual Try-On 중 오류 발생: {str(e)}")
+                        finally:
+                            # 임시 파일 삭제
+                            if os.path.exists(tmp_path_1):
+                                os.unlink(tmp_path_1)
+                            if os.path.exists(tmp_path_2):
+                                os.unlink(tmp_path_2)
+    
+    # VTO 결과 출력
+    if st.session_state.vto_result:
+        st.subheader("📊 Virtual Try-On 결과")
+        st.markdown("**생성된 이미지:**")
+        
+        # 디버깅 옵션
+        with st.expander("🔍 디버깅 정보 (응답 구조 확인)"):
+            if "debug_info" in st.session_state.vto_result:
+                st.json(st.session_state.vto_result["debug_info"])
+            
+            response_data = st.session_state.vto_result["response"]
+            st.write("응답 타입:", type(response_data).__name__)
+            st.write("응답이 None인가?", response_data is None)
+            
+            if response_data is not None:
+                if isinstance(response_data, str):
+                    st.write("응답 길이:", len(response_data))
+                    st.write("응답 시작 부분 (최대 200자):", response_data[:200])
+                else:
+                    st.write("응답 내용:", response_data)
+        
+        try:
+            # 응답에서 이미지 추출
+            response_data = st.session_state.vto_result["response"]
+            image_displayed = False
+            
+            # None 체크
+            if response_data is None:
+                st.error("❌ 응답에 이미지 데이터가 없습니다. 디버깅 정보를 확인해주세요.")
+                image_displayed = False
+            # 1. 문자열 형태 (base64 또는 URL)
+            elif isinstance(response_data, str):
+                # data:image/...;base64, 형식인 경우
+                if response_data.startswith('data:image'):
+                    base64_data = response_data.split(',', 1)[1]
+                    image_bytes = base64.b64decode(base64_data)
+                    image = Image.open(BytesIO(image_bytes))
+                    st.image(image, caption="가상 착장 결과", width='stretch')
+                    image_displayed = True
+                # 순수 base64 문자열인 경우
+                elif len(response_data) > 100:  # base64는 매우 긴 문자열
+                    try:
+                        image_bytes = base64.b64decode(response_data)
+                        image = Image.open(BytesIO(image_bytes))
+                        st.image(image, caption="가상 착장 결과", width='stretch')
+                        image_displayed = True
+                    except:
+                        pass
+                # URL인 경우
+                elif response_data.startswith('http'):
+                    st.image(response_data, caption="가상 착장 결과", width='stretch')
+                    image_displayed = True
+            
+            # 2. 바이너리 데이터
+            elif isinstance(response_data, bytes):
+                image = Image.open(BytesIO(response_data))
+                st.image(image, caption="가상 착장 결과", width='stretch')
+                image_displayed = True
+            
+            # 3. 딕셔너리 형태 (image_url 등)
+            elif isinstance(response_data, dict):
+                if 'url' in response_data:
+                    st.image(response_data['url'], caption="가상 착장 결과", width='stretch')
+                    image_displayed = True
+                elif 'data' in response_data:
+                    image_bytes = base64.b64decode(response_data['data'])
+                    image = Image.open(BytesIO(image_bytes))
+                    st.image(image, caption="가상 착장 결과", width='stretch')
+                    image_displayed = True
+            
+            if not image_displayed:
+                st.warning("⚠️ 이미지를 표시할 수 없는 응답 형식입니다.")
+                st.text_area("원본 응답 데이터 (최대 500자)", value=str(response_data)[:500], height=150, disabled=True)
+                
+        except Exception as e:
+            st.error(f"❌ 이미지 표시 중 오류 발생: {str(e)}")
+            st.text_area("원본 응답 데이터 (최대 500자)", value=str(st.session_state.vto_result["response"])[:500], height=150, disabled=True)
+        
+        st.divider()
+        
+        st.markdown("**사용량 정보:**")
+        usage = st.session_state.vto_result["usage"]
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("총 토큰", usage.total_token_count)
+        with col2:
+            st.metric("비용 (USD)", f"${usage.cost_usd:.6f}")
+        with col3:
+            st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
+       
