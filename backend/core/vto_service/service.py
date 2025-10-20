@@ -1,5 +1,6 @@
 import json
-from typing import Dict, Optional
+import asyncio
+from typing import Dict, Optional, List
 from core.litellm_hander.schema import ClothesImageAnalysis, LiteLLMUsageData
 from core.litellm_hander.process import LiteLLMHandler
 from google import genai
@@ -7,6 +8,47 @@ from google.genai import types
 from PIL import Image as PILImage
 from configs import settings
 
+
+def sum_usage_data(usage_data_list: List[LiteLLMUsageData]) -> LiteLLMUsageData:
+    """
+    여러 LiteLLMUsageData를 합산 (vto_mino의 calculate_cost_info_multi 방식)
+    
+    Args:
+        usage_data_list: LiteLLMUsageData 리스트
+    
+    Returns:
+        LiteLLMUsageData: 합산된 비용 정보
+    """
+    total_token_count = sum(u.total_token_count for u in usage_data_list)
+    prompt_token_count = sum(u.prompt_token_count for u in usage_data_list)
+    candidates_token_count = sum(u.candidates_token_count for u in usage_data_list)
+    output_token_count = sum(u.output_token_count for u in usage_data_list)
+    cached_content_token_count = sum(u.cached_content_token_count for u in usage_data_list)
+    thoughts_token_count = sum(u.thoughts_token_count for u in usage_data_list)
+    cost_usd = sum(u.cost_usd for u in usage_data_list)
+    cost_krw = sum(u.cost_krw for u in usage_data_list)
+    
+    return LiteLLMUsageData(
+        total_token_count=total_token_count,
+        prompt_token_count=prompt_token_count,
+        candidates_token_count=candidates_token_count,
+        output_token_count=output_token_count,
+        cached_content_token_count=cached_content_token_count,
+        thoughts_token_count=thoughts_token_count,
+        model_name="gemini-2.5-flash-image",
+        cost_usd=round(cost_usd, 6),
+        cost_krw=round(cost_krw, 2),
+        task_name="virtual_tryon"
+    )
+
+
+async def analyze_clothes_image(image_path: str) -> ClothesImageAnalysis:
+    llm_handler = LiteLLMHandler()
+    image_content = await llm_handler.convert_litellm_image_object(image_path)
+    response = await llm_handler.analyze_clothes_image(image_content)
+    contents = json.loads(response.choices[0].message.content)
+    clothes_image_analysis = ClothesImageAnalysis(**contents)
+    return clothes_image_analysis
 
 def calculate_vto_cost(usage_metadata) -> LiteLLMUsageData:
     """
@@ -89,42 +131,18 @@ def calculate_vto_cost(usage_metadata) -> LiteLLMUsageData:
         task_name="virtual_tryon"
     )
 
-
-async def analyze_clothes_image(image_path: str) -> ClothesImageAnalysis:
-    llm_handler = LiteLLMHandler()
-    image_content = await llm_handler.convert_litellm_image_object(image_path)
-    response = await llm_handler.analyze_clothes_image(image_content)
-    contents = json.loads(response.choices[0].message.content)
-    clothes_image_analysis = ClothesImageAnalysis(**contents)
-    return clothes_image_analysis
-
-
-async def virtual_tryon(
-    image_path_1: str, 
-    image_path_2: str, 
-    prompt: str, 
-    temperature: float = 1.0
-) -> Dict:
+async def virtual_tryon_inference(client, contents, temperature: float = 1.0):
     """
-    Virtual Try-On: 두 이미지와 프롬프트로 가상 착장 생성
+    단일 Virtual Try-On 추론 (vto_mino 방식)
     
     Args:
-        image_path_1: 첫 번째 이미지 경로 (사람)
-        image_path_2: 두 번째 이미지 경로 (의류)
-        prompt: VTO 프롬프트
-        temperature: 결과의 다양성 (기본값: 1.0)
+        client: Gemini API 클라이언트
+        contents: 입력 콘텐츠 리스트 (텍스트 + 이미지들)
+        temperature: 결과의 다양성
     
     Returns:
-        Dict: 응답 결과 (이미지 데이터 포함)
+        tuple: (이미지 바이너리 데이터, 비용 정보)
     """
-    # Google Genai SDK를 직접 사용 (LiteLLM이 이미지 생성 모델의 특수 파라미터를 제대로 지원하지 않음)
-    client = genai.Client(api_key=settings.gemini_api_key)
-    
-    # 이미지 로드
-    image_1 = PILImage.open(image_path_1)
-    image_2 = PILImage.open(image_path_2)
-    
-    # 모델명
     model_name = "gemini-2.5-flash-image"
     
     # Safety settings (Genai SDK format)
@@ -147,68 +165,107 @@ async def virtual_tryon(
         )
     ]
     
-    # Gemini API 호출 (이미지만 생성하도록 설정)
-    response = await client.aio.models.generate_content(
-        model=model_name,
-        contents=[prompt, image_1, image_2],
-        config=types.GenerateContentConfig(
-            response_modalities=[types.Modality.IMAGE],  # 이미지만 생성
-            temperature=temperature,
-            image_config=types.ImageConfig(
-                aspect_ratio="1:1",
-            ),
-            safety_settings=safety_settings
+    try:
+        # Gemini API 호출 (이미지만 생성하도록 설정)
+        response = await client.models.generate_content(
+            model=model_name,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                response_modalities=[types.Modality.IMAGE],  # 이미지만 생성
+                temperature=temperature,
+                image_config=types.ImageConfig(
+                    aspect_ratio="1:1",
+                ),
+                safety_settings=safety_settings
+            )
         )
-    )
-    
-    # 비용 계산 (vto_mino.py 방식 적용)
-    usage_data = calculate_vto_cost(response.usage_metadata if hasattr(response, 'usage_metadata') else None)
-    
-    # 응답에서 이미지 데이터 추출 (Genai SDK 응답 구조)
-    image_data = None
-    
-    # 디버깅: 응답 구조 출력
-    print(f"Response type: {type(response)}")
-    print(f"Response has candidates: {hasattr(response, 'candidates')}")
-    
-    if hasattr(response, 'candidates') and len(response.candidates) > 0:
-        candidate = response.candidates[0]
-        print(f"Candidate type: {type(candidate)}")
-        print(f"Candidate has content: {hasattr(candidate, 'content')}")
         
-        if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
-            parts = candidate.content.parts
-            print(f"Number of parts: {len(parts)}")
-            
-            for i, part in enumerate(parts):
-                print(f"Part {i} type: {type(part)}")
-                
-                # 텍스트가 있는지 확인
-                if hasattr(part, 'text') and part.text:
-                    print(f"Part {i} has text: {part.text[:100]}")
-                
-                # 이미지 데이터가 있는지 확인 (inline_data)
-                if hasattr(part, 'inline_data') and part.inline_data:
-                    print(f"Part {i} has inline_data")
-                    if hasattr(part.inline_data, 'data'):
-                        image_data = part.inline_data.data
-                        print(f"Found image data (length: {len(image_data)})")
-                        break
+        # 비용 계산
+        usage_data = calculate_vto_cost(response.usage_metadata if hasattr(response, 'usage_metadata') else None)
+        
+        # 응답에서 이미지 데이터 추출
+        if hasattr(response, 'candidates') and len(response.candidates) > 0:
+            candidate = response.candidates[0]
+            if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                for part in candidate.content.parts:
+                    if hasattr(part, 'inline_data') and part.inline_data:
+                        if hasattr(part.inline_data, 'data'):
+                            return part.inline_data.data, usage_data
+        
+        return None, usage_data
+        
+    except Exception as e:
+        print(f"Inference Error: {e}")
+        return None, None
+
+
+async def virtual_tryon(
+    image_path_1: str, 
+    image_path_2: str, 
+    prompt: str, 
+    temperature: float = 1.0,
+    image_count: int = 1
+) -> Dict:
+    """
+    Virtual Try-On: 두 이미지와 프롬프트로 가상 착장 생성 (vto_mino 방식)
     
-    if not image_data:
-        print("WARNING: No image data found in response!")
-        if hasattr(response, 'text'):
-            print(f"Response text: {response.text}")
+    Args:
+        image_path_1: 첫 번째 이미지 경로 (사람)
+        image_path_2: 두 번째 이미지 경로 (의류)
+        prompt: VTO 프롬프트
+        temperature: 결과의 다양성 (기본값: 1.0)
+        image_count: 생성할 이미지 개수 (기본값: 1)
+    
+    Returns:
+        Dict: 응답 결과 (이미지 리스트 및 비용 정보)
+    """
+    # Google Genai SDK를 직접 사용
+    client = genai.Client(api_key=settings.gemini_api_key)
+    aio_client = client.aio
+    
+    # 이미지 로드
+    image_1 = PILImage.open(image_path_1)
+    image_2 = PILImage.open(image_path_2)
+    
+    # Contents 구성
+    contents = [prompt, image_1, image_2]
+    
+    print(f"\n=== Virtual Try-On 실행 ===")
+    print(f"생성할 이미지 개수: {image_count}")
+    print(f"Temperature: {temperature}")
+    print(f"프롬프트: {prompt[:100]}...")
+    print(f"========================\n")
+    
+    # 동일한 contents로 image_count 만큼 병렬 호출 (vto_mino 방식)
+    tasks = [virtual_tryon_inference(aio_client, contents, temperature) for _ in range(image_count)]
+    responses = await asyncio.gather(*tasks)
+    
+    # 결과 분리
+    image_list, usage_data_list = zip(*responses)
+    
+    # None이 아닌 이미지만 필터링
+    image_list = [img for img in image_list if img is not None]
+    
+    # None이 아닌 usage_data만 필터링
+    usage_data_list = [usage for usage in usage_data_list if usage is not None]
+    
+    # 비용 정보 합산
+    if usage_data_list:
+        total_usage = sum_usage_data(usage_data_list)
+    else:
+        total_usage = calculate_vto_cost(None)
+    
+    print(f"\n=== Virtual Try-On 완료 ===")
+    print(f"생성된 이미지 개수: {len(image_list)}")
+    print(f"========================\n")
     
     return {
-        "response": image_data,
-        "raw_response": response,
-        "usage": usage_data,
+        "response": image_list,  # 이미지 리스트 반환
+        "usage": total_usage,
         "debug_info": {
-            "response_type": str(type(response)),
-            "has_image": image_data is not None,
-            "has_candidates": hasattr(response, 'candidates'),
-            "num_candidates": len(response.candidates) if hasattr(response, 'candidates') else 0,
+            "image_count": len(image_list),
+            "requested_count": image_count,
+            "model_name": "gemini-2.5-flash-image",
         }
     }
 

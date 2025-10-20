@@ -211,8 +211,8 @@ def vto_tab(settings: Dict[str, str]):
         if st.button("📝 프롬프트 생성", width='stretch'):
             # 프롬프트 생성
             prompt = assemble_prompt(
-                category=settings["main_category"],
-                target="garment",
+                main_category=settings["main_category"],
+                sub_category=settings["sub_category"],
                 replacement="clothing",
                 gender=settings["gender"],
                 fit=settings["fit"] if settings["fit"] != "none" else None,
@@ -246,6 +246,15 @@ def vto_tab(settings: Dict[str, str]):
             help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
         )
         
+        image_count = st.slider(
+            "생성할 이미지 개수",
+            min_value=1,
+            max_value=10,
+            value=3,
+            step=1,
+            help="동시에 생성할 이미지 개수입니다. 여러 개를 생성하면 다양한 결과를 얻을 수 있습니다."
+        )
+        
     vto_button_disabled = st.session_state.generated_prompt is None
     if st.button(
         "🚀 Virtual Try-On 실행", 
@@ -277,12 +286,13 @@ def vto_tab(settings: Dict[str, str]):
                         prompt_key = f"prompt_editor_{st.session_state.prompt_version}"
                         prompt = st.session_state.get(prompt_key, st.session_state.generated_prompt)
                         
-                        # Virtual Try-On 실행 (slider에서 선택한 temperature 사용)
+                        # Virtual Try-On 실행 (slider에서 선택한 옵션 사용)
                         result = asyncio.run(virtual_tryon(
                             tmp_path_1, 
                             tmp_path_2, 
                             prompt,
-                            temperature=temperature
+                            temperature=temperature,
+                            image_count=image_count
                         ))
                         st.session_state.vto_result = result
                         st.success("✅ Virtual Try-On 완료!")
@@ -300,32 +310,44 @@ def vto_tab(settings: Dict[str, str]):
         st.subheader("📊 Virtual Try-On 결과")
         st.markdown("**생성된 이미지:**")
         
-        # 디버깅 옵션
-        with st.expander("🔍 디버깅 정보 (응답 구조 확인)"):
-            if "debug_info" in st.session_state.vto_result:
-                st.json(st.session_state.vto_result["debug_info"])
-            
-            response_data = st.session_state.vto_result["response"]
-            st.write("응답 타입:", type(response_data).__name__)
-            st.write("응답이 None인가?", response_data is None)
-            
-            if response_data is not None:
-                if isinstance(response_data, str):
-                    st.write("응답 길이:", len(response_data))
-                    st.write("응답 시작 부분 (최대 200자):", response_data[:200])
-                else:
-                    st.write("응답 내용:", response_data)
-        
         try:
-            # 응답에서 이미지 추출 (vto_mino 방식 적용)
+            # 응답에서 이미지 리스트 추출 (vto_mino 방식 적용)
             response_data = st.session_state.vto_result["response"]
             
-            if response_data is None:
+            if response_data is None or len(response_data) == 0:
                 st.error("❌ 응답에 이미지 데이터가 없습니다. 디버깅 정보를 확인해주세요.")
-            elif isinstance(response_data, bytes):
-                # 바이너리 데이터를 PIL Image로 변환 (vto_mino 방식)
-                image = Image.open(BytesIO(response_data))
-                st.image(image, caption="가상 착장 결과", width='stretch')
+                        # 디버깅 옵션
+                with st.expander("🔍 디버깅 정보 (응답 구조 확인)"):
+                    if "debug_info" in st.session_state.vto_result:
+                        st.json(st.session_state.vto_result["debug_info"])
+                    
+                    response_data = st.session_state.vto_result["response"]
+                    st.write("응답 타입:", type(response_data).__name__)
+                    st.write("응답이 None인가?", response_data is None)
+                    
+                    if response_data is not None:
+                        if isinstance(response_data, str):
+                            st.write("응답 길이:", len(response_data))
+                            st.write("응답 시작 부분 (최대 200자):", response_data[:200])
+                        else:
+                            st.write("응답 내용:", response_data)
+                            
+            elif isinstance(response_data, list):
+                # 이미지 리스트를 그리드로 표시
+                st.markdown(f"**총 {len(response_data)}개의 이미지가 생성되었습니다.**")
+                
+                # 이미지 개수에 따라 컬럼 개수 조정
+                num_cols = min(len(response_data), 3)  # 최대 2개씩 표시
+                cols = st.columns(num_cols)
+                
+                for idx, image_bytes in enumerate(response_data):
+                    with cols[idx % num_cols]:
+                        if isinstance(image_bytes, bytes):
+                            # 바이너리 데이터를 PIL Image로 변환
+                            image = Image.open(BytesIO(image_bytes))
+                            st.image(image, caption=f"결과 #{idx+1}", width='stretch')
+                        else:
+                            st.warning(f"⚠️ 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
             else:
                 st.warning(f"⚠️ 예상하지 못한 응답 형식입니다: {type(response_data).__name__}")
                 st.text_area("원본 응답 데이터 (최대 500자)", value=str(response_data)[:500], height=150, disabled=True)
