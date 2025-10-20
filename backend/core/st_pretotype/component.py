@@ -4,7 +4,6 @@ import streamlit as st
 from PIL import Image
 import tempfile
 import os
-import base64
 from io import BytesIO
 from core.litellm_hander.utils import (
     clothes_category,
@@ -318,61 +317,23 @@ def vto_tab(settings: Dict[str, str]):
                     st.write("응답 내용:", response_data)
         
         try:
-            # 응답에서 이미지 추출
+            # 응답에서 이미지 추출 (vto_mino 방식 적용)
             response_data = st.session_state.vto_result["response"]
-            image_displayed = False
             
-            # None 체크
             if response_data is None:
                 st.error("❌ 응답에 이미지 데이터가 없습니다. 디버깅 정보를 확인해주세요.")
-                image_displayed = False
-            # 1. 문자열 형태 (base64 또는 URL)
-            elif isinstance(response_data, str):
-                # data:image/...;base64, 형식인 경우
-                if response_data.startswith('data:image'):
-                    base64_data = response_data.split(',', 1)[1]
-                    image_bytes = base64.b64decode(base64_data)
-                    image = Image.open(BytesIO(image_bytes))
-                    st.image(image, caption="가상 착장 결과", width='stretch')
-                    image_displayed = True
-                # 순수 base64 문자열인 경우
-                elif len(response_data) > 100:  # base64는 매우 긴 문자열
-                    try:
-                        image_bytes = base64.b64decode(response_data)
-                        image = Image.open(BytesIO(image_bytes))
-                        st.image(image, caption="가상 착장 결과", width='stretch')
-                        image_displayed = True
-                    except:
-                        pass
-                # URL인 경우
-                elif response_data.startswith('http'):
-                    st.image(response_data, caption="가상 착장 결과", width='stretch')
-                    image_displayed = True
-            
-            # 2. 바이너리 데이터
             elif isinstance(response_data, bytes):
+                # 바이너리 데이터를 PIL Image로 변환 (vto_mino 방식)
                 image = Image.open(BytesIO(response_data))
                 st.image(image, caption="가상 착장 결과", width='stretch')
-                image_displayed = True
-            
-            # 3. 딕셔너리 형태 (image_url 등)
-            elif isinstance(response_data, dict):
-                if 'url' in response_data:
-                    st.image(response_data['url'], caption="가상 착장 결과", width='stretch')
-                    image_displayed = True
-                elif 'data' in response_data:
-                    image_bytes = base64.b64decode(response_data['data'])
-                    image = Image.open(BytesIO(image_bytes))
-                    st.image(image, caption="가상 착장 결과", width='stretch')
-                    image_displayed = True
-            
-            if not image_displayed:
-                st.warning("⚠️ 이미지를 표시할 수 없는 응답 형식입니다.")
+            else:
+                st.warning(f"⚠️ 예상하지 못한 응답 형식입니다: {type(response_data).__name__}")
                 st.text_area("원본 응답 데이터 (최대 500자)", value=str(response_data)[:500], height=150, disabled=True)
                 
         except Exception as e:
             st.error(f"❌ 이미지 표시 중 오류 발생: {str(e)}")
-            st.text_area("원본 응답 데이터 (최대 500자)", value=str(st.session_state.vto_result["response"])[:500], height=150, disabled=True)
+            import traceback
+            st.code(traceback.format_exc())
         
         st.divider()
         
