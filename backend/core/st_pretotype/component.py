@@ -108,7 +108,6 @@ def sidebar():
     }
 
 def vto_tab(settings: Dict[str, str]):
-    st.text(f"settings: {settings}")
     # 카테고리에 따른 업로드 수 결정
     num_uploads = 1 if settings["main_category"] == "dress" else 2
 
@@ -202,11 +201,14 @@ def vto_tab(settings: Dict[str, str]):
         st.session_state.vto_result = None
     if "generated_prompt" not in st.session_state:
         st.session_state.generated_prompt = None
+    if "prompt_version" not in st.session_state:
+        st.session_state.prompt_version = 0
     
     # 프롬프트 생성 버튼
     col_btn1, col_btn2 = st.columns(2)
     
     with col_btn1:
+        st.json(settings)
         if st.button("📝 프롬프트 생성", width='stretch'):
             # 프롬프트 생성
             prompt = assemble_prompt(
@@ -219,71 +221,80 @@ def vto_tab(settings: Dict[str, str]):
                 length=settings["length"] if settings["length"] != "none" else None,
             )
             st.session_state.generated_prompt = prompt
+            # 버전 증가로 text_area 강제 재생성
+            st.session_state.prompt_version += 1
             st.success("✅ 프롬프트가 생성되었습니다!")
     
     # 생성된 프롬프트 표시 및 수정
     if st.session_state.generated_prompt:
         st.markdown("**생성된 프롬프트 (수정 가능):**")
-        edited_prompt = st.text_area(
+        # 버전을 key에 포함하여 프롬프트가 생성될 때마다 text_area 재생성
+        st.text_area(
             "프롬프트",
             value=st.session_state.generated_prompt,
             height=200,
-            key="prompt_editor",
+            key=f"prompt_editor_{st.session_state.prompt_version}",
             help="필요시 프롬프트를 수정할 수 있습니다."
         )
-        # 수정된 프롬프트를 세션에 저장
-        st.session_state.generated_prompt = edited_prompt
     
-    # VTO 실행 버튼
     with col_btn2:
-        vto_button_disabled = st.session_state.generated_prompt is None
-        if st.button(
-            "🚀 Virtual Try-On 실행", 
-            width='stretch',
-            disabled=vto_button_disabled,
-            help="먼저 프롬프트를 생성해주세요." if vto_button_disabled else None
-        ):
-            # 이미지 가져오기
-            if num_uploads == 1:
-                st.warning("⚠️ Virtual Try-On은 2개의 이미지가 필요합니다.")
+        temperature = st.slider(
+            "Temperature",
+            min_value=0.0,
+            max_value=2.0,
+            value=1.0,
+            step=0.1,
+            help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
+        )
+        
+    vto_button_disabled = st.session_state.generated_prompt is None
+    if st.button(
+        "🚀 Virtual Try-On 실행", 
+        width='stretch',
+        disabled=vto_button_disabled,
+        help="먼저 프롬프트를 생성해주세요." if vto_button_disabled else None
+    ):
+        # 이미지 가져오기
+        if num_uploads == 1:
+            st.warning("⚠️ Virtual Try-On은 2개의 이미지가 필요합니다.")
+        else:
+            if uploaded_file_a is None or uploaded_file_b is None:
+                st.error("❌ 두 개의 이미지를 모두 업로드해주세요.")
             else:
-                if uploaded_file_a is None or uploaded_file_b is None:
-                    st.error("❌ 두 개의 이미지를 모두 업로드해주세요.")
-                else:
-                    with st.spinner("Virtual Try-On을 실행 중입니다..."):
-                        # 임시 파일로 저장
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file_1:
-                            uploaded_file_a.seek(0)
-                            tmp_file_1.write(uploaded_file_a.read())
-                            tmp_path_1 = tmp_file_1.name
+                with st.spinner("Virtual Try-On을 실행 중입니다..."):
+                    # 임시 파일로 저장
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file_1:
+                        uploaded_file_a.seek(0)
+                        tmp_file_1.write(uploaded_file_a.read())
+                        tmp_path_1 = tmp_file_1.name
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file_2:
+                        uploaded_file_b.seek(0)
+                        tmp_file_2.write(uploaded_file_b.read())
+                        tmp_path_2 = tmp_file_2.name
+                    
+                    try:
+                        # text_area에서 현재 프롬프트 가져오기 (사용자가 수정했을 수 있음)
+                        prompt_key = f"prompt_editor_{st.session_state.prompt_version}"
+                        prompt = st.session_state.get(prompt_key, st.session_state.generated_prompt)
                         
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file_2:
-                            uploaded_file_b.seek(0)
-                            tmp_file_2.write(uploaded_file_b.read())
-                            tmp_path_2 = tmp_file_2.name
-                        
-                        try:
-                            # 세션에 저장된 프롬프트 사용
-                            prompt = st.session_state.generated_prompt
-                            
-                            # Virtual Try-On 실행
-                            # temperature: 결과의 다양성 (0.0~2.0, 기본값 1.0)
-                            result = asyncio.run(virtual_tryon(
-                                tmp_path_1, 
-                                tmp_path_2, 
-                                prompt,
-                                temperature=1.0
-                            ))
-                            st.session_state.vto_result = result
-                            st.success("✅ Virtual Try-On 완료!")
-                        except Exception as e:
-                            st.error(f"❌ Virtual Try-On 중 오류 발생: {str(e)}")
-                        finally:
-                            # 임시 파일 삭제
-                            if os.path.exists(tmp_path_1):
-                                os.unlink(tmp_path_1)
-                            if os.path.exists(tmp_path_2):
-                                os.unlink(tmp_path_2)
+                        # Virtual Try-On 실행 (slider에서 선택한 temperature 사용)
+                        result = asyncio.run(virtual_tryon(
+                            tmp_path_1, 
+                            tmp_path_2, 
+                            prompt,
+                            temperature=temperature
+                        ))
+                        st.session_state.vto_result = result
+                        st.success("✅ Virtual Try-On 완료!")
+                    except Exception as e:
+                        st.error(f"❌ Virtual Try-On 중 오류 발생: {str(e)}")
+                    finally:
+                        # 임시 파일 삭제
+                        if os.path.exists(tmp_path_1):
+                            os.unlink(tmp_path_1)
+                        if os.path.exists(tmp_path_2):
+                            os.unlink(tmp_path_2)
     
     # VTO 결과 출력
     if st.session_state.vto_result:
@@ -374,4 +385,3 @@ def vto_tab(settings: Dict[str, str]):
             st.metric("비용 (USD)", f"${usage.cost_usd:.6f}")
         with col3:
             st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
-       

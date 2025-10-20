@@ -1,11 +1,94 @@
 import json
-from typing import Dict
-from core.litellm_hander.schema import ClothesImageAnalysis
+from typing import Dict, Optional
+from core.litellm_hander.schema import ClothesImageAnalysis, LiteLLMUsageData
 from core.litellm_hander.process import LiteLLMHandler
 from google import genai
 from google.genai import types
 from PIL import Image as PILImage
 from configs import settings
+
+
+def calculate_vto_cost(usage_metadata) -> LiteLLMUsageData:
+    """
+    Gemini 2.5 Flash Image 모델의 토큰 사용량 및 비용 계산
+    vto_mino.py의 calculate_cost_info_dict 방식 적용
+    
+    Args:
+        usage_metadata: Gemini API 응답의 사용량 메타데이터
+    
+    Returns:
+        LiteLLMUsageData: 토큰 및 비용 정보
+    """
+    if not usage_metadata:
+        return LiteLLMUsageData(
+            total_token_count=0,
+            prompt_token_count=0,
+            candidates_token_count=0,
+            output_token_count=0,
+            cached_content_token_count=0,
+            thoughts_token_count=0,
+            model_name="gemini-2.5-flash-image",
+            cost_usd=0.0,
+            cost_krw=0.0,
+            task_name="virtual_tryon"
+        )
+    
+    # None 값 방어 처리
+    prompt_token_count = usage_metadata.prompt_token_count or 0
+    candidates_token_count = usage_metadata.candidates_token_count or 0
+    total_token_count = usage_metadata.total_token_count or 0
+    
+    # 토큰 세부사항 추출 (텍스트/이미지 분리)
+    prompt_text_tokens = 0
+    prompt_image_tokens = 0
+    if hasattr(usage_metadata, 'prompt_tokens_details') and usage_metadata.prompt_tokens_details:
+        for detail in usage_metadata.prompt_tokens_details:
+            if 'TEXT' in str(detail.modality):
+                prompt_text_tokens = detail.token_count or 0
+            elif 'IMAGE' in str(detail.modality):
+                prompt_image_tokens += detail.token_count or 0
+    
+    output_image_tokens = 0
+    if hasattr(usage_metadata, 'candidates_tokens_details') and usage_metadata.candidates_tokens_details:
+        for detail in usage_metadata.candidates_tokens_details:
+            if 'IMAGE' in str(detail.modality):
+                output_image_tokens += detail.token_count or 0
+    
+    # Gemini 2.5 Flash Image 가격 정보
+    INPUT_PRICE_PER_1M_TOKENS = 0.35    # USD (vto_mino.py 기준)
+    OUTPUT_PRICE_PER_1M_TOKENS = 30.00  # USD (이미지 생성이라서 높음)
+    USD_TO_KRW_RATE = 1380
+    
+    # 비용 계산
+    input_cost = (prompt_token_count / 1_000_000) * INPUT_PRICE_PER_1M_TOKENS
+    output_cost = (candidates_token_count / 1_000_000) * OUTPUT_PRICE_PER_1M_TOKENS
+    total_cost = input_cost + output_cost
+    
+    total_cost_krw = total_cost * USD_TO_KRW_RATE
+    
+    # 디버깅 로그
+    print(f"\n=== 토큰 사용량 상세 ===")
+    print(f"입력 토큰: {prompt_token_count} (텍스트: {prompt_text_tokens}, 이미지: {prompt_image_tokens})")
+    print(f"출력 토큰: {candidates_token_count} (이미지: {output_image_tokens})")
+    print(f"총 토큰: {total_token_count}")
+    print(f"입력 비용: ${input_cost:.6f}")
+    print(f"출력 비용: ${output_cost:.6f}")
+    print(f"총 비용: ${total_cost:.6f} (약 {total_cost_krw:,.2f}원)")
+    print(f"======================\n")
+    
+    return LiteLLMUsageData(
+        total_token_count=total_token_count,
+        prompt_token_count=prompt_token_count,
+        candidates_token_count=candidates_token_count,
+        output_token_count=candidates_token_count,
+        cached_content_token_count=0,
+        thoughts_token_count=0,
+        model_name="gemini-2.5-flash-image",
+        cost_usd=round(total_cost, 6),
+        cost_krw=round(total_cost_krw, 2),
+        task_name="virtual_tryon"
+    )
+
 
 async def analyze_clothes_image(image_path: str) -> ClothesImageAnalysis:
     llm_handler = LiteLLMHandler()
@@ -78,16 +161,8 @@ async def virtual_tryon(
         )
     )
     
-    # 비용 계산을 위한 usage 정보 생성
-    llm_handler = LiteLLMHandler()
-    usage_info = {
-        "usage": {
-            "prompt_tokens": response.usage_metadata.prompt_token_count if hasattr(response, 'usage_metadata') else 0,
-            "completion_tokens": response.usage_metadata.candidates_token_count if hasattr(response, 'usage_metadata') else 0,
-            "total_tokens": response.usage_metadata.total_token_count if hasattr(response, 'usage_metadata') else 0,
-        }
-    }
-    usage_data = llm_handler.calculate_cost(usage_info, f"gemini/{model_name}", "virtual_tryon")
+    # 비용 계산 (vto_mino.py 방식 적용)
+    usage_data = calculate_vto_cost(response.usage_metadata if hasattr(response, 'usage_metadata') else None)
     
     # 응답에서 이미지 데이터 추출 (Genai SDK 응답 구조)
     image_data = None
