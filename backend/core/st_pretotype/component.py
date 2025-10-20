@@ -12,7 +12,7 @@ from core.litellm_hander.utils import (
     sleeve_options,
     length_options
 )
-from core.vto_service.service import analyze_clothes_image, virtual_tryon
+from core.vto_service.service import analyze_clothes_image, virtual_tryon, virtual_model_tryon
 from prompts.vto_prompts import assemble_prompt
 
 def sidebar():
@@ -322,6 +322,209 @@ def vto_tab(settings: Dict[str, str]):
             debug_info = st.session_state.vto_result.get("debug_info", {})
             
             total_count = len(front_images) + len(back_images) + len(side_images)
+            
+            if total_count == 0:
+                st.error("❌ 생성된 이미지가 없습니다.")
+                with st.expander("🔍 디버깅 정보"):
+                    st.json(debug_info)
+            else:
+                st.markdown(f"**총 {total_count}개의 이미지가 생성되었습니다.**")
+                
+                # 앞면 이미지 표시
+                if front_images:
+                    st.markdown("### 🔵 정면 뷰")
+                    num_cols = image_count
+                    cols = st.columns(num_cols)
+                    for idx, image_bytes in enumerate(front_images):
+                        with cols[idx % num_cols]:
+                            if isinstance(image_bytes, bytes):
+                                image = Image.open(BytesIO(image_bytes))
+                                st.image(image, caption=f"정면 #{idx+1}", width='stretch')
+                            else:
+                                st.warning(f"⚠️ 정면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                
+                # 뒷면 이미지 표시
+                if back_images:
+                    st.markdown("### 🔴 후면 뷰")
+                    num_cols = image_count
+                    cols = st.columns(num_cols)
+                    for idx, image_bytes in enumerate(back_images):
+                        with cols[idx % num_cols]:
+                            if isinstance(image_bytes, bytes):
+                                image = Image.open(BytesIO(image_bytes))
+                                st.image(image, caption=f"후면 #{idx+1}", width='stretch')
+                            else:
+                                st.warning(f"⚠️ 후면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                
+                # # 측면 이미지 표시
+                # if side_images:
+                #     st.markdown("### 🟢 측면 뷰")
+                #     num_cols = min(len(side_images), 3)
+                #     cols = st.columns(num_cols)
+                #     for idx, image_bytes in enumerate(side_images):
+                #         with cols[idx % num_cols]:
+                #             if isinstance(image_bytes, bytes):
+                #                 image = Image.open(BytesIO(image_bytes))
+                #                 st.image(image, caption=f"측면 #{idx+1}", width='stretch')
+                #             else:
+                #                 st.warning(f"⚠️ 측면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                
+                # 디버깅 정보 (옵션)
+                with st.expander("🔍 생성 상세 정보"):
+                    st.json(debug_info)
+                
+        except Exception as e:
+            st.error(f"❌ 이미지 표시 중 오류 발생: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
+        
+        st.divider()
+        
+        st.markdown("**사용량 정보:**")
+        usage = st.session_state.vto_result["usage"]
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("총 토큰", usage.total_token_count)
+        with col2:
+            st.metric("비용 (USD)", f"${usage.cost_usd:.6f}")
+        with col3:
+            st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
+            
+            
+def virtual_model_tab(settings: Dict[str, str]):
+    # 카테고리에 따른 업로드 수 결정
+    num_uploads = 1 if settings["main_category"] == "dress" else 2
+
+    # 이미지 업로드 섹션
+    st.subheader("📤 이미지 업로드")
+
+    if num_uploads == 1:
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            uploaded_file = st.file_uploader(
+                "이미지 선택",
+                type=["jpg", "jpeg", "png", "webp"],
+                key="upload_1"
+            )
+        with col2:
+            if uploaded_file:
+                image = Image.open(uploaded_file)
+                st.image(image, caption="업로드된 이미지", width='stretch')
+    else:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**앞면 이미지**")
+            uploaded_file_a = st.file_uploader(
+                "앞면 이미지 선택",
+                type=["jpg", "jpeg", "png", "webp"],
+                key="upload_a"
+            )
+            if uploaded_file_a:
+                image_a = Image.open(uploaded_file_a)
+                st.image(image_a, caption="앞면 이미지", width='stretch')
+        
+        with col2:
+            st.markdown("**뒷면 이미지**")
+            uploaded_file_b = st.file_uploader(
+                "뒷면 이미지 선택",
+                type=["jpg", "jpeg", "png", "webp"],
+                key="upload_b"
+            )
+            if uploaded_file_b:
+                image_b = Image.open(uploaded_file_b)
+                st.image(image_b, caption="뒷면 이미지", width='stretch')
+
+    st.divider()
+    
+    # 실행 버튼 섹션
+    st.subheader("🚀 실행")
+    
+    # 세션 상태 초기화
+    if "vto_result" not in st.session_state:
+        st.session_state.vto_result = None
+    if "generated_prompt" not in st.session_state:
+        st.session_state.generated_prompt = None
+    if "prompt_version" not in st.session_state:
+        st.session_state.prompt_version = 0
+    
+    temperature = st.slider(
+        "Temperature",
+        min_value=0.0,
+        max_value=2.0,
+        value=1.0,
+        step=0.1,
+        help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
+    )
+    
+    image_count = st.slider(
+        "생성할 이미지 개수",
+        min_value=1,
+        max_value=10,
+        value=3,
+        step=1,
+        help="동시에 생성할 이미지 개수입니다. 여러 개를 생성하면 다양한 결과를 얻을 수 있습니다."
+    )
+        
+    if st.button(
+        "🚀 가상 모델 피팅 실행", 
+        width='stretch',
+    ):
+        # 이미지 가져오기
+        first_image = uploaded_file if num_uploads == 1 else uploaded_file_a
+        second_image = None if num_uploads == 1 else uploaded_file_b
+        
+        if first_image is None and second_image is None:
+            st.error("❌ 최소 하나의 이미지를 업로드해주세요.")
+        else:
+            with st.spinner("가상 모델 피팅을 실행 중입니다..."):
+                tmp_front_path = None
+                tmp_back_path = None
+                
+                try:
+                    if first_image is not None:
+                        # 앞면 이미지 임시 파일로 저장
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                            first_image.seek(0)
+                            tmp_file.write(first_image.read())
+                            tmp_front_path = tmp_file.name
+                    
+                    # 뒷면 이미지가 있으면 임시 파일로 저장
+                    if second_image is not None:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                            second_image.seek(0)
+                            tmp_file.write(second_image.read())
+                            tmp_back_path = tmp_file.name
+                    
+                    # Virtual Try-On 실행 (앞면/뒷면 이미지 경로 전달)
+                    result = asyncio.run(virtual_model_tryon(
+                        front_image_path=tmp_front_path,
+                        back_image_path=tmp_back_path,
+                        temperature=temperature,
+                        image_count=image_count
+                    ))
+                    st.session_state.vto_result = result
+                    st.success("✅ 가상 모델 피팅 완료!")
+                except Exception as e:
+                    st.error(f"❌ 가상 모델 피팅 중 오류 발생: {str(e)}")
+                finally:
+                    # 임시 파일 삭제
+                    if tmp_front_path and os.path.exists(tmp_front_path):
+                        os.unlink(tmp_front_path)
+                    if tmp_back_path and os.path.exists(tmp_back_path):
+                        os.unlink(tmp_back_path)
+    
+    # VTO 결과 출력
+    if st.session_state.vto_result:
+        st.subheader("📊 가상 모델 피팅 결과")
+        
+        try:
+            # 앞면/뒷면/측면 이미지 개별 추출
+            front_images = st.session_state.vto_result.get("front_images", [])
+            back_images = st.session_state.vto_result.get("back_images", [])
+            debug_info = st.session_state.vto_result.get("debug_info", {})
+            
+            total_count = len(front_images) + len(back_images)
             
             if total_count == 0:
                 st.error("❌ 생성된 이미지가 없습니다.")

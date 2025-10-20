@@ -348,3 +348,148 @@ async def virtual_tryon(
         }
     }
 
+async def virtual_model_tryon(
+    front_image_path: Optional[str], 
+    back_image_path: Optional[str], 
+    temperature: float = 1.0,
+    image_count: int = 1,
+    model_folder: str = "default"
+) -> Dict:
+    """
+    Virtual Try-On: 앞면/뒷면 이미지와 프롬프트로 가상 모델 착장 생성
+    
+    Args:
+        front_image_path: 앞면 의류 이미지 경로 (Optional)
+        back_image_path: 뒷면 의류 이미지 경로 (Optional)
+        temperature: 결과의 다양성 (기본값: 1.0)
+        image_count: 생성할 이미지 개수 (기본값: 1)
+        model_folder: 사용할 모델 폴더 (기본값: "default")
+    
+    Returns:
+        Dict: 응답 결과 (앞면/뒷면 이미지 리스트 및 비용 정보)
+    """
+    # 입력 검증 - 최소 1개 이미지 필요
+    if not front_image_path and not back_image_path:
+        raise ValueError("최소 1개의 이미지(앞면 또는 뒷면)를 제공해야 합니다.")
+    
+    # Google Genai SDK를 직접 사용
+    client = genai.Client(api_key=settings.gemini_api_key)
+    aio_client = client.aio
+    
+    # 의류 이미지 로드
+    front_clothes_img = PILImage.open(front_image_path) if front_image_path else None
+    back_clothes_img = PILImage.open(back_image_path) if back_image_path else None
+    
+    # 로깅
+    uploaded_types = []
+    if front_clothes_img:
+        uploaded_types.append("앞면")
+    if back_clothes_img:
+        uploaded_types.append("뒷면")
+    
+    print(f"\n=== Virtual Try-On 실행 ===")
+    print(f"업로드된 의류 이미지: {', '.join(uploaded_types)}")
+    print(f"생성할 이미지 개수 (각 뷰당): {image_count}")
+    print(f"Temperature: {temperature}")
+    print(f"모델 폴더: {model_folder}")
+    print(f"========================\n")
+    
+    # contents_list 구성: 각 조합에 대해 image_count만큼 생성
+    contents_list = []
+    
+    front_prompt = """
+        Generate a photorealistic image of a young woman wearing the outfit exactly as shown in the provided Source Image.
+        The clothing's design, pattern, color, fabric texture, and fit must be perfectly replicated with no alteration.
+        Create a model who matches this description: a young woman with a loose updo hairstyle and soft bangs, natural makeup with soft pink lips.
+        Maintain realistic proportions, gentle facial expression, and soft, even lighting that matches the clothing's visual tone.
+        Place her in a minimalist, plain light gray background with no props, patterns, or textures.
+        Lighting should be even and diffused, matching the direction implied by the outfit photo.
+        Ensure the clothing drapes naturally on the model's body with realistic folds and contact shadows.
+        Preserve accurate color balance and texture detail; avoid seams, blur, or artificial effects.
+        Output a single high-resolution image in neutral, editorial style.
+        """
+    
+    back_prompt = """
+        Generate a photorealistic image of a young woman wearing the outfit exactly as shown in the provided Source Image.
+        The clothing's design, pattern, color, fabric texture, and fit must be perfectly replicated with no alteration.
+        The model must be shown from behind.
+        Her entire back — from head to toe — must face the camera.
+        Do **not** show her face, eyes, or any part of the front of her body.
+        This image must be a **true back view** with the model completely turned away from the viewer, as if walking or standing with her back to the camera.
+        A side or front angle is strictly prohibited.
+        Create a model who matches this description: a young woman with a loose updo hairstyle and soft bangs visible from behind, natural makeup (not visible in this view), and soft pink lips (also not visible due to angle).
+        Maintain realistic body proportions, soft posture, and even lighting that matches the outfit's visual tone.
+        Ensure that the lighting direction is consistent with the Source Image and that shadows, folds, and fabric contact points look natural on the body.
+        The background should be plain, minimalist, and light gray with no textures or props.
+        The final image must be high-resolution and editorial in tone, with no artificial artifacts, blur, or face visible.
+        """
+    # 정면 뷰: model_front + front_clothes (앞면 의류가 있으면)
+    if front_clothes_img:
+        for _ in range(image_count):
+            contents_list.append([front_prompt, front_clothes_img])
+    
+    # 뒷면 뷰: model_back + back_clothes (뒷면 의류가 있으면)
+    if back_clothes_img:
+        for _ in range(image_count):
+            contents_list.append([back_prompt, back_clothes_img])
+    
+    # 측면 뷰: model_side + front_clothes (앞면 의류가 있으면)
+    # if front_clothes_img:
+    #     for _ in range(image_count):
+    #         contents_list.append([prompt, model_side_img, front_clothes_img])
+    
+    print(f"총 생성할 이미지 수: {len(contents_list)}")
+    
+    # 모든 조합에 대해 병렬 호출 (vto_mino 방식)
+    tasks = [virtual_tryon_inference(aio_client, contents, temperature) for contents in contents_list]
+    responses = await asyncio.gather(*tasks)
+    
+    # 결과 분리
+    result_image_list, usage_data_list = zip(*responses) if responses else ([], [])
+    
+    # None이 아닌 usage_data만 필터링
+    usage_data_list = [usage for usage in usage_data_list if usage is not None]
+    
+    # 비용 정보 합산
+    if usage_data_list:
+        total_usage = sum_usage_data(usage_data_list)
+    else:
+        total_usage = calculate_vto_cost(None)
+    
+    # 결과 이미지를 뷰별로 분리
+    front_image_list = []
+    back_image_list = []
+    
+    idx = 0
+    # 정면 의류가 있으면 정면 결과가 먼저 생성됨
+    if front_clothes_img:
+        front_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+        idx += image_count
+    
+    # 뒷면 의류가 있으면 뒷면 결과가 생성됨
+    if back_clothes_img:
+        back_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+        idx += image_count
+    
+    # 모든 이미지를 하나의 리스트로 합침
+    all_images = front_image_list + back_image_list
+    
+    print(f"\n=== Virtual Try-On 완료 ===")
+    print(f"정면 이미지: {len(front_image_list)}개")
+    print(f"뒷면 이미지: {len(back_image_list)}개")
+    print(f"총 생성된 이미지: {len(all_images)}개")
+    print(f"========================\n")
+    
+    return {
+        "response": all_images,  # 모든 이미지 리스트 반환
+        "front_images": front_image_list,
+        "back_images": back_image_list,
+        "usage": total_usage,
+        "debug_info": {
+            "front_count": len(front_image_list),
+            "back_count": len(back_image_list),
+            "total_count": len(all_images),
+            "requested_count_per_view": image_count,
+            "model_name": "gemini-2.5-flash-image",
+        }
+    }

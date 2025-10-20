@@ -3,6 +3,7 @@ import streamlit as st
 from core.st_pretotype.component import (
     sidebar,
     vto_tab,
+    virtual_model_tab,
 )
 
 # 페이지 설정
@@ -22,6 +23,12 @@ def vto_page():
         settings = sidebar()
     vto_tab(settings)
 
+def virtual_model_page():
+    st.title("🎨 가상 모델 피팅 모드")
+    with st.sidebar:
+        settings = sidebar()
+    virtual_model_tab(settings)
+
 def product_page():
     st.title("🖼️ 상품 이미지 생성 모드")
     with st.sidebar:
@@ -32,6 +39,7 @@ def product_page():
 # 네비게이션 설정
 page = st.navigation([
     st.Page(vto_page, title="가상 피팅 모드", icon="👔"),
+    st.Page(virtual_model_page, title="가상 모델 피팅 모드", icon="👔"),
     st.Page(product_page, title="상품 이미지 생성", icon="📸")
 ])
 
