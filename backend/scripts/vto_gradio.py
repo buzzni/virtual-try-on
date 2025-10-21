@@ -126,17 +126,23 @@ with gr.Blocks(title="제미나이 실험실") as demo:
         with gr.Row():
             image1 = gr.Image(
                 label="이미지 1",
-                type="pil"
+                type="pil",
+                format="png",
+                image_mode="RGB"
             )
             
             image2 = gr.Image(
                 label="이미지 2 (선택사항)",
-                type="pil"
+                type="pil",
+                format="png",
+                image_mode="RGB"
             )
             
             image3 = gr.Image(
                 label="이미지 3 (선택사항)",
-                type="pil"
+                type="pil",
+                format="png",
+                image_mode="RGB"
             )
             
         with gr.Row():
