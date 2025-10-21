@@ -1,5 +1,6 @@
-from typing import Union
+from typing import Union, Optional, Tuple, Dict
 import aiofiles
+import asyncio
 from google import genai
 from google.genai import types
 from PIL import Image
@@ -8,7 +9,6 @@ import numpy as np
 from configs import settings
 from typing import List
 from core.litellm_hander.schema import LiteLLMUsageData
-from core.vto_service.service import calculate_vto_cost
 
 
 class GeminiProcesser:
@@ -91,7 +91,7 @@ class GeminiProcesser:
             )
             
             # 비용 계산
-            usage_data = calculate_vto_cost(response.usage_metadata if hasattr(response, 'usage_metadata') else None)
+            usage_data = await self.calculate_vto_cost(response.usage_metadata if hasattr(response, 'usage_metadata') else None)
             
             # 응답에서 이미지 데이터 추출
             if hasattr(response, 'candidates') and len(response.candidates) > 0:
@@ -219,3 +219,102 @@ class GeminiProcesser:
             cost_krw=round(cost_krw, 2),
             task_name="virtual_tryon"
         )
+    
+    async def load_clothes_images(
+        self,
+        front_image_path: Optional[str],
+        back_image_path: Optional[str]
+    ) -> Tuple[Optional[Image.Image], Optional[Image.Image]]:
+        """
+        의류 이미지를 로드하는 헬퍼 함수
+        
+        Args:
+            front_image_path: 앞면 의류 이미지 경로
+            back_image_path: 뒷면 의류 이미지 경로
+        
+        Returns:
+            Tuple: (앞면 이미지, 뒷면 이미지)
+        """
+        front_clothes_img = Image.open(front_image_path) if front_image_path else None
+        back_clothes_img = Image.open(back_image_path) if back_image_path else None
+        return front_clothes_img, back_clothes_img
+    
+    async def execute_vto_inference(
+        self,
+        contents_list: List,
+        front_has_images: bool,
+        back_has_images: bool,
+        image_count: int,
+        temperature: float,
+        include_side: bool = False
+    ) -> Dict:
+        """
+        Virtual Try-On 추론을 실행하고 결과를 반환하는 공통 로직
+        
+        Args:
+            contents_list: Gemini API에 전달할 콘텐츠 리스트
+            front_has_images: 앞면 이미지 존재 여부
+            back_has_images: 뒷면 이미지 존재 여부
+            image_count: 생성할 이미지 개수
+            temperature: 결과의 다양성
+            include_side: 측면 이미지 포함 여부
+        
+        Returns:
+            Dict: 응답 결과 (앞면/뒷면/측면 이미지 리스트 및 비용 정보)
+        """
+        print(f"총 생성할 이미지 수: {len(contents_list)}")
+        
+        # 모든 조합에 대해 병렬 호출
+        tasks = [self.virtual_tryon_inference(contents, temperature) for contents in contents_list]
+        responses = await asyncio.gather(*tasks)
+        
+        # 결과 분리
+        result_image_list, usage_data_list = zip(*responses) if responses else ([], [])
+        
+        # None이 아닌 usage_data만 필터링
+        usage_data_list = [usage for usage in usage_data_list if usage is not None]
+        
+        # 비용 정보 합산
+        if usage_data_list:
+            total_usage = await self.sum_usage_data(usage_data_list)
+        else:
+            total_usage = await self.calculate_vto_cost(None)
+        
+        # 결과 이미지를 뷰별로 분리
+        front_image_list = []
+        back_image_list = []
+        side_image_list = []
+        
+        idx = 0
+        # 정면 의류가 있으면 정면 결과가 먼저 생성됨
+        if front_has_images:
+            front_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+            idx += image_count
+        
+        # 뒷면 의류가 있으면 뒷면 결과가 생성됨
+        if back_has_images:
+            back_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+            idx += image_count
+        
+        # 측면 이미지가 포함되면 측면 결과가 마지막에 생성됨
+        if include_side and front_has_images:
+            side_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+        
+        # 모든 이미지를 하나의 리스트로 합침
+        all_images = front_image_list + back_image_list + (side_image_list if include_side else [])
+        
+        return {
+            "response": all_images,
+            "front_images": front_image_list,
+            "back_images": back_image_list,
+            "side_images": side_image_list if include_side else [],
+            "usage": total_usage,
+            "debug_info": {
+                "front_count": len(front_image_list),
+                "back_count": len(back_image_list),
+                "side_count": len(side_image_list) if include_side else 0,
+                "total_count": len(all_images),
+                "requested_count_per_view": image_count,
+                "model_name": "gemini-2.5-flash-image",
+            }
+        }
