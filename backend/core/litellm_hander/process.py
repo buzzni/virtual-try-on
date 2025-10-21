@@ -106,8 +106,8 @@ class LiteLLMHandler:
                 "output": 2.5,
             },
             "gemini/gemini-2.5-flash-image": {
-                "input": 0.35,   # 이미지 생성 모델 (vto_mino.py 기준)
-                "output": 30.0,  # 이미지 생성 출력은 매우 비쌈
+                "input": 0.35,
+                "output": 30.0,
             },
             "gemini/gemini-2.5-flash-lite": {
                 "input": 0.1,
