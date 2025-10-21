@@ -93,7 +93,7 @@ async def process_inputs(text_input, image1, image2, image3, temperature, num_im
 
 # Gradio 인터페이스 생성
 with gr.Blocks(title="제미나이 실험실") as demo:
-    gr.Markdown("#🔬 제미나이 실험실")
+    gr.Markdown("# 🔬 제미나이 실험실")
     gr.Markdown("텍스트 입력 1개와 최대 3개의 이미지를 업로드할 수 있습니다.")
     with gr.Tab("🧑‍🔬 실험실"):
         with gr.Row():
