@@ -98,8 +98,7 @@ async def virtual_model_tryon(
     front_image_path: Optional[str], 
     back_image_path: Optional[str], 
     temperature: float = 1.0,
-    image_count: int = 1,
-    model_folder: str = "default"
+    image_count: int = 1
 ) -> Dict:
     """
     Virtual Try-On: 앞면/뒷면 이미지와 프롬프트로 가상 모델 착장 생성
