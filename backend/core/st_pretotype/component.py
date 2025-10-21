@@ -12,7 +12,7 @@ from core.litellm_hander.utils import (
     sleeve_options,
     length_options
 )
-from core.vto_service.service import analyze_clothes_image, virtual_tryon, virtual_model_tryon
+from core.vto_service.service import analyze_clothes_image, virtual_tryon, virtual_model_tryon, generate_product_image
 from prompts.vto_prompts import assemble_prompt
 
 def sidebar():

@@ -5,6 +5,7 @@ from core.st_pretotype.component import (
     vto_tab,
     virtual_model_tab,
 )
+from core.st_pretotype.product_image_component import product_image_sidebar, product_image_tab
 
 # 페이지 설정
 st.set_page_config(page_title="Virtual Try-On", layout="wide")
@@ -33,8 +34,8 @@ def product_page():
     st.title("🖼️ 상품 이미지 생성 모드")
     with st.sidebar:
         st.header("⚙️ 상품 이미지 설정")
-        st.text("설정 옵션이 여기에 추가될 예정입니다.")
-    st.text("상품 이미지 생성 기능이 여기에 구현될 예정입니다.")
+        settings = product_image_sidebar()
+    product_image_tab(settings)
 
 # 네비게이션 설정
 page = st.navigation([
