@@ -2,6 +2,10 @@ import gradio as gr
 import io
 from PIL import Image
 from core.vto_service.gemini_handler import GeminiProcesser
+from prompts.vto_model_prompts import assemble_model_prompt
+from prompts.vto_prompts import assemble_prompt
+from prompts.prod_image_prompts import product_image_prompt
+from prompts.side_view_prompts import side_view_prompt
 
 async def process_inputs(text_input, image1, image2, image3, temperature, num_images):
     """
@@ -88,85 +92,136 @@ async def process_inputs(text_input, image1, image2, image3, temperature, num_im
 
 
 # Gradio 인터페이스 생성
-with gr.Blocks(title="Virtual Try-On") as demo:
-    gr.Markdown("# Virtual Try-On 실험실")
+with gr.Blocks(title="제미나이 실험실") as demo:
+    gr.Markdown("#🔬 제미나이 실험실")
     gr.Markdown("텍스트 입력 1개와 최대 3개의 이미지를 업로드할 수 있습니다.")
-    
-    with gr.Row():
-        with gr.Column():
-            text_input = gr.Textbox(
-                label="텍스트 입력",
-                placeholder="텍스트를 입력하세요...",
-                lines=3
+    with gr.Tab("🧑‍🔬 실험실"):
+        with gr.Row():
+            with gr.Column():
+                text_input = gr.Textbox(
+                    label="텍스트 입력",
+                    placeholder="텍스트를 입력하세요...",
+                    lines=3
+                )
+                submit_btn = gr.Button("처리하기", variant="primary")
+                
+            with gr.Column():
+                temperature = gr.Slider(
+                    minimum=0.0,
+                    maximum=2.0,
+                    value=0.7,
+                    step=0.1,
+                    label="Temperature",
+                    info="생성 모델의 창의성 조절 (낮을수록 일관적, 높을수록 다양함)"
+                )
+                
+                num_images = gr.Slider(
+                    minimum=1,
+                    maximum=10,
+                    value=1,
+                    step=1,
+                    label="생성할 이미지 개수",
+                    info="생성할 이미지의 개수를 선택하세요"
+                )
+        with gr.Row():
+            image1 = gr.Image(
+                label="이미지 1",
+                type="pil"
             )
-            submit_btn = gr.Button("처리하기", variant="primary")
             
-        with gr.Column():
-            temperature = gr.Slider(
-                minimum=0.0,
-                maximum=2.0,
-                value=0.7,
-                step=0.1,
-                label="Temperature",
-                info="생성 모델의 창의성 조절 (낮을수록 일관적, 높을수록 다양함)"
+            image2 = gr.Image(
+                label="이미지 2 (선택사항)",
+                type="pil"
             )
             
-            num_images = gr.Slider(
-                minimum=1,
-                maximum=10,
-                value=1,
-                step=1,
-                label="생성할 이미지 개수",
-                info="생성할 이미지의 개수를 선택하세요"
+            image3 = gr.Image(
+                label="이미지 3 (선택사항)",
+                type="pil"
             )
-    with gr.Row():
-        image1 = gr.Image(
-            label="이미지 1",
-            type="pil"
-        )
+            
+        with gr.Row():
+            output = gr.Gallery(
+                label="VTO 결과",
+                show_label=False,
+                elem_id="back_output_gallery",
+                columns=3,
+                rows=3,
+                object_fit="contain",
+                height=600,
+                format="png"
+            )
         
-        image2 = gr.Image(
-            label="이미지 2 (선택사항)",
-            type="pil"
-        )
+        with gr.Row():
+            with gr.Column():
+                usage_output = gr.Textbox(
+                    label="💰 사용량 정보",
+                    lines=12,
+                    interactive=False
+                )
+            
+            with gr.Column():
+                debug_output = gr.Textbox(
+                    label="🔍 디버그 정보",
+                    lines=12,
+                    interactive=False
+                )
         
-        image3 = gr.Image(
-            label="이미지 3 (선택사항)",
-            type="pil"
-        )
-        
-    with gr.Row():
-        output = gr.Gallery(
-            label="VTO 결과",
-            show_label=False,
-            elem_id="back_output_gallery",
-            columns=3,
-            rows=3,
-            object_fit="contain",
-            height=600,
-            format="png"
+        submit_btn.click(
+            fn=process_inputs,
+            inputs=[text_input, image1, image2, image3, temperature, num_images],
+            outputs=[output, usage_output, debug_output]
         )
     
-    with gr.Row():
+    with gr.Tab("💡 참고용 프롬프트 예제"):
         with gr.Column():
-            usage_output = gr.Textbox(
-                label="💰 사용량 정보",
-                lines=12,
-                interactive=False
-            )
+            gr.Markdown("## 모델에게 입히는 프롬프트")
+            with gr.Row():
+                default_prompt_display = gr.Textbox(
+                    label="📝 Default 프롬프트",
+                    value=assemble_prompt(
+                        main_category="default",
+                        sub_category="default",
+                        replacement="clothing",
+                    ),
+                    lines=7,
+                    interactive=False,
+                    max_lines=7
+                )
+            gr.Markdown("## 가상 모델 생성 프롬프트")
+            with gr.Row():
+                front_prompt_display = gr.Textbox(
+                    label="📝 Front View 프롬프트",
+                    value=assemble_model_prompt(type="front"),
+                    lines=15,
+                    interactive=False,
+                    max_lines=15
+                )
+                back_prompt_display = gr.Textbox(
+                    label="📝 Back View 프롬프트",
+                    value=assemble_model_prompt(type="back"),
+                    lines=15,
+                    interactive=False,
+                    max_lines=15
+                )
+            gr.Markdown("## 상품 이미지 생성 프롬프트")
+            with gr.Row():
+                product_image_prompt_display = gr.Textbox(
+                    label="📝 Product Image 프롬프트",
+                    value=product_image_prompt(type="default"),
+                    lines=7,
+                    interactive=False,
+                    max_lines=7
+                )
+            gr.Markdown("## 측면 이미지 생성 프롬프트")
+            with gr.Row():
+                side_view_prompt_display = gr.Textbox(
+                    label="📝 Side View 프롬프트",
+                    value=side_view_prompt(),
+                    lines=7,
+                    interactive=False,
+                    max_lines=7
+                )
         
-        with gr.Column():
-            debug_output = gr.Textbox(
-                label="🔍 디버그 정보",
-                lines=12,
-                interactive=False
-            )
-    
-    submit_btn.click(
-        fn=process_inputs,
-        inputs=[text_input, image1, image2, image3, temperature, num_images],
-        outputs=[output, usage_output, debug_output]
-    )
 
 
 if __name__ == "__main__":
