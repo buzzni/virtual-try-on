@@ -44,73 +44,72 @@ def product_image_tab(settings: Dict[str, str]):
             type=["jpg", "jpeg", "png", "webp"],
             key="upload_1"
         )
-    with col2:
         if uploaded_file:
             image = Image.open(uploaded_file)
             st.image(image, caption="업로드된 이미지", width='stretch')
+    with col2:
+        # 실행 버튼 섹션
+        st.subheader("🚀 실행")
+        
+        # 세션 상태 초기화
+        if "product_image_result" not in st.session_state:
+            st.session_state.product_image_result = None
+        
+        temperature = st.slider(
+            "Temperature",
+            min_value=0.0,
+            max_value=2.0,
+            value=1.0,
+            step=0.1,
+            help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
+        )
+        
+        image_count = st.slider(
+            "생성할 이미지 개수",
+            min_value=1,
+            max_value=10,
+            value=3,
+            step=1,
+            help="동시에 생성할 이미지 개수입니다. 여러 개를 생성하면 다양한 결과를 얻을 수 있습니다."
+        )
+            
+        if st.button(
+            "🚀 상품 이미지 생성 실행", 
+            width='stretch',
+        ):
+            # 이미지 가져오기
+            uploaded_image = uploaded_file
+            
+            if uploaded_image is None:
+                st.error("❌ 이미지를 업로드해주세요.")
+            else:
+                with st.spinner("상품 이미지 생성을 실행 중입니다..."):
+                    tmp_image_path = None
+                    
+                    try:
+                        if uploaded_image is not None:
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                                uploaded_image.seek(0)
+                                tmp_file.write(uploaded_image.read())
+                                tmp_image_path = tmp_file.name
+                        
+                        # 상품 이미지 생성 실행
+                        result = asyncio.run(generate_product_image(
+                            mode=settings["mode"],
+                            image_path=tmp_image_path,
+                            temperature=temperature,
+                            image_count=image_count
+                        ))
+                        st.session_state.product_image_result = result
+                        st.success("✅ 상품 이미지 생성 완료!")
+                    except Exception as e:
+                        st.error(f"❌ 상품 이미지 생성 중 오류 발생: {str(e)}")
+                    finally:
+                        # 임시 파일 삭제
+                        if tmp_image_path and os.path.exists(tmp_image_path):
+                            os.unlink(tmp_image_path)
             
     st.divider()
-    
-    # 실행 버튼 섹션
-    st.subheader("🚀 실행")
-    
-    # 세션 상태 초기화
-    if "product_image_result" not in st.session_state:
-        st.session_state.product_image_result = None
-    
-    temperature = st.slider(
-        "Temperature",
-        min_value=0.0,
-        max_value=2.0,
-        value=1.0,
-        step=0.1,
-        help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
-    )
-    
-    image_count = st.slider(
-        "생성할 이미지 개수",
-        min_value=1,
-        max_value=10,
-        value=3,
-        step=1,
-        help="동시에 생성할 이미지 개수입니다. 여러 개를 생성하면 다양한 결과를 얻을 수 있습니다."
-    )
-        
-    if st.button(
-        "🚀 상품 이미지 생성 실행", 
-        width='stretch',
-    ):
-        # 이미지 가져오기
-        uploaded_image = uploaded_file
-        
-        if uploaded_image is None:
-            st.error("❌ 이미지를 업로드해주세요.")
-        else:
-            with st.spinner("상품 이미지 생성을 실행 중입니다..."):
-                tmp_image_path = None
-                
-                try:
-                    if uploaded_image is not None:
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
-                            uploaded_image.seek(0)
-                            tmp_file.write(uploaded_image.read())
-                            tmp_image_path = tmp_file.name
-                    
-                    # 상품 이미지 생성 실행
-                    result = asyncio.run(generate_product_image(
-                        mode=settings["mode"],
-                        image_path=tmp_image_path,
-                        temperature=temperature,
-                        image_count=image_count
-                    ))
-                    st.session_state.product_image_result = result
-                    st.success("✅ 상품 이미지 생성 완료!")
-                except Exception as e:
-                    st.error(f"❌ 상품 이미지 생성 중 오류 발생: {str(e)}")
-                finally:
-                    # 임시 파일 삭제
-                    if tmp_image_path and os.path.exists(tmp_image_path):
-                        os.unlink(tmp_image_path)
     
     # 상품 이미지 생성 결과 출력
     if st.session_state.product_image_result:
