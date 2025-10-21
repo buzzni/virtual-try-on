@@ -2,7 +2,7 @@ def assemble_model_prompt(*, type: str):
     front_prompt = """Generate a photorealistic full-body image of a young woman wearing the outfit exactly as shown in the provided Source Image.
 The entire clothing provided in the Source Image must be fully visible within the frame. No part of the clothing should be cropped, cut off, or out of view.
 The clothing's design, pattern, color, fabric texture, and fit must be perfectly replicated with no alteration.
-Her entire front view — from head to toe — must face the camera.
+The model's full body, from the top of her head to the bottom of her feet, must be entirely visible in the frame without any cropping.
 Create a model who matches this description: a young woman with a loose updo hairstyle and soft bangs, natural makeup with soft pink lips.
 Maintain realistic body proportions, gentle facial expression, and soft, even lighting that matches the clothing's visual tone.
 Place her in a minimalist, plain light gray background with no props, patterns, or textures.
@@ -15,7 +15,7 @@ Output a single high-resolution, full-body image in neutral, editorial style.
     back_prompt = """Generate a photorealistic image of a young woman wearing the outfit exactly as shown in the provided Source Image.
 The clothing's design, pattern, color, fabric texture, and fit must be perfectly replicated with no alteration.
 The model must be shown from behind.
-Her entire back — from head to toe — must face the camera.
+The model's full body, from the top of her head to the bottom of her feet, must be entirely visible in the frame without any cropping.
 Do **not** show her face, eyes, or any part of the front of her body.
 This image must be a **true back view** with the model completely turned away from the viewer, as if walking or standing with her back to the camera.
 A side or front angle is strictly prohibited.
