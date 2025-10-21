@@ -1,4 +1,4 @@
-from typing import Union, Optional, Tuple, Dict
+from typing import Union, Optional, Tuple, Dict, List
 import aiofiles
 import asyncio
 from google import genai
@@ -7,14 +7,129 @@ from PIL import Image
 from io import BytesIO
 import numpy as np
 from configs import settings
-from typing import List
 from core.litellm_hander.schema import LiteLLMUsageData
 
 
 class GeminiProcesser:
-    def __init__(self):
+    """Gemini API를 사용한 Virtual Try-On 처리 클래스"""
+    
+    # 클래스 레벨 상수
+    MODEL_NAME = "gemini-2.5-flash-image"
+    TASK_NAME = "virtual_tryon"
+    
+    # 가격 정보 (USD)
+    INPUT_PRICE_PER_1M_TOKENS = 0.35
+    OUTPUT_PRICE_PER_1M_TOKENS = 30.00
+    USD_TO_KRW_RATE = 1380
+    
+    # Safety settings (클래스 레벨에서 한 번만 생성)
+    SAFETY_SETTINGS = [
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold=types.HarmBlockThreshold.OFF
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold=types.HarmBlockThreshold.OFF
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold=types.HarmBlockThreshold.OFF
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold=types.HarmBlockThreshold.OFF
+        )
+    ]
+    
+    def __init__(self, verbose: bool = True):
+        """
+        Args:
+            verbose: 로깅 출력 여부 (기본값: True)
+        """
         self.client = genai.Client(api_key=settings.gemini_api_key)
         self.aio_client = self.client.aio
+        self.verbose = verbose
+        
+    def _extract_image_from_response(self, response) -> Optional[bytes]:
+        """응답에서 이미지 데이터를 추출하는 헬퍼 메소드"""
+        if not hasattr(response, 'candidates') or not response.candidates:
+            return None
+        
+        candidate = response.candidates[0]
+        if not hasattr(candidate, 'content') or not hasattr(candidate.content, 'parts'):
+            return None
+        
+        for part in candidate.content.parts:
+            if hasattr(part, 'inline_data') and part.inline_data:
+                if hasattr(part.inline_data, 'data'):
+                    return part.inline_data.data
+        
+        return None
+        
+    def _create_usage_data(
+        self,
+        total_token_count: int = 0,
+        prompt_token_count: int = 0,
+        candidates_token_count: int = 0,
+        cost_usd: float = 0.0,
+        cost_krw: float = 0.0
+    ) -> LiteLLMUsageData:
+        """LiteLLMUsageData 생성 헬퍼 메소드"""
+        return LiteLLMUsageData(
+            total_token_count=total_token_count,
+            prompt_token_count=prompt_token_count,
+            candidates_token_count=candidates_token_count,
+            output_token_count=candidates_token_count,
+            cached_content_token_count=0,
+            thoughts_token_count=0,
+            model_name=self.MODEL_NAME,
+            cost_usd=round(cost_usd, 6),
+            cost_krw=round(cost_krw, 2),
+            task_name=self.TASK_NAME
+        )
+    
+    def _extract_token_details(self, usage_metadata) -> Tuple[int, int]:
+        """토큰 세부사항을 추출하는 헬퍼 메소드 (텍스트/이미지 분리)"""
+        prompt_text_tokens = 0
+        prompt_image_tokens = 0
+        
+        if hasattr(usage_metadata, 'prompt_tokens_details') and usage_metadata.prompt_tokens_details:
+            for detail in usage_metadata.prompt_tokens_details:
+                modality_str = str(detail.modality)
+                if 'TEXT' in modality_str:
+                    prompt_text_tokens = detail.token_count or 0
+                elif 'IMAGE' in modality_str:
+                    prompt_image_tokens += detail.token_count or 0
+        
+        return prompt_text_tokens, prompt_image_tokens
+    
+    def _split_images_by_view(
+        self,
+        result_image_list: List,
+        front_has_images: bool,
+        back_has_images: bool,
+        image_count: int,
+        include_side: bool
+    ) -> Tuple[List, List, List]:
+        """결과 이미지를 뷰별로 분리하는 헬퍼 메소드"""
+        front_images, back_images, side_images = [], [], []
+        idx = 0
+        
+        if front_has_images:
+            front_images = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+            idx += image_count
+        
+        if back_has_images:
+            back_images = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+            idx += image_count
+        
+        if include_side and front_has_images:
+            side_images = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+        
+        return front_images, back_images, side_images
+    
+    
 
     async def create_image_content(self, image: Union[Image.Image, bytes, str], use_reize = False) -> str:
         if isinstance(image, str):
@@ -46,68 +161,39 @@ class GeminiProcesser:
         단일 Virtual Try-On 추론
         
         Args:
-            client: Gemini API 클라이언트
             contents: 입력 콘텐츠 리스트 (텍스트 + 이미지들)
             temperature: 결과의 다양성
         
         Returns:
             tuple: (이미지 바이너리 데이터, 비용 정보)
         """
-        model_name = "gemini-2.5-flash-image"
-        
-        # Safety settings (Genai SDK format)
-        safety_settings = [
-            types.SafetySetting(
-                category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                threshold=types.HarmBlockThreshold.OFF
-            ),
-            types.SafetySetting(
-                category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                threshold=types.HarmBlockThreshold.OFF
-            ),
-            types.SafetySetting(
-                category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                threshold=types.HarmBlockThreshold.OFF
-            ),
-            types.SafetySetting(
-                category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                threshold=types.HarmBlockThreshold.OFF
-            )
-        ]
-        
         try:
             # Gemini API 호출 (이미지만 생성하도록 설정)
             response = await self.aio_client.models.generate_content(
-                model=model_name,
+                model=self.MODEL_NAME,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    response_modalities=[types.Modality.IMAGE],  # 이미지만 생성
+                    response_modalities=[types.Modality.IMAGE],
                     temperature=temperature,
-                    image_config=types.ImageConfig(
-                        aspect_ratio="1:1",
-                    ),
-                    safety_settings=safety_settings
+                    image_config=types.ImageConfig(aspect_ratio="1:1"),
+                    safety_settings=self.SAFETY_SETTINGS
                 )
             )
             
             # 비용 계산
-            usage_data = await self.calculate_vto_cost(response.usage_metadata if hasattr(response, 'usage_metadata') else None)
+            usage_data = await self.calculate_vto_cost(
+                response.usage_metadata if hasattr(response, 'usage_metadata') else None
+            )
             
             # 응답에서 이미지 데이터 추출
-            if hasattr(response, 'candidates') and len(response.candidates) > 0:
-                candidate = response.candidates[0]
-                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
-                    for part in candidate.content.parts:
-                        if hasattr(part, 'inline_data') and part.inline_data:
-                            if hasattr(part.inline_data, 'data'):
-                                return part.inline_data.data, usage_data
-            
-            return None, usage_data
+            image_data = self._extract_image_from_response(response)
+            return image_data, usage_data
             
         except Exception as e:
-            print(f"Inference Error: {e}")
+            if self.verbose:
+                print(f"Inference Error: {e}")
             return None, None
-        
+    
     async def calculate_vto_cost(self, usage_metadata) -> LiteLLMUsageData:
         """
         Gemini 2.5 Flash Image 모델의 토큰 사용량 및 비용 계산
@@ -119,73 +205,37 @@ class GeminiProcesser:
             LiteLLMUsageData: 토큰 및 비용 정보
         """
         if not usage_metadata:
-            return LiteLLMUsageData(
-                total_token_count=0,
-                prompt_token_count=0,
-                candidates_token_count=0,
-                output_token_count=0,
-                cached_content_token_count=0,
-                thoughts_token_count=0,
-                model_name="gemini-2.5-flash-image",
-                cost_usd=0.0,
-                cost_krw=0.0,
-                task_name="virtual_tryon"
-            )
+            return self._create_usage_data()
         
         # None 값 방어 처리
         prompt_token_count = usage_metadata.prompt_token_count or 0
         candidates_token_count = usage_metadata.candidates_token_count or 0
         total_token_count = usage_metadata.total_token_count or 0
         
-        # 토큰 세부사항 추출 (텍스트/이미지 분리)
-        prompt_text_tokens = 0
-        prompt_image_tokens = 0
-        if hasattr(usage_metadata, 'prompt_tokens_details') and usage_metadata.prompt_tokens_details:
-            for detail in usage_metadata.prompt_tokens_details:
-                if 'TEXT' in str(detail.modality):
-                    prompt_text_tokens = detail.token_count or 0
-                elif 'IMAGE' in str(detail.modality):
-                    prompt_image_tokens += detail.token_count or 0
-        
-        output_image_tokens = 0
-        if hasattr(usage_metadata, 'candidates_tokens_details') and usage_metadata.candidates_tokens_details:
-            for detail in usage_metadata.candidates_tokens_details:
-                if 'IMAGE' in str(detail.modality):
-                    output_image_tokens += detail.token_count or 0
-        
-        # Gemini 2.5 Flash Image 가격 정보
-        INPUT_PRICE_PER_1M_TOKENS = 0.35
-        OUTPUT_PRICE_PER_1M_TOKENS = 30.00  # USD
-        USD_TO_KRW_RATE = 1380
-        
         # 비용 계산
-        input_cost = (prompt_token_count / 1_000_000) * INPUT_PRICE_PER_1M_TOKENS
-        output_cost = (candidates_token_count / 1_000_000) * OUTPUT_PRICE_PER_1M_TOKENS
+        input_cost = (prompt_token_count / 1_000_000) * self.INPUT_PRICE_PER_1M_TOKENS
+        output_cost = (candidates_token_count / 1_000_000) * self.OUTPUT_PRICE_PER_1M_TOKENS
         total_cost = input_cost + output_cost
+        total_cost_krw = total_cost * self.USD_TO_KRW_RATE
         
-        total_cost_krw = total_cost * USD_TO_KRW_RATE
+        # 디버깅 로그 (verbose 모드일 때만)
+        if self.verbose:
+            prompt_text_tokens, prompt_image_tokens = self._extract_token_details(usage_metadata)
+            print(f"\n=== 토큰 사용량 상세 ===")
+            print(f"입력 토큰: {prompt_token_count} (텍스트: {prompt_text_tokens}, 이미지: {prompt_image_tokens})")
+            print(f"출력 토큰: {candidates_token_count}")
+            print(f"총 토큰: {total_token_count}")
+            print(f"입력 비용: ${input_cost:.6f}")
+            print(f"출력 비용: ${output_cost:.6f}")
+            print(f"총 비용: ${total_cost:.6f} (약 {total_cost_krw:,.2f}원)")
+            print(f"======================\n")
         
-        # 디버깅 로그
-        print(f"\n=== 토큰 사용량 상세 ===")
-        print(f"입력 토큰: {prompt_token_count} (텍스트: {prompt_text_tokens}, 이미지: {prompt_image_tokens})")
-        print(f"출력 토큰: {candidates_token_count} (이미지: {output_image_tokens})")
-        print(f"총 토큰: {total_token_count}")
-        print(f"입력 비용: ${input_cost:.6f}")
-        print(f"출력 비용: ${output_cost:.6f}")
-        print(f"총 비용: ${total_cost:.6f} (약 {total_cost_krw:,.2f}원)")
-        print(f"======================\n")
-        
-        return LiteLLMUsageData(
+        return self._create_usage_data(
             total_token_count=total_token_count,
             prompt_token_count=prompt_token_count,
             candidates_token_count=candidates_token_count,
-            output_token_count=candidates_token_count,
-            cached_content_token_count=0,
-            thoughts_token_count=0,
-            model_name="gemini-2.5-flash-image",
-            cost_usd=round(total_cost, 6),
-            cost_krw=round(total_cost_krw, 2),
-            task_name="virtual_tryon"
+            cost_usd=total_cost,
+            cost_krw=total_cost_krw
         )
         
     async def sum_usage_data(self, usage_data_list: List[LiteLLMUsageData]) -> LiteLLMUsageData:
@@ -198,26 +248,12 @@ class GeminiProcesser:
         Returns:
             LiteLLMUsageData: 합산된 비용 정보
         """
-        total_token_count = sum(u.total_token_count for u in usage_data_list)
-        prompt_token_count = sum(u.prompt_token_count for u in usage_data_list)
-        candidates_token_count = sum(u.candidates_token_count for u in usage_data_list)
-        output_token_count = sum(u.output_token_count for u in usage_data_list)
-        cached_content_token_count = sum(u.cached_content_token_count for u in usage_data_list)
-        thoughts_token_count = sum(u.thoughts_token_count for u in usage_data_list)
-        cost_usd = sum(u.cost_usd for u in usage_data_list)
-        cost_krw = sum(u.cost_krw for u in usage_data_list)
-        
-        return LiteLLMUsageData(
-            total_token_count=total_token_count,
-            prompt_token_count=prompt_token_count,
-            candidates_token_count=candidates_token_count,
-            output_token_count=output_token_count,
-            cached_content_token_count=cached_content_token_count,
-            thoughts_token_count=thoughts_token_count,
-            model_name="gemini-2.5-flash-image",
-            cost_usd=round(cost_usd, 6),
-            cost_krw=round(cost_krw, 2),
-            task_name="virtual_tryon"
+        return self._create_usage_data(
+            total_token_count=sum(u.total_token_count for u in usage_data_list),
+            prompt_token_count=sum(u.prompt_token_count for u in usage_data_list),
+            candidates_token_count=sum(u.candidates_token_count for u in usage_data_list),
+            cost_usd=sum(u.cost_usd for u in usage_data_list),
+            cost_krw=sum(u.cost_krw for u in usage_data_list)
         )
     
     async def load_clothes_images(
@@ -238,7 +274,7 @@ class GeminiProcesser:
         front_clothes_img = Image.open(front_image_path) if front_image_path else None
         back_clothes_img = Image.open(back_image_path) if back_image_path else None
         return front_clothes_img, back_clothes_img
-    
+
     async def execute_vto_inference(
         self,
         contents_list: List,
@@ -262,7 +298,8 @@ class GeminiProcesser:
         Returns:
             Dict: 응답 결과 (앞면/뒷면/측면 이미지 리스트 및 비용 정보)
         """
-        print(f"총 생성할 이미지 수: {len(contents_list)}")
+        if self.verbose:
+            print(f"총 생성할 이미지 수: {len(contents_list)}")
         
         # 모든 조합에 대해 병렬 호출
         tasks = [self.virtual_tryon_inference(contents, temperature) for contents in contents_list]
@@ -271,50 +308,30 @@ class GeminiProcesser:
         # 결과 분리
         result_image_list, usage_data_list = zip(*responses) if responses else ([], [])
         
-        # None이 아닌 usage_data만 필터링
-        usage_data_list = [usage for usage in usage_data_list if usage is not None]
-        
-        # 비용 정보 합산
-        if usage_data_list:
-            total_usage = await self.sum_usage_data(usage_data_list)
-        else:
-            total_usage = await self.calculate_vto_cost(None)
+        # None이 아닌 usage_data만 필터링하여 비용 합산
+        valid_usage_data = [usage for usage in usage_data_list if usage is not None]
+        total_usage = await self.sum_usage_data(valid_usage_data) if valid_usage_data else await self.calculate_vto_cost(None)
         
         # 결과 이미지를 뷰별로 분리
-        front_image_list = []
-        back_image_list = []
-        side_image_list = []
-        
-        idx = 0
-        # 정면 의류가 있으면 정면 결과가 먼저 생성됨
-        if front_has_images:
-            front_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
-            idx += image_count
-        
-        # 뒷면 의류가 있으면 뒷면 결과가 생성됨
-        if back_has_images:
-            back_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
-            idx += image_count
-        
-        # 측면 이미지가 포함되면 측면 결과가 마지막에 생성됨
-        if include_side and front_has_images:
-            side_image_list = [img for img in result_image_list[idx:idx+image_count] if img is not None]
+        front_images, back_images, side_images = self._split_images_by_view(
+            result_image_list, front_has_images, back_has_images, image_count, include_side
+        )
         
         # 모든 이미지를 하나의 리스트로 합침
-        all_images = front_image_list + back_image_list + (side_image_list if include_side else [])
+        all_images = front_images + back_images + (side_images if include_side else [])
         
         return {
             "response": all_images,
-            "front_images": front_image_list,
-            "back_images": back_image_list,
-            "side_images": side_image_list if include_side else [],
+            "front_images": front_images,
+            "back_images": back_images,
+            "side_images": side_images if include_side else [],
             "usage": total_usage,
             "debug_info": {
-                "front_count": len(front_image_list),
-                "back_count": len(back_image_list),
-                "side_count": len(side_image_list) if include_side else 0,
+                "front_count": len(front_images),
+                "back_count": len(back_images),
+                "side_count": len(side_images) if include_side else 0,
                 "total_count": len(all_images),
                 "requested_count_per_view": image_count,
-                "model_name": "gemini-2.5-flash-image",
+                "model_name": self.MODEL_NAME,
             }
         }
