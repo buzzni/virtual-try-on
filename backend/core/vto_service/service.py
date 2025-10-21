@@ -22,6 +22,8 @@ async def virtual_tryon(
     front_image_path: Optional[str], 
     back_image_path: Optional[str], 
     prompt: str, 
+    together_front_image_path: Optional[str] = None,
+    together_back_image_path: Optional[str] = None,
     temperature: float = 1.0,
     image_count: int = 1,
     model_folder: str = "default"
@@ -33,6 +35,8 @@ async def virtual_tryon(
         front_image_path: 앞면 의류 이미지 경로 (Optional)
         back_image_path: 뒷면 의류 이미지 경로 (Optional)
         prompt: VTO 프롬프트
+        together_front_image_path: 함께 입을 옷 앞면 이미지 경로 (Optional)
+        together_back_image_path: 함께 입을 옷 뒷면 이미지 경로 (Optional)
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
         model_folder: 사용할 모델 폴더 (기본값: "default")
@@ -66,6 +70,7 @@ async def virtual_tryon(
     
     # 의류 이미지 로드
     front_clothes_img, back_clothes_img = await gemini_processer.load_clothes_images(front_image_path, back_image_path)
+    together_front_clothes_img, together_back_clothes_img = await gemini_processer.load_clothes_images(together_front_image_path, together_back_image_path)
     
     # contents_list 구성: 각 조합에 대해 image_count만큼 생성
     contents_list = []
@@ -73,17 +78,24 @@ async def virtual_tryon(
     # 정면 뷰: model_front + front_clothes (앞면 의류가 있으면)
     if front_clothes_img:
         for _ in range(image_count):
-            contents_list.append([prompt, model_front_img, front_clothes_img])
+            content = [prompt, model_front_img, front_clothes_img]
+            # 함께 입을 옷 추가
+            if together_front_clothes_img:
+                content.append(together_front_clothes_img)
+            elif together_back_clothes_img:
+                content.append(together_back_clothes_img)
+            contents_list.append(content)
     
     # 뒷면 뷰: model_back + back_clothes (뒷면 의류가 있으면)
     if back_clothes_img:
         for _ in range(image_count):
-            contents_list.append([prompt, model_back_img, back_clothes_img])
-    
-    # 측면 뷰: model_side + front_clothes (앞면 의류가 있으면)
-    # if front_clothes_img:
-    #     for _ in range(image_count):
-    #         contents_list.append([prompt, model_side_img, front_clothes_img])
+            content = [prompt, model_back_img, back_clothes_img]
+            # 함께 입을 옷 추가
+            if together_back_clothes_img:
+                content.append(together_back_clothes_img)
+            elif together_front_clothes_img:
+                content.append(together_front_clothes_img)
+            contents_list.append(content)
     
     # 공통 추론 로직 실행
     return await gemini_processer.execute_vto_inference(
@@ -98,6 +110,8 @@ async def virtual_tryon(
 async def virtual_model_tryon(
     front_image_path: Optional[str], 
     back_image_path: Optional[str], 
+    together_front_image_path: Optional[str],
+    together_back_image_path: Optional[str],
     temperature: float = 1.0,
     image_count: int = 1
 ) -> Dict:
@@ -107,6 +121,8 @@ async def virtual_model_tryon(
     Args:
         front_image_path: 앞면 의류 이미지 경로 (Optional)
         back_image_path: 뒷면 의류 이미지 경로 (Optional)
+        together_front_image_path: 함께 입을 옷 앞면 이미지 경로 (Optional)
+        together_back_image_path: 함께 입을 옷 뒷면 이미지 경로 (Optional)
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
         model_folder: 사용할 모델 폴더 (미사용, 호환성을 위해 유지)
@@ -123,6 +139,7 @@ async def virtual_model_tryon(
     
     # 의류 이미지 로드
     front_clothes_img, back_clothes_img = await gemini_processer.load_clothes_images(front_image_path, back_image_path)
+    together_front_clothes_img, together_back_clothes_img = await gemini_processer.load_clothes_images(together_front_image_path, together_back_image_path)
     
     # contents_list 구성: 각 조합에 대해 image_count만큼 생성
     contents_list = []
@@ -130,12 +147,22 @@ async def virtual_model_tryon(
     # 정면 뷰: 정면 프롬프트 + front_clothes (앞면 의류가 있으면)
     if front_clothes_img:
         for _ in range(image_count):
-            contents_list.append([assemble_model_prompt(type="front"), front_clothes_img])
+            if together_front_clothes_img:
+                contents_list.append([assemble_model_prompt(type="front"), front_clothes_img, together_front_clothes_img])
+            elif together_back_clothes_img:
+                contents_list.append([assemble_model_prompt(type="front"), front_clothes_img, together_back_clothes_img])
+            else:
+                contents_list.append([assemble_model_prompt(type="front"), front_clothes_img])
     
     # 뒷면 뷰: 뒷면 프롬프트 + back_clothes (뒷면 의류가 있으면)
     if back_clothes_img:
         for _ in range(image_count):
-            contents_list.append([assemble_model_prompt(type="back"), back_clothes_img])
+            if together_back_clothes_img:
+                contents_list.append([assemble_model_prompt(type="back"), back_clothes_img, together_back_clothes_img])
+            elif together_front_clothes_img:
+                contents_list.append([assemble_model_prompt(type="back"), back_clothes_img, together_front_clothes_img])
+            else:
+                contents_list.append([assemble_model_prompt(type="back"), back_clothes_img])
     
     # 공통 추론 로직 실행
     return await gemini_processer.execute_vto_inference(
