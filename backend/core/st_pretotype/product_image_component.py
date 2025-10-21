@@ -5,7 +5,8 @@ from PIL import Image
 import tempfile
 import os
 from io import BytesIO
-from core.vto_service.service import generate_product_image
+from core.vto_service.service import single_image_inference
+from prompts.prod_image_prompts import product_image_prompt
 
 def product_image_sidebar():
     mode_opts = {
@@ -94,8 +95,8 @@ def product_image_tab(settings: Dict[str, str]):
                                 tmp_image_path = tmp_file.name
                         
                         # 상품 이미지 생성 실행
-                        result = asyncio.run(generate_product_image(
-                            mode=settings["mode"],
+                        result = asyncio.run(single_image_inference(
+                            prompt=product_image_prompt(type=settings["mode"]),
                             image_path=tmp_image_path,
                             temperature=temperature,
                             image_count=image_count
