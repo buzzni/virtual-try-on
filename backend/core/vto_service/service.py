@@ -6,6 +6,7 @@ from core.litellm_hander.process import LiteLLMHandler
 from PIL import Image as PILImage
 from core.vto_service.gemini_handler import GeminiProcesser
 from prompts.vto_model_prompts import assemble_model_prompt
+from prompts.prod_image_prompts import product_image_prompt
 
 
 async def analyze_clothes_image(image_path: str) -> ClothesImageAnalysis:
@@ -141,6 +142,30 @@ async def virtual_model_tryon(
         contents_list=contents_list,
         front_has_images=front_clothes_img is not None,
         back_has_images=back_clothes_img is not None,
+        image_count=image_count,
+        temperature=temperature,
+        include_side=False
+    )
+    
+async def generate_product_image(
+    mode: str,
+    image_path: str,
+    temperature: float = 1.0,
+    image_count: int = 1
+) -> Dict:
+    """
+    Generate a product image from a given image.
+    """
+    gemini_processer = GeminiProcesser()
+    image_content, _ = await gemini_processer.load_clothes_images(image_path, None)
+    contents_list = []
+    for _ in range(image_count):
+        contents_list.append([product_image_prompt(type=mode), image_content])
+    
+    return await gemini_processer.execute_vto_inference(
+        contents_list=contents_list,
+        front_has_images=image_content is not None,
+        back_has_images=False,
         image_count=image_count,
         temperature=temperature,
         include_side=False
