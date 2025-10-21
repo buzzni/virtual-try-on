@@ -12,8 +12,9 @@ from core.litellm_hander.utils import (
     sleeve_options,
     length_options
 )
-from core.vto_service.service import analyze_clothes_image, virtual_tryon, vto_model_tryon
+from core.vto_service.service import analyze_clothes_image, virtual_tryon, vto_model_tryon, single_image_inference
 from prompts.vto_prompts import assemble_prompt
+from prompts.side_view_prompts import side_view_prompt
 
 # ============================================================================
 # 헬퍼 함수들
@@ -146,13 +147,14 @@ def cleanup_temp_files(*file_paths):
             os.unlink(file_path)
 
 
-def render_vto_results(result: Dict, image_count: int, include_side: bool = True):
+def render_vto_results(result: Dict, image_count: int, source_mode: str, include_side: bool = True):
     """
-    VTO 결과를 표시합니다.
+    VTO 결과를 표시하고 측면 이미지 생성을 위한 이미지 선택 기능을 제공합니다.
     
     Args:
         result: VTO 결과 딕셔너리
         image_count: 생성한 이미지 개수
+        source_mode: "vto" 또는 "vm" (이미지 선택 키 구분용)
         include_side: 측면 이미지 포함 여부
     """
     try:
@@ -169,7 +171,21 @@ def render_vto_results(result: Dict, image_count: int, include_side: bool = True
             with st.expander("🔍 디버깅 정보"):
                 st.json(debug_info)
         else:
-            st.markdown(f"**총 {total_count}개의 이미지가 생성되었습니다.**")
+            st.markdown(f"**총 {total_count}개의 이미지가 생성되었습니다. (측면 이미지로 사용할 이미지를 선택하세요)**")
+            
+            # 모든 이미지 수집 (선택 기능용)
+            all_images = []
+            for idx, img_bytes in enumerate(front_images):
+                all_images.append(("정면", idx + 1, img_bytes))
+            for idx, img_bytes in enumerate(back_images):
+                all_images.append(("후면", idx + 1, img_bytes))
+            
+            # 선택된 이미지 인덱스 초기화
+            selected_key = f"{source_mode}_selected_image_idx"
+            if selected_key not in st.session_state:
+                st.session_state[selected_key] = 0
+            
+            selected_idx = st.session_state[selected_key]
             
             # 앞면 이미지 표시
             if front_images:
@@ -181,6 +197,14 @@ def render_vto_results(result: Dict, image_count: int, include_side: bool = True
                         if isinstance(image_bytes, bytes):
                             image = Image.open(BytesIO(image_bytes))
                             st.image(image, caption=f"정면 #{idx+1}", width='stretch')
+                            
+                            # 선택 버튼 추가
+                            global_idx = idx  # 정면 이미지의 글로벌 인덱스
+                            button_type = "primary" if global_idx == selected_idx else "secondary"
+                            button_label = "✓ 측면 생성용 선택됨" if global_idx == selected_idx else "측면 생성용 선택"
+                            if st.button(button_label, key=f"{source_mode}_select_front_{idx}", use_container_width=True, type=button_type):
+                                st.session_state[selected_key] = global_idx
+                                st.rerun()
                         else:
                             st.warning(f"⚠️ 정면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
             
@@ -194,8 +218,20 @@ def render_vto_results(result: Dict, image_count: int, include_side: bool = True
                         if isinstance(image_bytes, bytes):
                             image = Image.open(BytesIO(image_bytes))
                             st.image(image, caption=f"후면 #{idx+1}", width='stretch')
+                            
+                            # 선택 버튼 추가
+                            global_idx = len(front_images) + idx  # 후면 이미지의 글로벌 인덱스
+                            button_type = "primary" if global_idx == selected_idx else "secondary"
+                            button_label = "✓ 측면 생성용 선택됨" if global_idx == selected_idx else "측면 생성용 선택"
+                            if st.button(button_label, key=f"{source_mode}_select_back_{idx}", use_container_width=True, type=button_type):
+                                st.session_state[selected_key] = global_idx
+                                st.rerun()
                         else:
                             st.warning(f"⚠️ 후면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+            
+            # 선택된 이미지 정보 표시
+            if all_images and selected_idx < len(all_images):
+                st.success(f"✅ 측면 생성용으로 선택된 이미지: {all_images[selected_idx][0]} #{all_images[selected_idx][1]}")
             
             # 측면 이미지 표시 (옵션)
             if include_side and side_images:
@@ -231,6 +267,245 @@ def render_usage_info(usage):
         st.metric("비용 (USD)", f"${usage.cost_usd:.6f}")
     with col3:
         st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
+
+
+def side_view_component(source_mode: str):
+    """
+    측면 이미지 생성 컴포넌트 (간소화 버전)
+    
+    Args:
+        source_mode: "vto" (가상피팅모드) 또는 "vm" (가상모델피팅모드)
+    """
+    st.divider()
+    st.subheader("🔄 측면 이미지 생성")
+    
+    # 세션 상태에서 결과 및 선택된 이미지 가져오기
+    source_result = None
+    selected_image_bytes = None
+    
+    if source_mode == "vto":
+        source_result = st.session_state.get("vto_result")
+    elif source_mode == "vm":
+        source_result = st.session_state.get("vm_result")
+    
+    if source_result:
+        # 선택된 이미지 인덱스 가져오기
+        selected_key = f"{source_mode}_selected_image_idx"
+        if selected_key in st.session_state:
+            selected_idx = st.session_state[selected_key]
+            
+            # 모든 이미지 수집
+            all_images = []
+            front_images = source_result.get("front_images", [])
+            back_images = source_result.get("back_images", [])
+            
+            for idx, img_bytes in enumerate(front_images):
+                all_images.append(("정면", idx + 1, img_bytes))
+            for idx, img_bytes in enumerate(back_images):
+                all_images.append(("후면", idx + 1, img_bytes))
+            
+            if all_images and selected_idx < len(all_images):
+                selected_image_bytes = all_images[selected_idx][2]
+                st.info(f"📌 위에서 선택한 이미지: {all_images[selected_idx][0]} #{all_images[selected_idx][1]}")
+    else:
+        st.warning("⚠️ 먼저 위에서 가상 피팅 또는 가상 모델 피팅을 실행해주세요.")
+    
+    # 직접 업로드 옵션
+    st.markdown("**또는 다른 이미지 직접 업로드:**")
+    uploaded_file = st.file_uploader(
+        "이미지 선택",
+        type=["jpg", "jpeg", "png", "webp"],
+        key=f"{source_mode}_side_upload"
+    )
+    
+    if uploaded_file:
+        image = Image.open(uploaded_file)
+        st.image(image, caption="업로드된 이미지", width=300)
+        selected_image_bytes = uploaded_file.getvalue()
+    
+    st.divider()
+    
+    # 실행 섹션
+    st.subheader("🚀 측면 이미지 생성 실행")
+    
+    # 세션 상태 초기화
+    result_key = f"{source_mode}_side_result"
+    if result_key not in st.session_state:
+        st.session_state[result_key] = None
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        temperature = st.slider(
+            "Temperature",
+            min_value=0.0,
+            max_value=2.0,
+            value=1.0,
+            step=0.1,
+            key=f"{source_mode}_side_temp",
+            help="결과의 다양성을 조절합니다."
+        )
+    
+    with col2:
+        image_count = st.slider(
+            "생성할 이미지 개수",
+            min_value=1,
+            max_value=10,
+            value=1,
+            step=1,
+            key=f"{source_mode}_side_count",
+            help="동시에 생성할 이미지 개수입니다."
+        )
+    
+    if st.button(
+        "🚀 측면 이미지 생성 (좌측 + 우측)", 
+        use_container_width=True,
+        key=f"{source_mode}_side_btn"
+    ):
+        if selected_image_bytes is None:
+            st.error("❌ 이미지를 선택하거나 업로드해주세요.")
+        else:
+            with st.spinner("측면 이미지를 생성 중입니다... (좌측 & 우측)"):
+                tmp_image_path = None
+                
+                try:
+                    # 이미지를 임시 파일로 저장
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                        tmp_file.write(selected_image_bytes)
+                        tmp_image_path = tmp_file.name
+                    
+                    # 좌측 측면 이미지 생성
+                    left_result = asyncio.run(single_image_inference(
+                        prompt=side_view_prompt("left"),
+                        image_path=tmp_image_path,
+                        temperature=temperature,
+                        image_count=image_count
+                    ))
+                    
+                    # 우측 측면 이미지 생성
+                    right_result = asyncio.run(single_image_inference(
+                        prompt=side_view_prompt("right"),
+                        image_path=tmp_image_path,
+                        temperature=temperature,
+                        image_count=image_count
+                    ))
+                    
+                    # 결과 합치기
+                    combined_result = {
+                        "left_images": left_result.get("front_images", []),
+                        "right_images": right_result.get("front_images", []),
+                        "left_usage": left_result.get("usage"),
+                        "right_usage": right_result.get("usage"),
+                        "debug_info": {
+                            "left": left_result.get("debug_info", {}),
+                            "right": right_result.get("debug_info", {})
+                        }
+                    }
+                    
+                    st.session_state[result_key] = combined_result
+                    st.success("✅ 측면 이미지 생성 완료! (좌측 + 우측)")
+                except Exception as e:
+                    st.error(f"❌ 측면 이미지 생성 중 오류 발생: {str(e)}")
+                finally:
+                    # 임시 파일 삭제
+                    if tmp_image_path and os.path.exists(tmp_image_path):
+                        os.unlink(tmp_image_path)
+    
+    # 결과 표시
+    if st.session_state.get(result_key):
+        st.subheader("📊 측면 이미지 생성 결과")
+        
+        result = st.session_state[result_key]
+        
+        try:
+            left_images = result.get("left_images", [])
+            right_images = result.get("right_images", [])
+            debug_info = result.get("debug_info", {})
+            
+            total_images = len(left_images) + len(right_images)
+            
+            if total_images == 0:
+                st.error("❌ 생성된 이미지가 없습니다.")
+                with st.expander("🔍 디버깅 정보"):
+                    st.json(debug_info)
+            else:
+                st.markdown(f"**총 {total_images}개의 이미지가 생성되었습니다. (좌측: {len(left_images)}개, 우측: {len(right_images)}개)**")
+                
+                # 좌측 측면 이미지 표시
+                if left_images:
+                    st.markdown("### ⬅️ 좌측 측면")
+                    num_cols = min(len(left_images), 5)
+                    cols = st.columns(num_cols)
+                    for idx, image_bytes in enumerate(left_images):
+                        with cols[idx % num_cols]:
+                            if isinstance(image_bytes, bytes):
+                                image = Image.open(BytesIO(image_bytes))
+                                st.image(image, caption=f"좌측 #{idx+1}", use_container_width=True)
+                            else:
+                                st.warning(f"⚠️ 좌측 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                
+                # 우측 측면 이미지 표시
+                if right_images:
+                    st.markdown("### ➡️ 우측 측면")
+                    num_cols = min(len(right_images), 5)
+                    cols = st.columns(num_cols)
+                    for idx, image_bytes in enumerate(right_images):
+                        with cols[idx % num_cols]:
+                            if isinstance(image_bytes, bytes):
+                                image = Image.open(BytesIO(image_bytes))
+                                st.image(image, caption=f"우측 #{idx+1}", use_container_width=True)
+                            else:
+                                st.warning(f"⚠️ 우측 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                
+                # 사용량 정보 - 좌측과 우측 합산
+                st.divider()
+                st.markdown("**사용량 정보:**")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("#### 좌측 측면")
+                    left_usage = result.get("left_usage")
+                    if left_usage:
+                        subcol1, subcol2, subcol3 = st.columns(3)
+                        with subcol1:
+                            st.metric("총 토큰", left_usage.total_token_count)
+                        with subcol2:
+                            st.metric("비용 (USD)", f"${left_usage.cost_usd:.6f}")
+                        with subcol3:
+                            st.metric("비용 (KRW)", f"₩{left_usage.cost_krw:.2f}")
+                
+                with col2:
+                    st.markdown("#### 우측 측면")
+                    right_usage = result.get("right_usage")
+                    if right_usage:
+                        subcol1, subcol2, subcol3 = st.columns(3)
+                        with subcol1:
+                            st.metric("총 토큰", right_usage.total_token_count)
+                        with subcol2:
+                            st.metric("비용 (USD)", f"${right_usage.cost_usd:.6f}")
+                        with subcol3:
+                            st.metric("비용 (KRW)", f"₩{right_usage.cost_krw:.2f}")
+                
+                # 합산 정보
+                if left_usage and right_usage:
+                    st.markdown("#### 💰 합계")
+                    total_col1, total_col2, total_col3 = st.columns(3)
+                    with total_col1:
+                        st.metric("총 토큰", left_usage.total_token_count + right_usage.total_token_count)
+                    with total_col2:
+                        st.metric("비용 (USD)", f"${left_usage.cost_usd + right_usage.cost_usd:.6f}")
+                    with total_col3:
+                        st.metric("비용 (KRW)", f"₩{left_usage.cost_krw + right_usage.cost_krw:.2f}")
+                
+                # 디버깅 정보
+                with st.expander("🔍 생성 상세 정보"):
+                    st.json(debug_info)
+                    
+        except Exception as e:
+            st.error(f"❌ 이미지 표시 중 오류 발생: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
 
 # ============================================================================
 # 메인 탭 함수들
@@ -340,9 +615,9 @@ def vto_tab(settings: Dict[str, str]):
     # 분석 버튼 섹션
     st.subheader("🔍 의류 이미지 분석")
     
-    # 세션 상태 초기화
-    if "analys" not in st.session_state:
-        st.session_state.analys = None
+    # 세션 상태 초기화 (가상피팅모드 전용)
+    if "vto_analys" not in st.session_state:
+        st.session_state.vto_analys = None
     
     if st.button("🔍 첫 번째 이미지 분석", width='stretch'):
         # 첫 번째 이미지 가져오기
@@ -364,7 +639,7 @@ def vto_tab(settings: Dict[str, str]):
                 try:
                     # 비동기 함수 실행
                     result = asyncio.run(analyze_clothes_image(tmp_path))
-                    st.session_state.analys = result
+                    st.session_state.vto_analys = result
                     st.success("✅ 분석 완료!")
                 except Exception as e:
                     st.error(f"❌ 분석 중 오류 발생: {str(e)}")
@@ -374,9 +649,9 @@ def vto_tab(settings: Dict[str, str]):
                         os.unlink(tmp_path)
     
     # 분석 결과 출력
-    if st.session_state.analys:
+    if st.session_state.vto_analys:
         st.subheader("📊 분석 결과")
-        st.json(st.session_state.analys.model_dump())
+        st.json(st.session_state.vto_analys.model_dump())
     
     st.divider()
 
@@ -491,8 +766,11 @@ def vto_tab(settings: Dict[str, str]):
     # VTO 결과 출력 (헬퍼 함수 사용)
     if st.session_state.vto_result:
         st.subheader("📊 Virtual Try-On 결과")
-        render_vto_results(st.session_state.vto_result, image_count, include_side=False)
+        render_vto_results(st.session_state.vto_result, image_count, source_mode="vto", include_side=False)
         render_usage_info(st.session_state.vto_result["usage"])
+    
+    # 측면 이미지 생성 컴포넌트 추가
+    side_view_component("vto")
             
             
 def virtual_model_tab(settings: Dict[str, str]):
@@ -508,13 +786,9 @@ def virtual_model_tab(settings: Dict[str, str]):
     # 실행 버튼 섹션
     st.subheader("🚀 실행")
     
-    # 세션 상태 초기화
-    if "vto_result" not in st.session_state:
-        st.session_state.vto_result = None
-    if "generated_prompt" not in st.session_state:
-        st.session_state.generated_prompt = None
-    if "prompt_version" not in st.session_state:
-        st.session_state.prompt_version = 0
+    # 세션 상태 초기화 (가상모델피팅모드 전용)
+    if "vm_result" not in st.session_state:
+        st.session_state.vm_result = None
     
     temperature = st.slider(
         "Temperature",
@@ -563,7 +837,7 @@ def virtual_model_tab(settings: Dict[str, str]):
                         temperature=temperature,
                         image_count=image_count
                     ))
-                    st.session_state.vto_result = result
+                    st.session_state.vm_result = result
                     st.success("✅ 가상 모델 피팅 완료!")
                 except Exception as e:
                     st.error(f"❌ 가상 모델 피팅 중 오류 발생: {str(e)}")
@@ -572,7 +846,10 @@ def virtual_model_tab(settings: Dict[str, str]):
                     cleanup_temp_files(tmp_front_path, tmp_back_path, tmp_together_front_path, tmp_together_back_path)
     
     # VTO 결과 출력 (헬퍼 함수 사용)
-    if st.session_state.vto_result:
+    if st.session_state.vm_result:
         st.subheader("📊 가상 모델 피팅 결과")
-        render_vto_results(st.session_state.vto_result, image_count, include_side=False)
-        render_usage_info(st.session_state.vto_result["usage"])
+        render_vto_results(st.session_state.vm_result, image_count, source_mode="vm", include_side=False)
+        render_usage_info(st.session_state.vm_result["usage"])
+    
+    # 측면 이미지 생성 컴포넌트 추가
+    side_view_component("vm")

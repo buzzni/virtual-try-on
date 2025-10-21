@@ -69,7 +69,7 @@ def product_image_tab(settings: Dict[str, str]):
             "생성할 이미지 개수",
             min_value=1,
             max_value=10,
-            value=3,
+            value=1,
             step=1,
             help="동시에 생성할 이미지 개수입니다. 여러 개를 생성하면 다양한 결과를 얻을 수 있습니다."
         )
