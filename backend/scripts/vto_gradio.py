@@ -145,7 +145,6 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 show_label=False,
                 elem_id="output_gallery",
                 columns=3,
-                rows=3,
                 object_fit="contain",
                 height=600,
                 format="png"
