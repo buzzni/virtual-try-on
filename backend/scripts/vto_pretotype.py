@@ -6,6 +6,7 @@ from core.st_pretotype.component import (
     virtual_model_tab,
 )
 from core.st_pretotype.product_image_component import product_image_sidebar, product_image_tab
+from core.st_pretotype.side_view_component import side_view_tab
 
 # 페이지 설정
 st.set_page_config(page_title="Virtual Try-On", layout="wide")
@@ -37,11 +38,18 @@ def product_page():
         settings = product_image_sidebar()
     product_image_tab(settings)
 
+def side_view_page():
+    st.title("🖼️ 측면 이미지 생성 모드")
+    with st.sidebar:
+        st.header("⚙️ 상품 이미지 설정")
+    side_view_tab()
+
 # 네비게이션 설정
 page = st.navigation([
     st.Page(vto_page, title="가상 피팅 모드", icon="👔"),
     st.Page(virtual_model_page, title="가상 모델 피팅 모드", icon="👔"),
-    st.Page(product_page, title="상품 이미지 생성", icon="📸")
+    st.Page(product_page, title="상품 이미지 생성", icon="📸"),
+    st.Page(side_view_page, title="측면 이미지 생성", icon="🧍‍♀️"),
 ])
 
 page.run()

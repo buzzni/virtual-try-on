@@ -6,35 +6,9 @@ import tempfile
 import os
 from io import BytesIO
 from core.vto_service.service import single_image_inference
-from prompts.prod_image_prompts import product_image_prompt
+from prompts.side_view_prompts import side_view_prompt
 
-def product_image_sidebar():
-    mode_opts = {
-        "default": {
-            "name": "기본",
-            "desc": "기본 모드"
-        },
-        "mannequin": {
-            "name": "마네킹 제거",
-            "desc": "마네킹 제거 모드"
-        },
-        "person": {
-            "name": "사람 제거",
-            "desc": "옷을 입고있는 사람 제거 모드"
-        }
-    }
-    mode_keys = list(mode_opts.keys())
-    mode_names = [mode_opts[key]["name"] for key in mode_keys]
-    
-    selected_mode_name = st.selectbox(
-        "모드",
-        mode_names,
-        index=0
-    )
-    mode = mode_keys[mode_names.index(selected_mode_name)]
-    return {"mode": mode}
-
-def product_image_tab(settings: Dict[str, str]):
+def side_view_tab():
     # 이미지 업로드 섹션
     st.subheader("📤 이미지 업로드")
 
@@ -53,8 +27,8 @@ def product_image_tab(settings: Dict[str, str]):
         st.subheader("🚀 실행")
         
         # 세션 상태 초기화
-        if "product_image_result" not in st.session_state:
-            st.session_state.product_image_result = None
+        if "side_view_result" not in st.session_state:
+            st.session_state.side_view_result = None
         
         temperature = st.slider(
             "Temperature",
@@ -75,7 +49,7 @@ def product_image_tab(settings: Dict[str, str]):
         )
             
         if st.button(
-            "🚀 상품 이미지 생성 실행", 
+            "🚀 측면 이미지 생성 실행", 
             width='stretch',
         ):
             # 이미지 가져오기
@@ -84,7 +58,7 @@ def product_image_tab(settings: Dict[str, str]):
             if uploaded_image is None:
                 st.error("❌ 이미지를 업로드해주세요.")
             else:
-                with st.spinner("상품 이미지 생성을 실행 중입니다..."):
+                with st.spinner("측면 이미지 생성을 실행 중입니다..."):
                     tmp_image_path = None
                     
                     try:
@@ -94,26 +68,27 @@ def product_image_tab(settings: Dict[str, str]):
                                 tmp_file.write(uploaded_image.read())
                                 tmp_image_path = tmp_file.name
                         
-                        # 상품 이미지 생성 실행
-                        result = asyncio.run(single_image_inference(
-                            prompt=product_image_prompt(type=settings["mode"]),
-                            image_path=tmp_image_path,
-                            temperature=temperature,
-                            image_count=image_count
-                        ))
-                        st.session_state.product_image_result = result
-                        st.success("✅ 상품 이미지 생성 완료!")
-                    except Exception as e:
-                        st.error(f"❌ 상품 이미지 생성 중 오류 발생: {str(e)}")
+                        try:
+                            # 측면 이미지 생성 실행
+                            result = asyncio.run(single_image_inference(
+                                prompt=side_view_prompt(),
+                                image_path=tmp_image_path,
+                                temperature=temperature,
+                                image_count=image_count
+                            ))
+                            st.session_state.side_view_result = result
+                            st.success("✅ 측면 이미지 생성 완료!")
+                        except Exception as e:
+                            st.error(f"❌ 측면 이미지 생성 중 오류 발생: {str(e)}")
                     finally:
                         # 임시 파일 삭제
                         if tmp_image_path and os.path.exists(tmp_image_path):
                             os.unlink(tmp_image_path)
                             
         st.divider()
-        if st.session_state.product_image_result:
+        if st.session_state.side_view_result:
             st.markdown("**사용량 정보:**")
-            usage = st.session_state.product_image_result["usage"]
+            usage = st.session_state.side_view_result["usage"]
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("총 토큰", usage.total_token_count)
@@ -124,36 +99,36 @@ def product_image_tab(settings: Dict[str, str]):
             
     st.divider()
     
-    # 상품 이미지 생성 결과 출력
-    if st.session_state.product_image_result:
-        st.subheader("📊 상품 이미지 생성 결과")
+    # 측면 이미지 생성 결과 출력
+    if st.session_state.side_view_result:
+        st.subheader("📊 측면 이미지 생성 결과")
         
         try:
-            # 상품 이미지 개별 추출
-            product_images = st.session_state.product_image_result.get("front_images", [])
-            debug_info = st.session_state.product_image_result.get("debug_info", {})
+            # 측면 이미지 개별 추출
+            side_view_images = st.session_state.side_view_result.get("front_images", [])
+            debug_info = st.session_state.side_view_result.get("debug_info", {})
             
-            if len(product_images) == 0:
+            if len(side_view_images) == 0:
                 st.error("❌ 생성된 이미지가 없습니다.")
                 with st.expander("🔍 디버깅 정보"):
                     st.json(debug_info)
             else:
-                st.markdown(f"**총 {len(product_images)}개의 이미지가 생성되었습니다.**")
+                st.markdown(f"**총 {len(side_view_images)}개의 이미지가 생성되었습니다.**")
                 
-                # 상품 이미지 표시
-                if product_images:
-                    st.markdown("### 🔵 상품 이미지")
+                # 측면 이미지 표시
+                if side_view_images:
+                    st.markdown("### 🔵 측면 이미지")
                     num_cols = image_count
                     cols = st.columns(num_cols)
-                    for idx, image_bytes in enumerate(product_images):
+                    for idx, image_bytes in enumerate(side_view_images):
                         with cols[idx % num_cols]:
                             if isinstance(image_bytes, bytes):
                                 image = Image.open(BytesIO(image_bytes))
                                 st.image(image, caption=f"이미지 #{idx+1}", width='stretch')
                             else:
-                                st.warning(f"⚠️ 상품 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
+                                st.warning(f"⚠️ 측면 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
                 # 디버깅 정보 (옵션)
-                with st.expander("🔍 생성 상세 정보"):
+                with st.expander("🔍 생성 측면 이미지 상세 정보"):
                     st.json(debug_info)
                 
         except Exception as e:
