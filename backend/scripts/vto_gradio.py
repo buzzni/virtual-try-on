@@ -216,7 +216,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             with gr.Row():
                 side_view_prompt_display = gr.Textbox(
                     label="📝 Side View 프롬프트",
-                    value=side_view_prompt(),
+                    value=side_view_prompt(side="left"),
                     lines=7,
                     interactive=False,
                     max_lines=7
