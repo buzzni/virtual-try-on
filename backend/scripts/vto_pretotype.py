@@ -8,6 +8,7 @@ from core.st_pretotype.component import (
 from core.st_pretotype.product_image_component import product_image_sidebar, product_image_tab
 from core.st_pretotype.side_view_component import side_view_tab
 from core.st_pretotype.analyze_component import analyze_page
+from core.st_pretotype.dashboard_component import dashboard_page
 
 # 페이지 설정
 st.set_page_config(page_title="Virtual Try-On", layout="wide")
@@ -49,12 +50,17 @@ def analyze_image_page():
     st.title("🔍 의류 이미지 분석")
     analyze_page()
 
+def result_dashboard_page():
+    st.title("📊 결과 대시보드")
+    dashboard_page()
+
 # 네비게이션 설정
 page = st.navigation([
     st.Page(vto_page, title="가상 피팅 모드", icon="👔"),
     st.Page(virtual_model_page, title="가상 모델 피팅 모드", icon="👔"),
     st.Page(product_page, title="상품 이미지 생성", icon="📸"),
     st.Page(analyze_image_page, title="의류 이미지 분석", icon="🔍"),
+    st.Page(result_dashboard_page, title="결과 대시보드", icon="📊"),
     #st.Page(side_view_page, title="측면 이미지 생성", icon="🧍‍♀️"),
 ])
 
