@@ -108,6 +108,18 @@ def product_image_tab(settings: Dict[str, str]):
                         # 임시 파일 삭제
                         if tmp_image_path and os.path.exists(tmp_image_path):
                             os.unlink(tmp_image_path)
+                            
+        st.divider()
+        if st.session_state.product_image_result:
+            st.markdown("**사용량 정보:**")
+            usage = st.session_state.product_image_result["usage"]
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("총 토큰", usage.total_token_count)
+            with col2:
+                st.metric("비용 (USD)", f"${usage.cost_usd:.6f}")
+            with col3:
+                st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
             
     st.divider()
     
@@ -136,7 +148,7 @@ def product_image_tab(settings: Dict[str, str]):
                         with cols[idx % num_cols]:
                             if isinstance(image_bytes, bytes):
                                 image = Image.open(BytesIO(image_bytes))
-                                st.image(image, caption=f"상품 #{idx+1}", width='stretch')
+                                st.image(image, caption=f"이미지 #{idx+1}", width='stretch')
                             else:
                                 st.warning(f"⚠️ 상품 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
                 # 디버깅 정보 (옵션)
@@ -147,15 +159,3 @@ def product_image_tab(settings: Dict[str, str]):
             st.error(f"❌ 이미지 표시 중 오류 발생: {str(e)}")
             import traceback
             st.code(traceback.format_exc())
-        
-        st.divider()
-        
-        st.markdown("**사용량 정보:**")
-        usage = st.session_state.product_image_result["usage"]
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("총 토큰", usage.total_token_count)
-        with col2:
-            st.metric("비용 (USD)", f"${usage.cost_usd:.6f}")
-        with col3:
-            st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
