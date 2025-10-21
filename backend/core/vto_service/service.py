@@ -26,7 +26,7 @@ async def virtual_tryon(
     model_folder: str = "default"
 ) -> Dict:
     """
-    Virtual Try-On: 앞면/뒷면 이미지와 프롬프트로 가상 착장 생성 (vto_mino의 virtual_tryon_fixed 방식)
+    Virtual Try-On: 앞면/뒷면 이미지와 프롬프트로 가상 착장 생성
     
     Args:
         front_image_path: 앞면 의류 이미지 경로 (Optional)
@@ -102,7 +102,7 @@ async def virtual_tryon(
     
     print(f"총 생성할 이미지 수: {len(contents_list)}")
     
-    # 모든 조합에 대해 병렬 호출 (vto_mino 방식)
+    # 모든 조합에 대해 병렬 호출
     tasks = [gemini_processer.virtual_tryon_inference(contents, temperature) for contents in contents_list]
     responses = await asyncio.gather(*tasks)
     
@@ -118,7 +118,7 @@ async def virtual_tryon(
     else:
         total_usage = await gemini_processer.calculate_vto_cost(None)
     
-    # 결과 이미지를 뷰별로 분리 (vto_mino의 virtual_tryon_fixed 방식)
+    # 결과 이미지를 뷰별로 분리
     front_image_list = []
     back_image_list = []
     side_image_list = []
@@ -229,7 +229,7 @@ async def virtual_model_tryon(
     
     print(f"총 생성할 이미지 수: {len(contents_list)}")
     
-    # 모든 조합에 대해 병렬 호출 (vto_mino 방식)
+    # 모든 조합에 대해 병렬 호출
     tasks = [gemini_processer.virtual_tryon_inference(contents, temperature) for contents in contents_list]
     responses = await asyncio.gather(*tasks)
     

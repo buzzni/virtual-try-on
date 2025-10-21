@@ -43,7 +43,7 @@ class GeminiProcesser:
 
     async def virtual_tryon_inference(self, contents, temperature: float = 1.0):
         """
-        단일 Virtual Try-On 추론 (vto_mino 방식)
+        단일 Virtual Try-On 추론
         
         Args:
             client: Gemini API 클라이언트
@@ -111,7 +111,6 @@ class GeminiProcesser:
     async def calculate_vto_cost(self, usage_metadata) -> LiteLLMUsageData:
         """
         Gemini 2.5 Flash Image 모델의 토큰 사용량 및 비용 계산
-        vto_mino.py의 calculate_cost_info_dict 방식 적용
         
         Args:
             usage_metadata: Gemini API 응답의 사용량 메타데이터
@@ -155,8 +154,8 @@ class GeminiProcesser:
                     output_image_tokens += detail.token_count or 0
         
         # Gemini 2.5 Flash Image 가격 정보
-        INPUT_PRICE_PER_1M_TOKENS = 0.35    # USD (vto_mino.py 기준)
-        OUTPUT_PRICE_PER_1M_TOKENS = 30.00  # USD (이미지 생성이라서 높음)
+        INPUT_PRICE_PER_1M_TOKENS = 0.35
+        OUTPUT_PRICE_PER_1M_TOKENS = 30.00  # USD
         USD_TO_KRW_RATE = 1380
         
         # 비용 계산
@@ -191,7 +190,7 @@ class GeminiProcesser:
         
     async def sum_usage_data(self, usage_data_list: List[LiteLLMUsageData]) -> LiteLLMUsageData:
         """
-        여러 LiteLLMUsageData를 합산 (vto_mino의 calculate_cost_info_multi 방식)
+        여러 LiteLLMUsageData를 합산
         
         Args:
             usage_data_list: LiteLLMUsageData 리스트
