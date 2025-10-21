@@ -14,23 +14,23 @@ async def process_inputs(text_input, image1, image2, image3, temperature, num_im
     gemini_processer = GeminiProcesser(verbose=True)
     contents_list = []
     
-    # 콘텐츠 생성
-    content = [text_input]
+    # 콘텐츠 생성 (이미지를 미리 변환)
+    content_parts = [text_input]
     if image1 is not None:
-        content.append(await gemini_processer.create_image_content(image1))
+        content_parts.append(await gemini_processer.create_image_content(image1))
     if image2 is not None:
-        content.append(await gemini_processer.create_image_content(image2))
+        content_parts.append(await gemini_processer.create_image_content(image2))
     if image3 is not None:
-        content.append(await gemini_processer.create_image_content(image3))
+        content_parts.append(await gemini_processer.create_image_content(image3))
     
-    # 생성할 이미지 개수만큼 contents_list에 추가
+    # 생성할 이미지 개수만큼 같은 content를 복사하여 추가
     for _ in range(num_images):
-        contents_list.append(content)
+        contents_list.append(content_parts.copy())
     
     # VTO 추론 실행
     result = await gemini_processer.execute_vto_inference(
         contents_list=contents_list,
-        front_has_images=image1 is not None,
+        front_has_images=True,  # 항상 True로 설정하여 생성된 이미지를 front_images에 담음
         back_has_images=False,
         image_count=num_images,
         temperature=temperature,
