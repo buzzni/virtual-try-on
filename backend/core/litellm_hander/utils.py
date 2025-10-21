@@ -129,6 +129,7 @@ def clothes_category(main_category = None, sub_category = None):
         "tops": {
             "name": "상의",
             "desc": "상반신 기본 의류. 계절·활동·핏에 따라 선택.",
+            "prompt": "top",
             "children": {
                 "none": {
                     "name": "전체",
@@ -185,6 +186,7 @@ def clothes_category(main_category = None, sub_category = None):
         "outer": {
             "name": "아우터",
             "desc": "기온·날씨 대응 및 스타일 포인트용 겉옷.",
+            "prompt": "outerwear",
             "children": {
                 "none": {
                     "name": "전체",
@@ -306,6 +308,7 @@ def clothes_category(main_category = None, sub_category = None):
         "bottoms": {
             "name": "바지",
             "desc": "하반신 의류. 핏·소재·활동성 중심 선택.",
+            "prompt": "pants",
             "children": {
                 "none": {
                     "name": "전체",
@@ -357,6 +360,7 @@ def clothes_category(main_category = None, sub_category = None):
         "dress": {
             "name": "원피스",
             "desc": "한 벌로 스타일 완성. 길이·실루엣 다양.",
+            "prompt": "dress",
             "children": {
                 "none": {
                     "name": "전체",
@@ -401,6 +405,6 @@ def clothes_category(main_category = None, sub_category = None):
         if sub_category and sub_category in main_category_dict["children"].keys():
             return main_category_dict["children"][sub_category]["prompt"]
         else:
-            return main_category_dict
+            return main_category_dict["prompt"]
     else:
-        return catalog
+        return "garment"
