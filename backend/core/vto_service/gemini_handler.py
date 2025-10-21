@@ -1,6 +1,7 @@
 from typing import Union, Optional, Tuple, Dict, List
 import aiofiles
 import asyncio
+import time
 from google import genai
 from google.genai import types
 from PIL import Image
@@ -21,6 +22,14 @@ class GeminiProcesser:
     INPUT_PRICE_PER_1M_TOKENS = 0.35
     OUTPUT_PRICE_PER_1M_TOKENS = 30.00
     USD_TO_KRW_RATE = 1380
+    
+    # 재시도 설정
+    MAX_RETRIES = 3
+    RETRY_DELAY = 2.0  # 초
+    RETRY_BACKOFF_MULTIPLIER = 2.0
+    
+    # 배치 처리 설정
+    MAX_CONCURRENT_REQUESTS = 5  # 동시 요청 최대 개수
     
     # Safety settings (클래스 레벨에서 한 번만 생성)
     SAFETY_SETTINGS = [
@@ -158,7 +167,7 @@ class GeminiProcesser:
 
     async def virtual_tryon_inference(self, contents, temperature: float = 1.0):
         """
-        단일 Virtual Try-On 추론
+        단일 Virtual Try-On 추론 (재시도 로직 포함)
         
         Args:
             contents: 입력 콘텐츠 리스트 (텍스트 + 이미지들)
@@ -167,32 +176,52 @@ class GeminiProcesser:
         Returns:
             tuple: (이미지 바이너리 데이터, 비용 정보)
         """
-        try:
-            # Gemini API 호출 (이미지만 생성하도록 설정)
-            response = await self.aio_client.models.generate_content(
-                model=self.MODEL_NAME,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    response_modalities=[types.Modality.IMAGE],
-                    temperature=temperature,
-                    image_config=types.ImageConfig(aspect_ratio="1:1"),
-                    safety_settings=self.SAFETY_SETTINGS
+        last_exception = None
+        delay = self.RETRY_DELAY
+        
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                # Gemini API 호출 (이미지만 생성하도록 설정)
+                response = await self.aio_client.models.generate_content(
+                    model=self.MODEL_NAME,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_modalities=[types.Modality.IMAGE],
+                        temperature=temperature,
+                        image_config=types.ImageConfig(aspect_ratio="1:1"),
+                        safety_settings=self.SAFETY_SETTINGS
+                    )
                 )
-            )
-            
-            # 비용 계산
-            usage_data = await self.calculate_vto_cost(
-                response.usage_metadata if hasattr(response, 'usage_metadata') else None
-            )
-            
-            # 응답에서 이미지 데이터 추출
-            image_data = self._extract_image_from_response(response)
-            return image_data, usage_data
-            
-        except Exception as e:
-            if self.verbose:
-                print(f"Inference Error: {e}")
-            return None, None
+                
+                # 비용 계산
+                usage_data = await self.calculate_vto_cost(
+                    response.usage_metadata if hasattr(response, 'usage_metadata') else None
+                )
+                
+                # 응답에서 이미지 데이터 추출
+                image_data = self._extract_image_from_response(response)
+                return image_data, usage_data
+                
+            except Exception as e:
+                last_exception = e
+                error_str = str(e)
+                
+                # 502, 503, 429 등 재시도 가능한 에러인지 확인
+                is_retryable = any(code in error_str for code in ['502', '503', '429', 'Bad Gateway', 'Service Unavailable', 'Too Many Requests'])
+                
+                if is_retryable and attempt < self.MAX_RETRIES - 1:
+                    if self.verbose:
+                        print(f"⚠️  재시도 가능한 에러 발생 (시도 {attempt + 1}/{self.MAX_RETRIES}): {error_str[:100]}")
+                        print(f"   {delay}초 후 재시도...")
+                    
+                    await asyncio.sleep(delay)
+                    delay *= self.RETRY_BACKOFF_MULTIPLIER
+                else:
+                    if self.verbose:
+                        print(f"❌ Inference Error (시도 {attempt + 1}/{self.MAX_RETRIES}): {error_str[:200]}")
+                    break
+        
+        return None, None
     
     async def calculate_vto_cost(self, usage_metadata) -> LiteLLMUsageData:
         """
@@ -275,6 +304,11 @@ class GeminiProcesser:
         back_clothes_img = Image.open(back_image_path) if back_image_path else None
         return front_clothes_img, back_clothes_img
 
+    async def _run_with_semaphore(self, semaphore: asyncio.Semaphore, contents, temperature: float):
+        """세마포어를 사용하여 동시 요청 수를 제한하는 헬퍼 메소드"""
+        async with semaphore:
+            return await self.virtual_tryon_inference(contents, temperature)
+    
     async def execute_vto_inference(
         self,
         contents_list: List,
@@ -286,6 +320,7 @@ class GeminiProcesser:
     ) -> Dict:
         """
         Virtual Try-On 추론을 실행하고 결과를 반환하는 공통 로직
+        (동시 요청 수 제한 및 재시도 로직 포함)
         
         Args:
             contents_list: Gemini API에 전달할 콘텐츠 리스트
@@ -299,10 +334,17 @@ class GeminiProcesser:
             Dict: 응답 결과 (앞면/뒷면/측면 이미지 리스트 및 비용 정보)
         """
         if self.verbose:
-            print(f"총 생성할 이미지 수: {len(contents_list)}")
+            print(f"\n{'='*50}")
+            print(f"📸 총 생성할 이미지 수: {len(contents_list)}")
+            print(f"⚙️  동시 요청 제한: 최대 {self.MAX_CONCURRENT_REQUESTS}개")
+            print(f"🔄 재시도 설정: 최대 {self.MAX_RETRIES}회, 초기 대기 {self.RETRY_DELAY}초")
+            print(f"{'='*50}\n")
         
-        # 모든 조합에 대해 병렬 호출
-        tasks = [self.virtual_tryon_inference(contents, temperature) for contents in contents_list]
+        # 세마포어를 사용하여 동시 요청 수 제한
+        semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
+        
+        # 모든 조합에 대해 병렬 호출 (동시 요청 수 제한)
+        tasks = [self._run_with_semaphore(semaphore, contents, temperature) for contents in contents_list]
         responses = await asyncio.gather(*tasks)
         
         # 결과 분리
@@ -320,6 +362,17 @@ class GeminiProcesser:
         # 모든 이미지를 하나의 리스트로 합침
         all_images = front_images + back_images + (side_images if include_side else [])
         
+        # 성공/실패 통계
+        success_count = len([img for img in result_image_list if img is not None])
+        fail_count = len(result_image_list) - success_count
+        
+        if self.verbose:
+            print(f"\n{'='*50}")
+            print(f"✅ 성공: {success_count}개")
+            if fail_count > 0:
+                print(f"❌ 실패: {fail_count}개")
+            print(f"{'='*50}\n")
+        
         return {
             "response": all_images,
             "front_images": front_images,
@@ -332,6 +385,8 @@ class GeminiProcesser:
                 "side_count": len(side_images) if include_side else 0,
                 "total_count": len(all_images),
                 "requested_count_per_view": image_count,
+                "success_count": success_count,
+                "fail_count": fail_count,
                 "model_name": self.MODEL_NAME,
             }
         }
