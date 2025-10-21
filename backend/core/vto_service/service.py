@@ -107,7 +107,7 @@ async def virtual_tryon(
         include_side=False
     )
 
-async def virtual_model_tryon(
+async def vto_model_tryon(
     front_image_path: Optional[str], 
     back_image_path: Optional[str], 
     together_front_image_path: Optional[str],

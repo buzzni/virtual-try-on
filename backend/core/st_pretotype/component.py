@@ -12,7 +12,7 @@ from core.litellm_hander.utils import (
     sleeve_options,
     length_options
 )
-from core.vto_service.service import analyze_clothes_image, virtual_tryon, virtual_model_tryon, generate_product_image
+from core.vto_service.service import analyze_clothes_image, virtual_tryon, vto_model_tryon
 from prompts.vto_prompts import assemble_prompt
 
 # ============================================================================
@@ -35,55 +35,56 @@ def render_image_uploaders(key_prefix: str, num_uploads: int) -> Tuple[Optional[
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**앞면 이미지**")
-        front_image_file = st.file_uploader(
-            "앞면 이미지 선택",
-            type=["jpg", "jpeg", "png", "webp"],
-            key=f"{key_prefix}_upload_a"
-        )
-        if front_image_file:
-            image_a = Image.open(front_image_file)
-            st.image(image_a, caption="앞면 이미지", width='stretch')
+        col1_1, col1_2 = st.columns(2)
+        with col1_1:
+            st.markdown("**앞면 이미지**")
+            front_image_file = st.file_uploader(
+                "앞면 이미지 선택",
+                type=["jpg", "jpeg", "png", "webp"],
+                key=f"{key_prefix}_upload_a"
+            )
+            if front_image_file:
+                image_a = Image.open(front_image_file)
+                st.image(image_a, caption="앞면 이미지", width='stretch')
     
+        with col1_2:
+            st.markdown("**뒷면 이미지**")
+            back_image_file = st.file_uploader(
+                "뒷면 이미지 선택",
+                type=["jpg", "jpeg", "png", "webp"],
+                key=f"{key_prefix}_upload_b"
+            )
+            if back_image_file:
+                image_b = Image.open(back_image_file)
+                st.image(image_b, caption="뒷면 이미지", width='stretch')
     with col2:
-        st.markdown("**뒷면 이미지**")
-        back_image_file = st.file_uploader(
-            "뒷면 이미지 선택",
-            type=["jpg", "jpeg", "png", "webp"],
-            key=f"{key_prefix}_upload_b"
-        )
-        if back_image_file:
-            image_b = Image.open(back_image_file)
-            st.image(image_b, caption="뒷면 이미지", width='stretch')
-    
-    # 함께 입을 옷 업로더 초기화
-    together_front_image_file = None
-    together_back_image_file = None
-    
-    if num_uploads > 1:
-        col1, col2 = st.columns(2)
+        # 함께 입을 옷 업로더 초기화
+        together_front_image_file = None
+        together_back_image_file = None
         
-        with col1:
-            st.markdown("**함께 입을 옷 앞면 이미지**")
-            together_front_image_file = st.file_uploader(
-                "함께 입을 옷 앞면 이미지 선택",
-                type=["jpg", "jpeg", "png", "webp"],
-                key=f"{key_prefix}_upload_together_a"
-            )
-            if together_front_image_file:
-                image_together_a = Image.open(together_front_image_file)
-                st.image(image_together_a, caption="함께 입을 옷 앞면 이미지", width='stretch')
-        
-        with col2:
-            st.markdown("**함께 입을 옷 뒷면 이미지**")
-            together_back_image_file = st.file_uploader(
-                "함께 입을 옷 뒷면 이미지 선택",
-                type=["jpg", "jpeg", "png", "webp"],
-                key=f"{key_prefix}_upload_together_b"
-            )
-            if together_back_image_file:
-                image_together_b = Image.open(together_back_image_file)
-                st.image(image_together_b, caption="함께 입을 옷 뒷면 이미지", width='stretch')
+        if num_uploads > 1:
+            col2_1, col2_2 = st.columns(2)
+            with col2_1:
+                st.markdown("**함께 입을 옷 앞면 이미지**")
+                together_front_image_file = st.file_uploader(
+                    "함께 입을 옷 앞면 이미지 선택",
+                    type=["jpg", "jpeg", "png", "webp"],
+                    key=f"{key_prefix}_upload_together_a"
+                )
+                if together_front_image_file:
+                    image_together_a = Image.open(together_front_image_file)
+                    st.image(image_together_a, caption="함께 입을 옷 앞면 이미지", width='stretch')
+            
+            with col2_2:
+                st.markdown("**함께 입을 옷 뒷면 이미지**")
+                together_back_image_file = st.file_uploader(
+                    "함께 입을 옷 뒷면 이미지 선택",
+                    type=["jpg", "jpeg", "png", "webp"],
+                    key=f"{key_prefix}_upload_together_b"
+                )
+                if together_back_image_file:
+                    image_together_b = Image.open(together_back_image_file)
+                    st.image(image_together_b, caption="함께 입을 옷 뒷면 이미지", width='stretch')
     
     st.divider()
     
@@ -554,7 +555,7 @@ def virtual_model_tab(settings: Dict[str, str]):
                     )
                     
                     # Virtual Try-On 실행
-                    result = asyncio.run(virtual_model_tryon(
+                    result = asyncio.run(vto_model_tryon(
                         front_image_path=tmp_front_path,
                         back_image_path=tmp_back_path,
                         together_front_image_path=tmp_together_front_path,

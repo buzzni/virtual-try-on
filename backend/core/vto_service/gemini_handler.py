@@ -1,11 +1,9 @@
 from typing import Union, Optional, Tuple, Dict, List
 import aiofiles
 import asyncio
-import time
 from google import genai
 from google.genai import types
 from PIL import Image
-from io import BytesIO
 import numpy as np
 from configs import settings
 from core.litellm_hander.schema import LiteLLMUsageData
@@ -137,8 +135,7 @@ class GeminiProcesser:
             side_images = [img for img in result_image_list[idx:idx+image_count] if img is not None]
         
         return front_images, back_images, side_images
-    
-    
+
 
     async def create_image_content(self, image: Union[Image.Image, bytes, str], use_reize = False) -> str:
         if isinstance(image, str):
