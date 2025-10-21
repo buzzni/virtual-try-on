@@ -103,7 +103,6 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     placeholder="텍스트를 입력하세요...",
                     lines=3
                 )
-                submit_btn = gr.Button("처리하기", variant="primary")
                 
             with gr.Column():
                 temperature = gr.Slider(
@@ -123,6 +122,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     label="생성할 이미지 개수",
                     info="생성할 이미지의 개수를 선택하세요"
                 )
+                submit_btn = gr.Button("🚀 실행", variant="primary")
         with gr.Row():
             image1 = gr.Image(
                 label="이미지 1",
