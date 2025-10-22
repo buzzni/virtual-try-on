@@ -664,20 +664,10 @@ def hairstyle_options(key = None, gender = "woman"):
             "desc": "옆과 뒤를 짧게 자른 스타일",
             "prompt": "undercut"
         },
-        "fade": {
-            "name": "페이드컷",
-            "desc": "그라데이션 짧은 머리",
-            "prompt": "fade haircut"
-        },
         "crew_cut": {
             "name": "크루컷",
             "desc": "매우 짧은 남성 헤어",
             "prompt": "crew cut"
-        },
-        "bangs": {
-            "name": "앞머리",
-            "desc": "앞머리가 있는 스타일",
-            "prompt": "hair with bangs"
         }
     }
     if key in options.keys():
