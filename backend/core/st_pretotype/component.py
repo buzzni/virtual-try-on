@@ -306,22 +306,8 @@ def side_view_component(source_mode: str):
             
             if all_images and selected_idx < len(all_images):
                 selected_image_bytes = all_images[selected_idx][2]
-                st.info(f"📌 위에서 선택한 이미지: {all_images[selected_idx][0]} #{all_images[selected_idx][1]}")
     else:
         st.warning("⚠️ 먼저 위에서 가상 피팅 또는 가상 모델 피팅을 실행해주세요.")
-    
-    # 직접 업로드 옵션
-    st.markdown("**또는 다른 이미지 직접 업로드:**")
-    uploaded_file = st.file_uploader(
-        "이미지 선택",
-        type=["jpg", "jpeg", "png", "webp"],
-        key=f"{source_mode}_side_upload"
-    )
-    
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="업로드된 이미지", width=300)
-        selected_image_bytes = uploaded_file.getvalue()
     
     st.divider()
     
@@ -612,49 +598,6 @@ def vto_tab(settings: Dict[str, str]):
         num_uploads=num_uploads
     )
 
-    # 분석 버튼 섹션
-    st.subheader("🔍 의류 이미지 분석")
-    
-    # 세션 상태 초기화 (가상피팅모드 전용)
-    if "vto_analys" not in st.session_state:
-        st.session_state.vto_analys = None
-    
-    if st.button("🔍 첫 번째 이미지 분석", width='stretch'):
-        # 첫 번째 이미지 가져오기
-        if front_image_file:
-            image = front_image_file
-        elif back_image_file:
-            image = back_image_file
-        else:
-            st.error("❌ 최소 하나의 이미지를 업로드해주세요.")
-            return
-        
-        with st.spinner("이미지를 분석 중입니다..."):
-            # 임시 파일로 저장
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
-                image.seek(0)
-                tmp_file.write(image.read())
-                tmp_path = tmp_file.name
-                
-                try:
-                    # 비동기 함수 실행
-                    result = asyncio.run(analyze_clothes_image(tmp_path))
-                    st.session_state.vto_analys = result
-                    st.success("✅ 분석 완료!")
-                except Exception as e:
-                    st.error(f"❌ 분석 중 오류 발생: {str(e)}")
-                finally:
-                    # 임시 파일 삭제
-                    if os.path.exists(tmp_path):
-                        os.unlink(tmp_path)
-    
-    # 분석 결과 출력
-    if st.session_state.vto_analys:
-        st.subheader("📊 분석 결과")
-        st.json(st.session_state.vto_analys.model_dump())
-    
-    st.divider()
-
     # 실행 버튼 섹션
     st.subheader("🚀 실행")
     
@@ -666,57 +609,34 @@ def vto_tab(settings: Dict[str, str]):
     if "prompt_version" not in st.session_state:
         st.session_state.prompt_version = 0
     
-    # 프롬프트 생성 버튼
-    col_btn1, col_btn2 = st.columns(2)
+    prompt = assemble_prompt(
+        main_category=settings["main_category"],
+        sub_category=settings["sub_category"],
+        replacement="clothing",
+        gender=settings["gender"],
+        fit=settings["fit"] if settings["fit"] != "none" else None,
+        sleeve=settings["sleeve"] if settings["sleeve"] != "none" else None,
+        length=settings["length"] if settings["length"] != "none" else None,
+    )
+    st.session_state.generated_prompt = prompt
     
-    with col_btn1:
-        st.json(settings)
-        if st.button("📝 프롬프트 생성", width='stretch'):
-            # 프롬프트 생성
-            prompt = assemble_prompt(
-                main_category=settings["main_category"],
-                sub_category=settings["sub_category"],
-                replacement="clothing",
-                gender=settings["gender"],
-                fit=settings["fit"] if settings["fit"] != "none" else None,
-                sleeve=settings["sleeve"] if settings["sleeve"] != "none" else None,
-                length=settings["length"] if settings["length"] != "none" else None,
-            )
-            st.session_state.generated_prompt = prompt
-            # 버전 증가로 text_area 강제 재생성
-            st.session_state.prompt_version += 1
-            st.success("✅ 프롬프트가 생성되었습니다!")
+    temperature = st.slider(
+        "Temperature",
+        min_value=0.0,
+        max_value=2.0,
+        value=1.0,
+        step=0.1,
+        help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
+    )
     
-    # 생성된 프롬프트 표시 및 수정
-    if st.session_state.generated_prompt:
-        st.markdown("**생성된 프롬프트 (수정 가능):**")
-        # 버전을 key에 포함하여 프롬프트가 생성될 때마다 text_area 재생성
-        st.text_area(
-            "프롬프트",
-            value=st.session_state.generated_prompt,
-            height=200,
-            key=f"prompt_editor_{st.session_state.prompt_version}",
-            help="필요시 프롬프트를 수정할 수 있습니다."
-        )
-    
-    with col_btn2:
-        temperature = st.slider(
-            "Temperature",
-            min_value=0.0,
-            max_value=2.0,
-            value=1.0,
-            step=0.1,
-            help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
-        )
-        
-        image_count = st.slider(
-            "생성할 이미지 개수",
-            min_value=1,
-            max_value=10,
-            value=3,
-            step=1,
-            help="동시에 생성할 이미지 개수입니다. 여러 개를 생성하면 다양한 결과를 얻을 수 있습니다."
-        )
+    image_count = st.slider(
+        "생성할 이미지 개수",
+        min_value=1,
+        max_value=10,
+        value=3,
+        step=1,
+        help="동시에 생성할 이미지 개수입니다. 여러 개를 생성하면 다양한 결과를 얻을 수 있습니다."
+    )
         
     vto_button_disabled = st.session_state.generated_prompt is None
     if st.button(
