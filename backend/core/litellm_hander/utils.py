@@ -410,3 +410,267 @@ def clothes_category(main_category = None, sub_category = None):
         return "garment"
     else:
         return catalog
+
+def skin_tone_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "피부색을 지정하지 않음",
+            "prompt": "none"
+        },
+        "fair": {
+            "name": "밝은 피부",
+            "desc": "밝은 피부톤",
+            "prompt": "fair skin"
+        },
+        "light": {
+            "name": "연한 피부",
+            "desc": "연한 피부톤",
+            "prompt": "light skin"
+        },
+        "medium": {
+            "name": "중간 피부",
+            "desc": "중간 피부톤",
+            "prompt": "medium skin"
+        },
+        "brown": {
+            "name": "갈색 피부",
+            "desc": "갈색 피부톤",
+            "prompt": "brown skin"
+        },
+        "dark": {
+            "name": "어두운 피부",
+            "desc": "어두운 피부톤",
+            "prompt": "dark skin"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def ethnicity_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "인종을 지정하지 않음",
+            "prompt": "none"
+        },
+        "east_asian": {
+            "name": "동아시아인",
+            "desc": "한국, 중국, 일본 등",
+            "prompt": "East Asian"
+        },
+        "caucasian": {
+            "name": "백인",
+            "desc": "유럽계 백인",
+            "prompt": "Caucasian"
+        },
+        "african": {
+            "name": "아프리카계",
+            "desc": "아프리카계",
+            "prompt": "African"
+        },
+        "latino": {
+            "name": "라틴계",
+            "desc": "라틴 아메리카계",
+            "prompt": "Latino"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def age_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "나이를 지정하지 않음",
+            "prompt": "none"
+        },
+        "young": {
+            "name": "청년",
+            "desc": "20대~30대 초반",
+            "prompt": "young"
+        },
+        "teen": {
+            "name": "10대",
+            "desc": "10대 청소년",
+            "prompt": "teenage"
+        },
+        "middle_aged": {
+            "name": "중년",
+            "desc": "40대~50대",
+            "prompt": "middle-aged"
+        },
+        "mature": {
+            "name": "장년",
+            "desc": "50대~60대",
+            "prompt": "mature"
+        },
+        "senior": {
+            "name": "노년",
+            "desc": "60대 이상",
+            "prompt": "senior"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def hair_color_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "머리색을 지정하지 않음",
+            "prompt": "none"
+        },
+        "black": {
+            "name": "검정색",
+            "desc": "검은색 머리",
+            "prompt": "black hair"
+        },
+        "dark_brown": {
+            "name": "진한 갈색",
+            "desc": "진한 갈색 머리",
+            "prompt": "dark brown hair"
+        },
+        "brown": {
+            "name": "갈색",
+            "desc": "갈색 머리",
+            "prompt": "brown hair"
+        },
+        "light_brown": {
+            "name": "밝은 갈색",
+            "desc": "밝은 갈색 머리",
+            "prompt": "light brown hair"
+        },
+        "blonde": {
+            "name": "금발",
+            "desc": "금발 머리",
+            "prompt": "blonde hair"
+        },
+        "platinum": {
+            "name": "플래티넘",
+            "desc": "백금색 머리",
+            "prompt": "platinum blonde hair"
+        },
+        "red": {
+            "name": "빨간색",
+            "desc": "빨간색 머리",
+            "prompt": "red hair"
+        },
+        "auburn": {
+            "name": "적갈색",
+            "desc": "적갈색 머리",
+            "prompt": "auburn hair"
+        },
+        "gray": {
+            "name": "회색",
+            "desc": "회색 머리",
+            "prompt": "gray hair"
+        },
+        "silver": {
+            "name": "은색",
+            "desc": "은색 머리",
+            "prompt": "silver hair"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def hairstyle_options(key = None, gender = "woman"):
+    """
+    헤어스타일 옵션
+    gender에 따라 일부 옵션의 설명이 달라질 수 있음
+    """
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "헤어스타일을 지정하지 않음",
+            "prompt": "none"
+        },
+        "short": {
+            "name": "짧은 머리",
+            "desc": "짧은 헤어스타일",
+            "prompt": "short hair"
+        },
+        "medium": {
+            "name": "중간 길이",
+            "desc": "어깨 정도 길이의 머리",
+            "prompt": "medium-length hair"
+        },
+        "long": {
+            "name": "긴 머리",
+            "desc": "긴 헤어스타일",
+            "prompt": "long hair"
+        },
+        "bob": {
+            "name": "단발머리",
+            "desc": "턱 라인의 단발 헤어",
+            "prompt": "bob haircut"
+        },
+        "pixie": {
+            "name": "픽시컷",
+            "desc": "매우 짧은 여성 헤어",
+            "prompt": "pixie cut"
+        },
+        "wavy": {
+            "name": "웨이브",
+            "desc": "웨이브가 있는 머리",
+            "prompt": "wavy hair"
+        },
+        "curly": {
+            "name": "곱슬머리",
+            "desc": "곱슬한 헤어스타일",
+            "prompt": "curly hair"
+        },
+        "straight": {
+            "name": "생머리",
+            "desc": "똑바른 머리",
+            "prompt": "straight hair"
+        },
+        "updo": {
+            "name": "업스타일",
+            "desc": "머리를 올린 스타일",
+            "prompt": "updo hairstyle"
+        },
+        "ponytail": {
+            "name": "포니테일",
+            "desc": "묶은 머리",
+            "prompt": "ponytail"
+        },
+        "braided": {
+            "name": "땋은 머리",
+            "desc": "땋은 헤어스타일",
+            "prompt": "braided hair"
+        },
+        "bun": {
+            "name": "올림머리/번",
+            "desc": "머리를 뒤로 묶어 올린 스타일",
+            "prompt": "loose updo hairstyle and soft bangs"
+        },
+        "slicked_back": {
+            "name": "올백",
+            "desc": "뒤로 넘긴 헤어",
+            "prompt": "slicked-back hair"
+        },
+        "undercut": {
+            "name": "언더컷",
+            "desc": "옆과 뒤를 짧게 자른 스타일",
+            "prompt": "undercut"
+        },
+        "crew_cut": {
+            "name": "크루컷",
+            "desc": "매우 짧은 남성 헤어",
+            "prompt": "crew cut"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options

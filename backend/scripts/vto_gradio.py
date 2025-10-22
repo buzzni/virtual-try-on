@@ -6,6 +6,10 @@ from prompts.vto_model_prompts import assemble_model_prompt
 from prompts.vto_prompts import assemble_prompt
 from prompts.prod_image_prompts import product_image_prompt
 from prompts.side_view_prompts import side_view_prompt
+from core.litellm_hander.utils import (
+    gender_options, fit_options, sleeve_options, length_options, clothes_category,
+    skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
+)
 
 async def process_inputs(text_input, image1, image2, image3, temperature, num_images):
     """
@@ -89,6 +93,66 @@ async def process_inputs(text_input, image1, image2, image3, temperature, num_im
 """
     
     return pil_images, usage_text, debug_text
+
+
+def update_prompt(main_category, sub_category, replacement, gender, fit, sleeve, length):
+    """
+    선택된 옵션에 따라 프롬프트를 업데이트하는 함수
+    """
+    try:
+        prompt = assemble_prompt(
+            main_category=main_category,
+            sub_category=sub_category,
+            replacement=replacement,
+            gender=gender if gender != "none" else None,
+            fit=fit if fit != "none" else None,
+            sleeve=sleeve if sleeve != "none" else None,
+            length=length if length != "none" else None,
+        )
+        return prompt
+    except Exception as e:
+        return f"오류 발생: {str(e)}"
+
+
+def update_sub_category_choices(main_category, replacement, gender, fit, sleeve, length):
+    """
+    메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트하는 함수
+    """
+    catalog = clothes_category()
+    if main_category == "default":
+        sub_category_value = "default"
+        dropdown_update = gr.update(choices=["default"], value="default")
+    elif main_category in catalog:
+        sub_cats = catalog[main_category]["children"]
+        choices = [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
+        sub_category_value = "none"
+        dropdown_update = gr.update(choices=choices, value="none")
+    else:
+        sub_category_value = "none"
+        dropdown_update = gr.update(choices=["none"], value="none")
+    
+    # 프롬프트도 함께 업데이트
+    prompt = update_prompt(main_category, sub_category_value, replacement, gender, fit, sleeve, length)
+    return dropdown_update, prompt
+
+
+def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color):
+    """
+    선택된 옵션에 따라 모델 프롬프트를 업데이트하는 함수
+    """
+    try:
+        prompt = assemble_model_prompt(
+            type=view_type, 
+            gender=gender,
+            age=age if age != "none" else None,
+            skin_tone=skin_tone if skin_tone != "none" else None,
+            ethnicity=ethnicity if ethnicity != "none" else None,
+            hairstyle=hairstyle if hairstyle != "none" else None,
+            hair_color=hair_color if hair_color != "none" else None
+        )
+        return prompt
+    except Exception as e:
+        return f"오류 발생: {str(e)}"
 
 
 # Gradio 인터페이스 생성
@@ -177,55 +241,245 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             outputs=[output, usage_output, debug_output]
         )
     
-    with gr.Tab("💡 참고용 프롬프트 예제"):
+    with gr.Tab("👔 가상 입어보기 프롬프트"):
         with gr.Column():
             gr.Markdown("## 모델에게 입히는 프롬프트")
+            gr.Markdown("### 옵션 선택")
+            
+            # 옵션 데이터 준비
+            gender_opts = gender_options()
+            fit_opts = fit_options()
+            sleeve_opts = sleeve_options()
+            length_opts = length_options()
+            catalog = clothes_category()
+            
             with gr.Row():
                 default_prompt_display = gr.Textbox(
-                    label="📝 Default 프롬프트",
+                    label="📝 생성된 프롬프트",
                     value=assemble_prompt(
                         main_category="default",
                         sub_category="default",
                         replacement="clothing",
                     ),
-                    lines=7,
+                    lines=10,
                     interactive=False,
-                    max_lines=7
+                    max_lines=15
                 )
+                with gr.Column():
+                    # 성별 선택
+                    gender_dropdown = gr.Dropdown(
+                        label="👤 성별",
+                        choices=[(gender_opts[key]["name"], key) for key in gender_opts.keys()],
+                        value="person",
+                        info=gender_opts["person"]["desc"]
+                    )
+                    
+                    # 메인 카테고리 선택
+                    main_category_dropdown = gr.Dropdown(
+                        label="📂 메인 카테고리",
+                        choices=[("Default", "default")] + [(catalog[key]["name"], key) for key in catalog.keys()],
+                        value="default",
+                        info="의류 메인 카테고리 선택"
+                    )
+                    
+                    # 서브 카테고리 선택
+                    sub_category_dropdown = gr.Dropdown(
+                        label="📁 서브 카테고리",
+                        choices=["default"],
+                        value="default",
+                        info="메인 카테고리에 따라 변경됩니다"
+                    )
+                    
+                    # Replacement 입력
+                    replacement_input = gr.Textbox(
+                        label="🔄 Replacement",
+                        value="clothing",
+                        info="대체할 의상 부위 (예: clothing, tops, bottoms)"
+                    )
+                
+                with gr.Column():
+                    # 핏 선택
+                    fit_dropdown = gr.Dropdown(
+                        label="👔 핏",
+                        choices=[(fit_opts[key]["name"], key) for key in fit_opts.keys()],
+                        value="none",
+                        info=fit_opts["none"]["desc"]
+                    )
+                    
+                    # 소매 길이 선택
+                    sleeve_dropdown = gr.Dropdown(
+                        label="👕 소매 길이",
+                        choices=[(sleeve_opts[key]["name"], key) for key in sleeve_opts.keys()],
+                        value="none",
+                        info=sleeve_opts["none"]["desc"]
+                    )
+                    
+                    # 기장 선택
+                    length_dropdown = gr.Dropdown(
+                        label="📏 기장",
+                        choices=[(length_opts[key]["name"], key) for key in length_opts.keys()],
+                        value="none",
+                        info=length_opts["none"]["desc"]
+                    )
+            
+            # 메인 카테고리 변경 시 서브 카테고리와 프롬프트 업데이트
+            main_category_dropdown.change(
+                fn=update_sub_category_choices,
+                inputs=[
+                    main_category_dropdown,
+                    replacement_input,
+                    gender_dropdown,
+                    fit_dropdown,
+                    sleeve_dropdown,
+                    length_dropdown
+                ],
+                outputs=[sub_category_dropdown, default_prompt_display]
+            )
+            
+            # 나머지 옵션 변경 시 프롬프트만 업데이트 (메인 카테고리 제외)
+            other_option_inputs = [
+                main_category_dropdown,
+                sub_category_dropdown,
+                replacement_input,
+                gender_dropdown,
+                fit_dropdown,
+                sleeve_dropdown,
+                length_dropdown
+            ]
+            
+            # 메인 카테고리를 제외한 나머지 옵션들의 change 이벤트 등록
+            for option_input in [sub_category_dropdown, replacement_input, gender_dropdown, fit_dropdown, sleeve_dropdown, length_dropdown]:
+                option_input.change(
+                    fn=update_prompt,
+                    inputs=other_option_inputs,
+                    outputs=[default_prompt_display]
+                )
+    
+    with gr.Tab("🧑 가상 모델 생성 프롬프트"):
+        with gr.Column():
             gr.Markdown("## 가상 모델 생성 프롬프트")
+            gr.Markdown("Front View와 Back View 모델 이미지를 생성하기 위한 프롬프트입니다.")
+            gr.Markdown("### 옵션 선택")
+            
+            # 옵션 데이터 준비
+            age_opts = age_options()
+            skin_opts = skin_tone_options()
+            ethnicity_opts = ethnicity_options()
+            hair_opts = hairstyle_options()
+            hair_color_opts = hair_color_options()
+            
             with gr.Row():
-                front_prompt_display = gr.Textbox(
-                    label="📝 Front View 프롬프트",
-                    value=assemble_model_prompt(type="front"),
-                    lines=15,
-                    interactive=False,
-                    max_lines=15
-                )
-                back_prompt_display = gr.Textbox(
-                    label="📝 Back View 프롬프트",
-                    value=assemble_model_prompt(type="back"),
-                    lines=15,
-                    interactive=False,
-                    max_lines=15
-                )
+                with gr.Column(scale=1):
+                    model_view_radio = gr.Radio(
+                        label="📷 View",
+                        choices=[("Front View", "front"), ("Back View", "back")],
+                        value="front",
+                        info="앞면 또는 뒷면 선택"
+                    )
+                    
+                    model_gender_radio = gr.Radio(
+                        label="👤 성별",
+                        choices=[("여성", "woman"), ("남성", "man")],
+                        value="woman",
+                        info="모델 성별 선택"
+                    )
+                    
+                    model_age_dropdown = gr.Dropdown(
+                        label="🎂 나이",
+                        choices=[(age_opts[key]["name"], key) for key in age_opts.keys()],
+                        value="young",
+                        info=age_opts["young"]["desc"]
+                    )
+                    
+                    model_skin_dropdown = gr.Dropdown(
+                        label="🎨 피부색",
+                        choices=[(skin_opts[key]["name"], key) for key in skin_opts.keys()],
+                        value="none",
+                        info=skin_opts["none"]["desc"]
+                    )
+                    
+                    model_ethnicity_dropdown = gr.Dropdown(
+                        label="🌍 인종",
+                        choices=[(ethnicity_opts[key]["name"], key) for key in ethnicity_opts.keys()],
+                        value="none",
+                        info=ethnicity_opts["none"]["desc"]
+                    )
+                    
+                    model_hairstyle_dropdown = gr.Dropdown(
+                        label="💇 헤어스타일",
+                        choices=[(hair_opts[key]["name"], key) for key in hair_opts.keys()],
+                        value="none",
+                        info=hair_opts["none"]["desc"]
+                    )
+                    
+                    model_hair_color_dropdown = gr.Dropdown(
+                        label="🎨 머리색",
+                        choices=[(hair_color_opts[key]["name"], key) for key in hair_color_opts.keys()],
+                        value="none",
+                        info=hair_color_opts["none"]["desc"]
+                    )
+                
+                with gr.Column(scale=2):
+                    model_prompt_display = gr.Textbox(
+                        label="📝 생성된 프롬프트",
+                        value=assemble_model_prompt(type="front", gender="woman", age="young"),
+                        lines=15,
+                        interactive=False,
+                        max_lines=20
+                    )
+            
+            # 모든 옵션 변경 시 프롬프트 업데이트
+            model_option_inputs = [
+                model_view_radio,
+                model_gender_radio,
+                model_age_dropdown,
+                model_skin_dropdown,
+                model_ethnicity_dropdown,
+                model_hairstyle_dropdown,
+                model_hair_color_dropdown
+            ]
+            
+            for option_input in model_option_inputs:
+                option_input.change(
+                    fn=update_model_prompt,
+                    inputs=model_option_inputs,
+                    outputs=[model_prompt_display]
+                )                   
+    
+    with gr.Tab("📸 상품 이미지 생성 프롬프트"):
+        with gr.Column():
             gr.Markdown("## 상품 이미지 생성 프롬프트")
+            gr.Markdown("평평한 상품 이미지를 생성하기 위한 프롬프트입니다.")
             with gr.Row():
                 product_image_prompt_display = gr.Textbox(
                     label="📝 Product Image 프롬프트",
                     value=product_image_prompt(type="default"),
-                    lines=7,
+                    lines=10,
                     interactive=False,
-                    max_lines=7
+                    max_lines=15
                 )
+    
+    with gr.Tab("↔️ 측면 이미지 생성 프롬프트"):
+        with gr.Column():
             gr.Markdown("## 측면 이미지 생성 프롬프트")
+            gr.Markdown("좌우 측면 이미지를 생성하기 위한 프롬프트입니다.")
             with gr.Row():
-                side_view_prompt_display = gr.Textbox(
-                    label="📝 Side View 프롬프트",
-                    value=side_view_prompt(side="left"),
-                    lines=7,
-                    interactive=False,
-                    max_lines=7
-                )
+                with gr.Column():
+                    side_view_left_prompt_display = gr.Textbox(
+                        label="📝 Left Side View 프롬프트",
+                        value=side_view_prompt(side="left"),
+                        lines=10,
+                        interactive=False,
+                        max_lines=15
+                    )
+                with gr.Column():
+                    side_view_right_prompt_display = gr.Textbox(
+                        label="📝 Right Side View 프롬프트",
+                        value=side_view_prompt(side="right"),
+                        lines=10,
+                        interactive=False,
+                        max_lines=15
+                    )
         
 
 
