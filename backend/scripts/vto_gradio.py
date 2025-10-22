@@ -6,7 +6,10 @@ from prompts.vto_model_prompts import assemble_model_prompt
 from prompts.vto_prompts import assemble_prompt
 from prompts.prod_image_prompts import product_image_prompt
 from prompts.side_view_prompts import side_view_prompt
-from core.litellm_hander.utils import gender_options, fit_options, sleeve_options, length_options, clothes_category
+from core.litellm_hander.utils import (
+    gender_options, fit_options, sleeve_options, length_options, clothes_category,
+    skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
+)
 
 async def process_inputs(text_input, image1, image2, image3, temperature, num_images):
     """
@@ -133,12 +136,20 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
     return dropdown_update, prompt
 
 
-def update_model_prompt(view_type, gender):
+def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color):
     """
-    선택된 view와 gender에 따라 모델 프롬프트를 업데이트하는 함수
+    선택된 옵션에 따라 모델 프롬프트를 업데이트하는 함수
     """
     try:
-        prompt = assemble_model_prompt(type=view_type, gender=gender)
+        prompt = assemble_model_prompt(
+            type=view_type, 
+            gender=gender,
+            age=age if age != "none" else None,
+            skin_tone=skin_tone if skin_tone != "none" else None,
+            ethnicity=ethnicity if ethnicity != "none" else None,
+            hairstyle=hairstyle if hairstyle != "none" else None,
+            hair_color=hair_color if hair_color != "none" else None
+        )
         return prompt
     except Exception as e:
         return f"오류 발생: {str(e)}"
@@ -350,6 +361,13 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             gr.Markdown("Front View와 Back View 모델 이미지를 생성하기 위한 프롬프트입니다.")
             gr.Markdown("### 옵션 선택")
             
+            # 옵션 데이터 준비
+            age_opts = age_options()
+            skin_opts = skin_tone_options()
+            ethnicity_opts = ethnicity_options()
+            hair_opts = hairstyle_options()
+            hair_color_opts = hair_color_options()
+            
             with gr.Row():
                 with gr.Column(scale=1):
                     model_view_radio = gr.Radio(
@@ -365,28 +383,68 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         value="woman",
                         info="모델 성별 선택"
                     )
+                    
+                    model_age_dropdown = gr.Dropdown(
+                        label="🎂 나이",
+                        choices=[(age_opts[key]["name"], key) for key in age_opts.keys()],
+                        value="young",
+                        info=age_opts["young"]["desc"]
+                    )
+                    
+                    model_skin_dropdown = gr.Dropdown(
+                        label="🎨 피부색",
+                        choices=[(skin_opts[key]["name"], key) for key in skin_opts.keys()],
+                        value="none",
+                        info=skin_opts["none"]["desc"]
+                    )
+                    
+                    model_ethnicity_dropdown = gr.Dropdown(
+                        label="🌍 인종",
+                        choices=[(ethnicity_opts[key]["name"], key) for key in ethnicity_opts.keys()],
+                        value="none",
+                        info=ethnicity_opts["none"]["desc"]
+                    )
+                    
+                    model_hairstyle_dropdown = gr.Dropdown(
+                        label="💇 헤어스타일",
+                        choices=[(hair_opts[key]["name"], key) for key in hair_opts.keys()],
+                        value="none",
+                        info=hair_opts["none"]["desc"]
+                    )
+                    
+                    model_hair_color_dropdown = gr.Dropdown(
+                        label="🎨 머리색",
+                        choices=[(hair_color_opts[key]["name"], key) for key in hair_color_opts.keys()],
+                        value="none",
+                        info=hair_color_opts["none"]["desc"]
+                    )
                 
                 with gr.Column(scale=2):
                     model_prompt_display = gr.Textbox(
                         label="📝 생성된 프롬프트",
-                        value=assemble_model_prompt(type="front", gender="woman"),
+                        value=assemble_model_prompt(type="front", gender="woman", age="young"),
                         lines=15,
                         interactive=False,
                         max_lines=20
                     )
             
-            # View 또는 Gender 변경 시 프롬프트 업데이트
-            model_view_radio.change(
-                fn=update_model_prompt,
-                inputs=[model_view_radio, model_gender_radio],
-                outputs=[model_prompt_display]
-            )
+            # 모든 옵션 변경 시 프롬프트 업데이트
+            model_option_inputs = [
+                model_view_radio,
+                model_gender_radio,
+                model_age_dropdown,
+                model_skin_dropdown,
+                model_ethnicity_dropdown,
+                model_hairstyle_dropdown,
+                model_hair_color_dropdown
+            ]
             
-            model_gender_radio.change(
-                fn=update_model_prompt,
-                inputs=[model_view_radio, model_gender_radio],
-                outputs=[model_prompt_display]
-            )                   
+            for option_input in model_option_inputs:
+                option_input.change(
+                    fn=update_model_prompt,
+                    inputs=model_option_inputs,
+                    outputs=[model_prompt_display]
+                )                   
     
     with gr.Tab("📸 상품 이미지 생성 프롬프트"):
         with gr.Column():
