@@ -407,4 +407,4 @@ def clothes_category(main_category = None, sub_category = None):
         else:
             return main_category_dict["prompt"]
     else:
-        return catalog
+        return "garment"
