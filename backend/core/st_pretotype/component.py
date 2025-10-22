@@ -12,7 +12,7 @@ from core.litellm_hander.utils import (
     sleeve_options,
     length_options
 )
-from core.vto_service.service import analyze_clothes_image, virtual_tryon, vto_model_tryon, single_image_inference
+from core.vto_service.service import virtual_tryon, vto_model_tryon, single_image_inference
 from prompts.vto_prompts import assemble_prompt
 from prompts.side_view_prompts import side_view_prompt
 
