@@ -118,19 +118,19 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
     catalog = clothes_category()
     if main_category == "default":
         sub_category_value = "default"
-        dropdown = gr.Dropdown(choices=["default"], value="default")
+        dropdown_update = gr.update(choices=["default"], value="default")
     elif main_category in catalog:
         sub_cats = catalog[main_category]["children"]
         choices = [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
         sub_category_value = "none"
-        dropdown = gr.Dropdown(choices=choices, value="none")
+        dropdown_update = gr.update(choices=choices, value="none")
     else:
         sub_category_value = "none"
-        dropdown = gr.Dropdown(choices=["none"], value="none")
+        dropdown_update = gr.update(choices=["none"], value="none")
     
     # 프롬프트도 함께 업데이트
     prompt = update_prompt(main_category, sub_category_value, replacement, gender, fit, sleeve, length)
-    return dropdown, prompt
+    return dropdown_update, prompt
 
 
 # Gradio 인터페이스 생성
@@ -232,6 +232,17 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             catalog = clothes_category()
             
             with gr.Row():
+                default_prompt_display = gr.Textbox(
+                    label="📝 생성된 프롬프트",
+                    value=assemble_prompt(
+                        main_category="default",
+                        sub_category="default",
+                        replacement="clothing",
+                    ),
+                    lines=10,
+                    interactive=False,
+                    max_lines=15
+                )
                 with gr.Column():
                     # 성별 선택
                     gender_dropdown = gr.Dropdown(
@@ -289,19 +300,6 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         info=length_opts["none"]["desc"]
                     )
             
-            with gr.Row():
-                default_prompt_display = gr.Textbox(
-                    label="📝 생성된 프롬프트",
-                    value=assemble_prompt(
-                        main_category="default",
-                        sub_category="default",
-                        replacement="clothing",
-                    ),
-                    lines=10,
-                    interactive=False,
-                    max_lines=15
-                )
-            
             # 메인 카테고리 변경 시 서브 카테고리와 프롬프트 업데이트
             main_category_dropdown.change(
                 fn=update_sub_category_choices,
@@ -316,8 +314,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 outputs=[sub_category_dropdown, default_prompt_display]
             )
             
-            # 모든 옵션 변경 시 프롬프트 업데이트
-            option_inputs = [
+            # 나머지 옵션 변경 시 프롬프트만 업데이트 (메인 카테고리 제외)
+            other_option_inputs = [
                 main_category_dropdown,
                 sub_category_dropdown,
                 replacement_input,
@@ -327,10 +325,11 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 length_dropdown
             ]
             
-            for option_input in option_inputs:
+            # 메인 카테고리를 제외한 나머지 옵션들의 change 이벤트 등록
+            for option_input in [sub_category_dropdown, replacement_input, gender_dropdown, fit_dropdown, sleeve_dropdown, length_dropdown]:
                 option_input.change(
                     fn=update_prompt,
-                    inputs=option_inputs,
+                    inputs=other_option_inputs,
                     outputs=[default_prompt_display]
                 )
     
