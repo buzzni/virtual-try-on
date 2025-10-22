@@ -282,7 +282,7 @@ class LiteLLMHandler:
         Returns:
             types.Part: Gemini API에서 사용 가능한 이미지 Part 객체
         """
-        mime_type = "image/jpeg"  # 기본값
+        mime_type = "image/png"  # 기본값 (손실 없는 압축)
 
         if image_path:
             # 로컬 파일에서 이미지 읽기
@@ -300,7 +300,7 @@ class LiteLLMHandler:
                 ".jpeg": "image/jpeg",
                 ".png": "image/png",
                 ".webp": "image/webp",
-            }.get(ext, "image/jpeg")
+            }.get(ext, "image/png")  # 알 수 없는 확장자는 PNG로 처리
 
             # OpenAI 스타일의 image_url 형식으로 반환
             image_content = {
@@ -315,7 +315,7 @@ class LiteLLMHandler:
             return image_content
 
         elif image_bytes:
-            # 바이트 데이터를 base64로 인코딩
+            # 바이트 데이터를 base64로 인코딩 (PNG로 가정)
             base64_image = base64.b64encode(image_bytes).decode("utf-8")
             image_content = {
                 "type": "image_url",

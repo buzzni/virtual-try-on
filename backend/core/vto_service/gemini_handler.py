@@ -1,6 +1,7 @@
 from typing import Union, Optional, Tuple, Dict, List
 import aiofiles
 import asyncio
+import io
 from google import genai
 from google.genai import types
 from PIL import Image
@@ -149,17 +150,41 @@ class GeminiProcesser:
         elif use_reize:
             data = Image.open(image)
             if data.width > 1024 or data.height > 1024:
-                data.thumbnail([1024, 1024], Image.Resampling.LANCZOS)            
+                data.thumbnail([1024, 1024], Image.Resampling.LANCZOS)
+            # PIL Image를 PNG bytes로 변환
+            buffer = io.BytesIO()
+            data.save(buffer, format='PNG')
+            buffer.seek(0)
+            data = types.Part.from_bytes(
+                data=buffer.getvalue(),
+                mime_type="image/png",
+            )            
         elif isinstance(image, bytes):
             data = types.Part.from_bytes(
                 data=image,
                 mime_type="image/png",
             )
         elif isinstance(image, np.ndarray):
-            data = Image.fromarray(image)
-            data.thumbnail([1024, 1024], Image.Resampling.LANCZOS)
+            pil_image = Image.fromarray(image)
+            if pil_image.width > 1024 or pil_image.height > 1024:
+                pil_image.thumbnail([1024, 1024], Image.Resampling.LANCZOS)
+            # PIL Image를 PNG bytes로 변환
+            buffer = io.BytesIO()
+            pil_image.save(buffer, format='PNG')
+            buffer.seek(0)
+            data = types.Part.from_bytes(
+                data=buffer.getvalue(),
+                mime_type="image/png",
+            )
         else:
-            data = image
+            # PIL Image를 PNG bytes로 변환
+            buffer = io.BytesIO()
+            image.save(buffer, format='PNG')
+            buffer.seek(0)
+            data = types.Part.from_bytes(
+                data=buffer.getvalue(),
+                mime_type="image/png",
+            )
         return data
 
     async def virtual_tryon_inference(self, contents, temperature: float = 1.0):
