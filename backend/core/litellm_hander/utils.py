@@ -652,7 +652,7 @@ def hairstyle_options(key = None, gender = "woman"):
         "bun": {
             "name": "올림머리/번",
             "desc": "머리를 뒤로 묶어 올린 스타일",
-            "prompt": "bun hairstyle"
+            "prompt": "loose updo hairstyle and soft bangs"
         },
         "slicked_back": {
             "name": "올백",
