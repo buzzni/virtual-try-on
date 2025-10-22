@@ -406,5 +406,7 @@ def clothes_category(main_category = None, sub_category = None):
             return main_category_dict["children"][sub_category]["prompt"]
         else:
             return main_category_dict["prompt"]
-    else:
+    elif main_category == "default":
         return "garment"
+    else:
+        return catalog

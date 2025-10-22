@@ -553,6 +553,7 @@ def sidebar():
     # 카테고리 데이터 가져오기
     catalog = clothes_category()
     
+    
     # 메인 카테고리 (영문 key -> 한글 name 매핑)
     main_cat_options = list(catalog.keys())
     main_cat_names = [catalog[key]["name"] for key in main_cat_options]
