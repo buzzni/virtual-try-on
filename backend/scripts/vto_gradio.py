@@ -133,6 +133,17 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
     return dropdown_update, prompt
 
 
+def update_model_prompt(view_type, gender):
+    """
+    선택된 view와 gender에 따라 모델 프롬프트를 업데이트하는 함수
+    """
+    try:
+        prompt = assemble_model_prompt(type=view_type, gender=gender)
+        return prompt
+    except Exception as e:
+        return f"오류 발생: {str(e)}"
+
+
 # Gradio 인터페이스 생성
 with gr.Blocks(title="제미나이 실험실") as demo:
     gr.Markdown("# 🔬 제미나이 실험실")
@@ -247,8 +258,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     # 성별 선택
                     gender_dropdown = gr.Dropdown(
                         label="👤 성별",
-                        choices=[("선택 안 함", "none")] + [(gender_opts[key]["name"], key) for key in gender_opts.keys()],
-                        value="none",
+                        choices=[(gender_opts[key]["name"], key) for key in gender_opts.keys()],
+                        value="person",
                         info=gender_opts["person"]["desc"]
                     )
                     
@@ -337,21 +348,45 @@ with gr.Blocks(title="제미나이 실험실") as demo:
         with gr.Column():
             gr.Markdown("## 가상 모델 생성 프롬프트")
             gr.Markdown("Front View와 Back View 모델 이미지를 생성하기 위한 프롬프트입니다.")
+            gr.Markdown("### 옵션 선택")
+            
             with gr.Row():
-                front_prompt_display = gr.Textbox(
-                    label="📝 Front View 프롬프트",
-                    value=assemble_model_prompt(type="front"),
-                    lines=15,
-                    interactive=False,
-                    max_lines=15
-                )
-                back_prompt_display = gr.Textbox(
-                    label="📝 Back View 프롬프트",
-                    value=assemble_model_prompt(type="back"),
-                    lines=15,
-                    interactive=False,
-                    max_lines=15
-                )
+                with gr.Column(scale=1):
+                    model_view_radio = gr.Radio(
+                        label="📷 View",
+                        choices=[("Front View", "front"), ("Back View", "back")],
+                        value="front",
+                        info="앞면 또는 뒷면 선택"
+                    )
+                    
+                    model_gender_radio = gr.Radio(
+                        label="👤 성별",
+                        choices=[("여성", "woman"), ("남성", "man")],
+                        value="woman",
+                        info="모델 성별 선택"
+                    )
+                
+                with gr.Column(scale=2):
+                    model_prompt_display = gr.Textbox(
+                        label="📝 생성된 프롬프트",
+                        value=assemble_model_prompt(type="front", gender="woman"),
+                        lines=15,
+                        interactive=False,
+                        max_lines=20
+                    )
+            
+            # View 또는 Gender 변경 시 프롬프트 업데이트
+            model_view_radio.change(
+                fn=update_model_prompt,
+                inputs=[model_view_radio, model_gender_radio],
+                outputs=[model_prompt_display]
+            )
+            
+            model_gender_radio.change(
+                fn=update_model_prompt,
+                inputs=[model_view_radio, model_gender_radio],
+                outputs=[model_prompt_display]
+            )                   
     
     with gr.Tab("📸 상품 이미지 생성 프롬프트"):
         with gr.Column():
