@@ -11,7 +11,7 @@ from core.litellm_hander.utils import (
     skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
 )
 
-async def process_inputs(text_input, image1, image2, image3, temperature, num_images):
+async def process_inputs(text_input, image1, image2, image3, temperature, top_p, num_images):
     """
     텍스트 입력과 이미지 입력들을 처리하는 함수
     """
@@ -38,6 +38,7 @@ async def process_inputs(text_input, image1, image2, image3, temperature, num_im
         back_has_images=False,
         image_count=num_images,
         temperature=temperature,
+        top_p=top_p,
         include_side=False
     )
     
@@ -178,6 +179,15 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     info="생성 모델의 창의성 조절 (낮을수록 일관적, 높을수록 다양함)"
                 )
                 
+                top_p = gr.Slider(
+                    minimum=0.0,
+                    maximum=1.0,
+                    value=0.95,
+                    step=0.05,
+                    label="Top-p (Nucleus Sampling)",
+                    info="샘플링 다양성 조절 (낮을수록 보수적, 높을수록 다양함)"
+                )
+                
                 num_images = gr.Slider(
                     minimum=1,
                     maximum=10,
@@ -234,7 +244,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
         
         submit_btn.click(
             fn=process_inputs,
-            inputs=[text_input, image1, image2, image3, temperature, num_images],
+            inputs=[text_input, image1, image2, image3, temperature, top_p, num_images],
             outputs=[output, usage_output, debug_output]
         )
     
