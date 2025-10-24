@@ -187,13 +187,14 @@ class GeminiProcesser:
             )
         return data
 
-    async def virtual_tryon_inference(self, contents, temperature: float = 1.0):
+    async def virtual_tryon_inference(self, contents, temperature: float = 1.0, top_p: float = 0.95):
         """
         단일 Virtual Try-On 추론 (재시도 로직 포함)
         
         Args:
             contents: 입력 콘텐츠 리스트 (텍스트 + 이미지들)
             temperature: 결과의 다양성
+            top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
         
         Returns:
             tuple: (이미지 바이너리 데이터, 비용 정보)
@@ -210,6 +211,7 @@ class GeminiProcesser:
                     config=types.GenerateContentConfig(
                         response_modalities=[types.Modality.IMAGE],
                         temperature=temperature,
+                        top_p=top_p,
                         image_config=types.ImageConfig(aspect_ratio="1:1"),
                         safety_settings=self.SAFETY_SETTINGS
                     )
@@ -326,10 +328,10 @@ class GeminiProcesser:
         back_clothes_img = Image.open(back_image_path) if back_image_path else None
         return front_clothes_img, back_clothes_img
 
-    async def _run_with_semaphore(self, semaphore: asyncio.Semaphore, contents, temperature: float):
+    async def _run_with_semaphore(self, semaphore: asyncio.Semaphore, contents, temperature: float, top_p: float):
         """세마포어를 사용하여 동시 요청 수를 제한하는 헬퍼 메소드"""
         async with semaphore:
-            return await self.virtual_tryon_inference(contents, temperature)
+            return await self.virtual_tryon_inference(contents, temperature, top_p)
     
     async def execute_vto_inference(
         self,
@@ -338,7 +340,8 @@ class GeminiProcesser:
         back_has_images: bool,
         image_count: int,
         temperature: float,
-        include_side: bool = False
+        include_side: bool = False,
+        top_p: float = 0.95
     ) -> Dict:
         """
         Virtual Try-On 추론을 실행하고 결과를 반환하는 공통 로직
@@ -351,6 +354,7 @@ class GeminiProcesser:
             image_count: 생성할 이미지 개수
             temperature: 결과의 다양성
             include_side: 측면 이미지 포함 여부
+            top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
         
         Returns:
             Dict: 응답 결과 (앞면/뒷면/측면 이미지 리스트 및 비용 정보)
@@ -360,13 +364,15 @@ class GeminiProcesser:
             print(f"📸 총 생성할 이미지 수: {len(contents_list)}")
             print(f"⚙️  동시 요청 제한: 최대 {self.MAX_CONCURRENT_REQUESTS}개")
             print(f"🔄 재시도 설정: 최대 {self.MAX_RETRIES}회, 초기 대기 {self.RETRY_DELAY}초")
+            print(f"🔄 Top-p: {top_p}")
+            print(f"🔄 Temperature: {temperature}")
             print(f"{'='*50}\n")
         
         # 세마포어를 사용하여 동시 요청 수 제한
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
         
         # 모든 조합에 대해 병렬 호출 (동시 요청 수 제한)
-        tasks = [self._run_with_semaphore(semaphore, contents, temperature) for contents in contents_list]
+        tasks = [self._run_with_semaphore(semaphore, contents, temperature, top_p) for contents in contents_list]
         responses = await asyncio.gather(*tasks)
         
         # 결과 분리

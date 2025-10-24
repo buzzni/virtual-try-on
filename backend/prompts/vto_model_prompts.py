@@ -137,3 +137,5 @@ The final image must be high-resolution and editorial in tone, with no artificia
     else:
         raise ValueError(f"Invalid type: {type}")
     
+    
+# Include subtle natural imperfections such as slight skin texture, soft shadow gradients, and natural garment creases to avoid an overly airbrushed look.

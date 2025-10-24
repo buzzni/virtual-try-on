@@ -26,7 +26,8 @@ async def virtual_tryon(
     together_back_image_path: Optional[str] = None,
     temperature: float = 1.0,
     image_count: int = 1,
-    model_folder: str = "default"
+    model_folder: str = "default",
+    top_p: float = 0.95
 ) -> Dict:
     """
     Virtual Try-On: 앞면/뒷면 이미지와 프롬프트로 가상 착장 생성
@@ -40,6 +41,7 @@ async def virtual_tryon(
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
         model_folder: 사용할 모델 폴더 (기본값: "default")
+        top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
     
     Returns:
         Dict: 응답 결과 (앞면/뒷면 이미지 리스트 및 비용 정보)
@@ -104,7 +106,8 @@ async def virtual_tryon(
         back_has_images=back_clothes_img is not None,
         image_count=image_count,
         temperature=temperature,
-        include_side=False
+        include_side=False,
+        top_p=top_p
     )
 
 async def vto_model_tryon(
@@ -113,7 +116,8 @@ async def vto_model_tryon(
     together_front_image_path: Optional[str],
     together_back_image_path: Optional[str],
     temperature: float = 1.0,
-    image_count: int = 1
+    image_count: int = 1,
+    top_p: float = 0.95
 ) -> Dict:
     """
     Virtual Try-On: 앞면/뒷면 이미지와 프롬프트로 가상 모델 착장 생성
@@ -125,7 +129,7 @@ async def vto_model_tryon(
         together_back_image_path: 함께 입을 옷 뒷면 이미지 경로 (Optional)
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
-        model_folder: 사용할 모델 폴더 (미사용, 호환성을 위해 유지)
+        top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
     
     Returns:
         Dict: 응답 결과 (앞면/뒷면 이미지 리스트 및 비용 정보)
@@ -171,14 +175,16 @@ async def vto_model_tryon(
         back_has_images=back_clothes_img is not None,
         image_count=image_count,
         temperature=temperature,
-        include_side=False
+        include_side=False,
+        top_p=top_p
     )
     
 async def single_image_inference(
     prompt: str,
     image_path: str,
     temperature: float = 1.0,
-    image_count: int = 1
+    image_count: int = 1,
+    top_p: float = 0.95
 ) -> Dict:
     """
     Single Image Inference: 주어진 이미지에 대해 추론 실행
@@ -188,6 +194,7 @@ async def single_image_inference(
         image_path: 이미지 경로
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
+        top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
     
     Returns:
         Dict: 응답 결과 (이미지 리스트 및 비용 정보)
@@ -204,5 +211,6 @@ async def single_image_inference(
         back_has_images=False,
         image_count=image_count,
         temperature=temperature,
-        include_side=False
+        include_side=False,
+        top_p=top_p
     )
