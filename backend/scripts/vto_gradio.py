@@ -183,7 +183,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     minimum=0.0,
                     maximum=1.0,
                     value=0.95,
-                    step=0.05,
+                    step=0.01,
                     label="Top-p (Nucleus Sampling)",
                     info="샘플링 다양성 조절 (낮을수록 보수적, 높을수록 다양함)"
                 )
@@ -497,39 +497,41 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             with gr.Row():
                 side_view_gender_radio = gr.Radio(
                     label="👤 성별",
-                    choices=[("여성", "woman"), ("남성", "man"), ("중립", "none")],
+                    choices=[("여성", "woman"), ("남성", "man")],
                     value="woman",
                     info="모델 성별 선택"
                 )
+                
+                side_view_direction_radio = gr.Radio(
+                    label="↔️ 방향",
+                    choices=[("왼쪽", "left"), ("오른쪽", "right"), ("뒤", "back")],
+                    value="left",
+                    info="측면 방향 선택"
+                )
             
             with gr.Row():
-                with gr.Column():
-                    side_view_left_prompt_display = gr.Textbox(
-                        label="📝 Left Side View 프롬프트",
-                        value=side_view_prompt(side="left", gender="woman"),
-                        lines=10,
-                        interactive=False,
-                        max_lines=15
-                    )
-                with gr.Column():
-                    side_view_right_prompt_display = gr.Textbox(
-                        label="📝 Right Side View 프롬프트",
-                        value=side_view_prompt(side="right", gender="woman"),
-                        lines=10,
-                        interactive=False,
-                        max_lines=15
-                    )
+                side_view_prompt_display = gr.Textbox(
+                    label="📝 Side View 프롬프트",
+                    value=side_view_prompt(side="left", gender="woman"),
+                    lines=10,
+                    interactive=False,
+                    max_lines=15
+                )
             
-            # 성별 변경 시 프롬프트 업데이트
-            def update_side_view_prompts(gender):
-                left_prompt = side_view_prompt(side="left", gender=gender)
-                right_prompt = side_view_prompt(side="right", gender=gender)
-                return left_prompt, right_prompt
+            # 성별 또는 방향 변경 시 프롬프트 업데이트
+            def update_side_view_prompt(gender, direction):
+                return side_view_prompt(side=direction, gender=gender)
             
             side_view_gender_radio.change(
-                fn=update_side_view_prompts,
-                inputs=[side_view_gender_radio],
-                outputs=[side_view_left_prompt_display, side_view_right_prompt_display]
+                fn=update_side_view_prompt,
+                inputs=[side_view_gender_radio, side_view_direction_radio],
+                outputs=[side_view_prompt_display]
+            )
+            
+            side_view_direction_radio.change(
+                fn=update_side_view_prompt,
+                inputs=[side_view_gender_radio, side_view_direction_radio],
+                outputs=[side_view_prompt_display]
             )
         
 
