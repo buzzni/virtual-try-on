@@ -600,77 +600,77 @@ def hairstyle_options(key = None, gender = "woman"):
             "prompt": "none"
         },
         "short": {
-            "name": "짧은 머리",
+            "name": "짧은 머리 (공통)",
             "desc": "짧은 헤어스타일",
             "prompt": "short hair"
         },
         "medium": {
-            "name": "중간 길이",
+            "name": "중간 길이 (공통)",
             "desc": "어깨 정도 길이의 머리",
             "prompt": "medium-length hair"
         },
         "long": {
-            "name": "긴 머리",
+            "name": "긴 머리 (공통)",
             "desc": "긴 헤어스타일",
             "prompt": "long hair"
         },
         "bob": {
-            "name": "단발머리",
+            "name": "단발머리 (여)",
             "desc": "턱 라인의 단발 헤어",
             "prompt": "bob haircut"
         },
         "pixie": {
-            "name": "픽시컷",
+            "name": "픽시컷 (여)",
             "desc": "매우 짧은 여성 헤어",
             "prompt": "pixie cut"
         },
         "wavy": {
-            "name": "웨이브",
+            "name": "웨이브 (공통)",
             "desc": "웨이브가 있는 머리",
             "prompt": "wavy hair"
         },
         "curly": {
-            "name": "곱슬머리",
+            "name": "곱슬머리 (공통)",
             "desc": "곱슬한 헤어스타일",
             "prompt": "curly hair"
         },
         "straight": {
-            "name": "생머리",
+            "name": "생머리 (공통)",
             "desc": "똑바른 머리",
             "prompt": "straight hair"
         },
         "updo": {
-            "name": "업스타일",
+            "name": "업스타일 (여)",
             "desc": "머리를 올린 스타일",
             "prompt": "updo hairstyle"
         },
         "ponytail": {
-            "name": "포니테일",
+            "name": "포니테일 (여)",
             "desc": "묶은 머리",
             "prompt": "ponytail"
         },
         "braided": {
-            "name": "땋은 머리",
+            "name": "땋은 머리 (여)",
             "desc": "땋은 헤어스타일",
             "prompt": "braided hair"
         },
         "bun": {
-            "name": "올림머리/번",
+            "name": "올림머리/번 (여) - 여성 기본값",
             "desc": "머리를 뒤로 묶어 올린 스타일",
-            "prompt": "loose updo hairstyle and soft bangs"
+            "prompt": "a loose updo hairstyle and soft bangs"
         },
         "slicked_back": {
-            "name": "올백",
+            "name": "올백 (공통)",
             "desc": "뒤로 넘긴 헤어",
             "prompt": "slicked-back hair"
         },
         "undercut": {
-            "name": "언더컷",
+            "name": "언더컷 (공통)",
             "desc": "옆과 뒤를 짧게 자른 스타일",
             "prompt": "undercut"
         },
         "crew_cut": {
-            "name": "크루컷",
+            "name": "크루컷 (남)",
             "desc": "매우 짧은 남성 헤어",
             "prompt": "crew cut"
         }

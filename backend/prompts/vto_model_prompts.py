@@ -41,7 +41,7 @@ def assemble_model_prompt(
         pronoun = "her"
         pronoun_obj = "her"
         default_hair = "a loose updo hairstyle and soft bangs"
-        makeup_desc = ", natural makeup with soft pink lips"
+        makeup_desc = ", natural makeup"
     
     # 옵션에 따른 특성 빌드
     characteristics = []
