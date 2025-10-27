@@ -457,6 +457,19 @@ with gr.Blocks(title="제미나이 실험실") as demo:
         with gr.Column():
             gr.Markdown("## 상품 이미지 생성 프롬프트")
             gr.Markdown("평평한 상품 이미지를 생성하기 위한 프롬프트입니다.")
+            
+            with gr.Row():
+                product_image_type_radio = gr.Radio(
+                    label="🎯 이미지 타입",
+                    choices=[
+                        ("기본 (평평한 상품)", "default"), 
+                        ("마네킹 제거", "mannequin"), 
+                        ("사람 제거", "person")
+                    ],
+                    value="default",
+                    info="상품 이미지 생성 방식 선택"
+                )
+            
             with gr.Row():
                 product_image_prompt_display = gr.Textbox(
                     label="📝 Product Image 프롬프트",
@@ -465,6 +478,16 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     interactive=False,
                     max_lines=15
                 )
+            
+            # 타입 변경 시 프롬프트 업데이트
+            def update_product_image_prompt(image_type):
+                return product_image_prompt(type=image_type)
+            
+            product_image_type_radio.change(
+                fn=update_product_image_prompt,
+                inputs=[product_image_type_radio],
+                outputs=[product_image_prompt_display]
+            )
     
     with gr.Tab("↔️ 측면 이미지 생성 프롬프트"):
         with gr.Column():

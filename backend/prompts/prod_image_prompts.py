@@ -1,6 +1,6 @@
 DEFAULT_PROMPT = """Generate a high-resolution, studio-lit product photograph of the clothing from Image.
 Transform the clothing into a perfectly smooth, wrinkle-free, and symmetrically flattened garment.
-Place it neatly against a pure white, shadowless background. Remove any visible tags, labels, or price stickers from the garment.
+Place it neatly against a pure white, shadowless background. Remove any visible tags, labels, or price stickers and hangers from the garment.
 The lighting should be soft, even, and professionally diffused, highlighting the fabric's texture and details like the buttons and collar with sharp focus.
 """
 

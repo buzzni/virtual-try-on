@@ -500,7 +500,7 @@ def age_options(key = None):
             "prompt": "teenage"
         },
         "young": {
-            "name": "청년",
+            "name": "청년 (기본값)",
             "desc": "20대~30대 초반",
             "prompt": "young"
         },
