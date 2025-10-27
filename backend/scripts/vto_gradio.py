@@ -137,7 +137,7 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
     return dropdown_update, prompt
 
 
-def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color):
+def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, main_category, sub_category, sleeve, length, fit, wear_together):
     """
     선택된 옵션에 따라 모델 프롬프트를 업데이트하는 함수
     """
@@ -149,7 +149,13 @@ def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle,
             skin_tone=skin_tone if skin_tone != "none" else None,
             ethnicity=ethnicity if ethnicity != "none" else None,
             hairstyle=hairstyle if hairstyle != "none" else None,
-            hair_color=hair_color if hair_color != "none" else None
+            hair_color=hair_color if hair_color != "none" else None,
+            main_category=main_category if main_category != "none" else None,
+            sub_category=sub_category if sub_category != "none" else None,
+            sleeve=sleeve if sleeve != "none" else None,
+            length=length if length != "none" else None,
+            fit=fit if fit != "none" else None,
+            wear_together=wear_together if wear_together and wear_together.strip() else None
         )
         return prompt
     except Exception as e:
@@ -425,6 +431,49 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         value="none",
                         info=hair_color_opts["none"]["desc"]
                     )
+                    
+                with gr.Column(scale=1):
+                    model_main_category_dropdown = gr.Dropdown(
+                        label="📂 메인 카테고리",
+                        choices=[("설정 안 함", "none")] + [(catalog[key]["name"], key) for key in catalog.keys()],
+                        value="none",
+                        info="의류 메인 카테고리 선택"
+                    )
+                    
+                    model_sub_category_dropdown = gr.Dropdown(
+                        label="📁 서브 카테고리",
+                        choices=[("설정 안 함", "none")],
+                        value="none",
+                        info="메인 카테고리에 따라 변경됩니다"
+                    )
+                    
+                    model_fit_dropdown = gr.Dropdown(
+                        label="👔 핏",
+                        choices=[(fit_opts[key]["name"], key) for key in fit_opts.keys()],
+                        value="none",
+                        info=fit_opts["none"]["desc"]
+                    )
+                    
+                    model_sleeve_dropdown = gr.Dropdown(
+                        label="👕 소매 길이",
+                        choices=[(sleeve_opts[key]["name"], key) for key in sleeve_opts.keys()],
+                        value="none",
+                        info=sleeve_opts["none"]["desc"]
+                    )
+                    
+                    model_length_dropdown = gr.Dropdown(
+                        label="📏 기장",
+                        choices=[(length_opts[key]["name"], key) for key in length_opts.keys()],
+                        value="none",
+                        info=length_opts["none"]["desc"]
+                    )
+                    
+                    model_wear_together_textbox = gr.Textbox(
+                        label="👔 함께 입을 옷",
+                        value="",
+                        placeholder="예: black pants, white sneakers",
+                        info="함께 입을 다른 의류를 입력하세요 (선택사항)"
+                    )
                 
                 with gr.Column(scale=2):
                     model_prompt_display = gr.Textbox(
@@ -435,6 +484,44 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         max_lines=20
                     )
             
+            # 메인 카테고리 변경 시 서브 카테고리와 프롬프트 업데이트
+            def update_model_sub_category_choices(main_category, view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, sleeve, length, fit, wear_together):
+                """메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트"""
+                if main_category == "none":
+                    sub_category_value = "none"
+                    dropdown_update = gr.update(choices=[("설정 안 함", "none")], value="none")
+                elif main_category in catalog:
+                    sub_cats = catalog[main_category]["children"]
+                    choices = [("설정 안 함", "none")] + [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
+                    sub_category_value = "none"
+                    dropdown_update = gr.update(choices=choices, value="none")
+                else:
+                    sub_category_value = "none"
+                    dropdown_update = gr.update(choices=[("설정 안 함", "none")], value="none")
+                
+                # 프롬프트도 함께 업데이트
+                prompt = update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, main_category, sub_category_value, sleeve, length, fit, wear_together)
+                return dropdown_update, prompt
+            
+            model_main_category_dropdown.change(
+                fn=update_model_sub_category_choices,
+                inputs=[
+                    model_main_category_dropdown,
+                    model_view_radio,
+                    model_gender_radio,
+                    model_age_dropdown,
+                    model_skin_dropdown,
+                    model_ethnicity_dropdown,
+                    model_hairstyle_dropdown,
+                    model_hair_color_dropdown,
+                    model_sleeve_dropdown,
+                    model_length_dropdown,
+                    model_fit_dropdown,
+                    model_wear_together_textbox
+                ],
+                outputs=[model_sub_category_dropdown, model_prompt_display]
+            )
+            
             # 모든 옵션 변경 시 프롬프트 업데이트
             model_option_inputs = [
                 model_view_radio,
@@ -443,10 +530,30 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 model_skin_dropdown,
                 model_ethnicity_dropdown,
                 model_hairstyle_dropdown,
-                model_hair_color_dropdown
+                model_hair_color_dropdown,
+                model_main_category_dropdown,
+                model_sub_category_dropdown,
+                model_sleeve_dropdown,
+                model_length_dropdown,
+                model_fit_dropdown,
+                model_wear_together_textbox
             ]
             
-            for option_input in model_option_inputs:
+            # 메인 카테고리를 제외한 나머지 옵션들의 change 이벤트 등록
+            for option_input in [
+                model_view_radio,
+                model_gender_radio,
+                model_age_dropdown,
+                model_skin_dropdown,
+                model_ethnicity_dropdown,
+                model_hairstyle_dropdown,
+                model_hair_color_dropdown,
+                model_sub_category_dropdown,
+                model_sleeve_dropdown,
+                model_length_dropdown,
+                model_fit_dropdown,
+                model_wear_together_textbox
+            ]:
                 option_input.change(
                     fn=update_model_prompt,
                     inputs=model_option_inputs,

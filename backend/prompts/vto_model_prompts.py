@@ -1,5 +1,7 @@
 from typing import Optional
 from core.litellm_hander.utils import skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
+from core.litellm_hander.utils import clothes_category
+from core.litellm_hander.utils import sleeve_options, length_options, fit_options
 
 def assemble_model_prompt(
     *, 
@@ -9,7 +11,13 @@ def assemble_model_prompt(
     skin_tone: Optional[str] = None,
     ethnicity: Optional[str] = None,
     hairstyle: Optional[str] = None,
-    hair_color: Optional[str] = None
+    hair_color: Optional[str] = None,
+    main_category: Optional[str] = None,
+    sub_category: Optional[str] = None,
+    sleeve: Optional[str] = None,
+    length: Optional[str] = None,
+    fit: Optional[str] = None,
+    wear_together: Optional[str] = None
 ):
     """
     가상 모델 생성 프롬프트
@@ -22,6 +30,11 @@ def assemble_model_prompt(
         ethnicity: 인종 옵션 키 (예: "east_asian", "caucasian")
         hairstyle: 헤어스타일 옵션 키 (예: "long", "short", "updo")
         hair_color: 머리색 옵션 키 (예: "black", "brown", "blonde")
+        main_category: 메인 카테고리 (예: "tops", "bottoms", "outer")
+        sub_category: 서브 카테고리
+        sleeve: 소매 길이 옵션 키
+        length: 기장 옵션 키
+        fit: 핏 옵션 키
     """
     # 성별에 따른 설명 설정
     if gender == "man":
@@ -110,7 +123,37 @@ def assemble_model_prompt(
     if makeup_desc and age != "kid":
         model_characteristics += makeup_desc
     
-    front_prompt = f"""Generate a photorealistic full-body image of {person_desc} wearing the outfit exactly as shown in the provided Source Image.
+    
+    # 의류 설명 조합
+    base_outfit = clothes_category(main_category=main_category, sub_category=sub_category)
+    
+    # 옵션들을 앞에 붙이기 위해 수집
+    modifiers = []
+    if length and length != "none":
+        modifiers.append(length_options(length))
+    if fit and fit != "none":
+        modifiers.append(fit_options(fit))
+    if sleeve and sleeve != "none":
+        modifiers.append(sleeve_options(sleeve))
+    
+    # outfit_desc 구성
+    if main_category == None:
+        if modifiers:
+            outfit_desc = f"{', '.join(modifiers)} outfit"
+        else:
+            outfit_desc = "outfit"
+    else:
+        if modifiers:
+            outfit_desc = f"the {', '.join(modifiers)} {base_outfit}"
+        else:
+            outfit_desc = f"the {base_outfit}"
+    
+    if wear_together:
+        wear_together_desc = f" with {wear_together}."
+    else:
+        wear_together_desc = "."
+        
+    front_prompt = f"""Generate a photorealistic full-body image of {person_desc} wearing {outfit_desc} exactly as shown in the provided Source Image{wear_together_desc}
 **The model's head and shoes must both be fully visible in the image, with nothing cropped.**
 The entire clothing provided in the Source Image must be fully visible within the frame. No part of the clothing should be cropped, cut off, or out of view.
 The clothing's design, pattern, color, fabric texture, and fit must be perfectly replicated with no alteration.
@@ -130,7 +173,7 @@ Output a single high-resolution, full-body image in neutral, editorial style.
     if makeup_desc:
         back_model_desc += makeup_desc.replace(', ', ' (') + ' - not visible in this view)'
     
-    back_prompt = f"""Generate a photorealistic image of {person_desc} wearing the outfit exactly as shown in the provided Source Image.
+    back_prompt = f"""Generate a photorealistic image of {person_desc} wearing {outfit_desc} exactly as shown in the provided Source Image{wear_together_desc}.
 **The model's head and shoes must both be fully visible in the image, with nothing cropped.**
 The clothing's design, pattern, color, fabric texture, and fit must be perfectly replicated with no alteration.
 The model must be shown from behind.
