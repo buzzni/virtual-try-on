@@ -28,7 +28,7 @@ class GeminiProcesser:
     RETRY_BACKOFF_MULTIPLIER = 2.0
     
     # 배치 처리 설정
-    MAX_CONCURRENT_REQUESTS = 5  # 동시 요청 최대 개수
+    MAX_CONCURRENT_REQUESTS = 10  # 동시 요청 최대 개수
     
     # Safety settings (클래스 레벨에서 한 번만 생성)
     SAFETY_SETTINGS = [
