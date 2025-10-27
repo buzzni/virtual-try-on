@@ -456,10 +456,10 @@ def ethnicity_options(key = None):
             "desc": "인종을 지정하지 않음",
             "prompt": "none"
         },
-        "east_asian": {
-            "name": "동아시아인",
+        "asian": {
+            "name": "아시아인",
             "desc": "한국, 중국, 일본 등",
-            "prompt": "East Asian"
+            "prompt": "Asian"
         },
         "caucasian": {
             "name": "백인",
@@ -489,15 +489,20 @@ def age_options(key = None):
             "desc": "나이를 지정하지 않음",
             "prompt": "none"
         },
-        "young": {
-            "name": "청년",
-            "desc": "20대~30대 초반",
+        "kid": {
+            "name": "어린이",
+            "desc": "10대 이하",
             "prompt": "young"
         },
         "teen": {
             "name": "10대",
             "desc": "10대 청소년",
             "prompt": "teenage"
+        },
+        "young": {
+            "name": "청년",
+            "desc": "20대~30대 초반",
+            "prompt": "young"
         },
         "middle_aged": {
             "name": "중년",

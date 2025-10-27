@@ -470,11 +470,20 @@ with gr.Blocks(title="제미나이 실험실") as demo:
         with gr.Column():
             gr.Markdown("## 측면 이미지 생성 프롬프트")
             gr.Markdown("좌우 측면 이미지를 생성하기 위한 프롬프트입니다.")
+            
+            with gr.Row():
+                side_view_gender_radio = gr.Radio(
+                    label="👤 성별",
+                    choices=[("여성", "woman"), ("남성", "man"), ("중립", "none")],
+                    value="woman",
+                    info="모델 성별 선택"
+                )
+            
             with gr.Row():
                 with gr.Column():
                     side_view_left_prompt_display = gr.Textbox(
                         label="📝 Left Side View 프롬프트",
-                        value=side_view_prompt(side="left"),
+                        value=side_view_prompt(side="left", gender="woman"),
                         lines=10,
                         interactive=False,
                         max_lines=15
@@ -482,11 +491,23 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 with gr.Column():
                     side_view_right_prompt_display = gr.Textbox(
                         label="📝 Right Side View 프롬프트",
-                        value=side_view_prompt(side="right"),
+                        value=side_view_prompt(side="right", gender="woman"),
                         lines=10,
                         interactive=False,
                         max_lines=15
                     )
+            
+            # 성별 변경 시 프롬프트 업데이트
+            def update_side_view_prompts(gender):
+                left_prompt = side_view_prompt(side="left", gender=gender)
+                right_prompt = side_view_prompt(side="right", gender=gender)
+                return left_prompt, right_prompt
+            
+            side_view_gender_radio.change(
+                fn=update_side_view_prompts,
+                inputs=[side_view_gender_radio],
+                outputs=[side_view_left_prompt_display, side_view_right_prompt_display]
+            )
         
 
 

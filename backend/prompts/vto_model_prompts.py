@@ -25,13 +25,19 @@ def assemble_model_prompt(
     """
     # 성별에 따른 설명 설정
     if gender == "man":
-        person_desc = "man"
+        if age == "kid" or age == "teen":
+            person_desc = "boy"
+        else:   
+            person_desc = "man"
         pronoun = "his"
         pronoun_obj = "him"
         default_hair = "a neat hairstyle"
         makeup_desc = ""
     else:  # woman
-        person_desc = "woman"
+        if age == "kid" or age == "teen":
+            person_desc = "girl"
+        else:
+            person_desc = "woman"
         pronoun = "her"
         pronoun_obj = "her"
         default_hair = "a loose updo hairstyle and soft bangs"
@@ -89,11 +95,19 @@ def assemble_model_prompt(
     else:
         hair_desc = base_hair
     
+    if age == "kid":
+        if gender == "man":
+            person_desc_2 = person_desc.replace("boy", "kid")
+        else:
+            person_desc_2 = person_desc.replace("girl", "kid")
+    else:
+        person_desc_2 = person_desc
+        
     # 특성 설명 조합
-    model_characteristics = f"{person_desc} with {hair_desc}"
+    model_characteristics = f"{person_desc_2} with {hair_desc}"
     if characteristics:
         model_characteristics += f", {', '.join(characteristics)}"
-    if makeup_desc:
+    if makeup_desc and age != "kid":
         model_characteristics += makeup_desc
     
     front_prompt = f"""Generate a photorealistic full-body image of {person_desc} wearing the outfit exactly as shown in the provided Source Image.
@@ -110,7 +124,7 @@ Output a single high-resolution, full-body image in neutral, editorial style.
 """
     
     # 뒷면 프롬프트용 특성 설명
-    back_model_desc = f"{person_desc} with {hair_desc} visible from behind"
+    back_model_desc = f"{person_desc_2} with {hair_desc} visible from behind"
     if characteristics:
         back_model_desc += f", {', '.join(characteristics)}"
     if makeup_desc:
