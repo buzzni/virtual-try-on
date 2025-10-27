@@ -115,6 +115,12 @@ async def vto_model_tryon(
     back_image_path: Optional[str], 
     together_front_image_path: Optional[str],
     together_back_image_path: Optional[str],
+    gender: str = "woman",
+    age: Optional[str] = None,
+    skin_tone: Optional[str] = None,
+    ethnicity: Optional[str] = None,
+    hairstyle: Optional[str] = None,
+    hair_color: Optional[str] = None,
     temperature: float = 1.0,
     image_count: int = 1,
     top_p: float = 0.95
@@ -127,6 +133,12 @@ async def vto_model_tryon(
         back_image_path: 뒷면 의류 이미지 경로 (Optional)
         together_front_image_path: 함께 입을 옷 앞면 이미지 경로 (Optional)
         together_back_image_path: 함께 입을 옷 뒷면 이미지 경로 (Optional)
+        gender: 성별 (기본값: "woman")
+        age: 나이 옵션 (Optional)
+        skin_tone: 피부색 옵션 (Optional)
+        ethnicity: 인종 옵션 (Optional)
+        hairstyle: 헤어스타일 옵션 (Optional)
+        hair_color: 머리색 옵션 (Optional)
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
         top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
@@ -151,22 +163,40 @@ async def vto_model_tryon(
     # 정면 뷰: 정면 프롬프트 + front_clothes (앞면 의류가 있으면)
     if front_clothes_img:
         for _ in range(image_count):
+            front_prompt = assemble_model_prompt(
+                type="front",
+                gender=gender,
+                age=age if age != "none" else None,
+                skin_tone=skin_tone if skin_tone != "none" else None,
+                ethnicity=ethnicity if ethnicity != "none" else None,
+                hairstyle=hairstyle if hairstyle != "none" else None,
+                hair_color=hair_color if hair_color != "none" else None
+            )
             if together_front_clothes_img:
-                contents_list.append([assemble_model_prompt(type="front"), front_clothes_img, together_front_clothes_img])
+                contents_list.append([front_prompt, front_clothes_img, together_front_clothes_img])
             elif together_back_clothes_img:
-                contents_list.append([assemble_model_prompt(type="front"), front_clothes_img, together_back_clothes_img])
+                contents_list.append([front_prompt, front_clothes_img, together_back_clothes_img])
             else:
-                contents_list.append([assemble_model_prompt(type="front"), front_clothes_img])
+                contents_list.append([front_prompt, front_clothes_img])
     
     # 뒷면 뷰: 뒷면 프롬프트 + back_clothes (뒷면 의류가 있으면)
     if back_clothes_img:
         for _ in range(image_count):
+            back_prompt = assemble_model_prompt(
+                type="back",
+                gender=gender,
+                age=age if age != "none" else None,
+                skin_tone=skin_tone if skin_tone != "none" else None,
+                ethnicity=ethnicity if ethnicity != "none" else None,
+                hairstyle=hairstyle if hairstyle != "none" else None,
+                hair_color=hair_color if hair_color != "none" else None
+            )
             if together_back_clothes_img:
-                contents_list.append([assemble_model_prompt(type="back"), back_clothes_img, together_back_clothes_img])
+                contents_list.append([back_prompt, back_clothes_img, together_back_clothes_img])
             elif together_front_clothes_img:
-                contents_list.append([assemble_model_prompt(type="back"), back_clothes_img, together_front_clothes_img])
+                contents_list.append([back_prompt, back_clothes_img, together_front_clothes_img])
             else:
-                contents_list.append([assemble_model_prompt(type="back"), back_clothes_img])
+                contents_list.append([back_prompt, back_clothes_img])
     
     # 공통 추론 로직 실행
     return await gemini_processer.execute_vto_inference(
