@@ -10,7 +10,12 @@ from core.litellm_hander.utils import (
     gender_options,
     fit_options,
     sleeve_options,
-    length_options
+    length_options,
+    skin_tone_options,
+    ethnicity_options,
+    hairstyle_options,
+    age_options,
+    hair_color_options
 )
 from core.vto_service.service import virtual_tryon, vto_model_tryon, single_image_inference
 from prompts.vto_prompts import assemble_prompt
@@ -580,6 +585,69 @@ def sidebar():
     # 선택된 name에서 key 찾기
     sub_category = sub_cat_options[sub_cat_names.index(selected_sub_name)]
 
+    st.divider()
+    st.markdown("### 🧑 모델 설정")
+    
+    # 나이
+    age_opts = age_options()
+    age_keys = list(age_opts.keys())
+    age_names = [age_opts[key]["name"] for key in age_keys]
+    
+    selected_age_name = st.selectbox(
+        "나이",
+        age_names,
+        index=0
+    )
+    age = age_keys[age_names.index(selected_age_name)]
+    
+    # 피부색
+    skin_tone_opts = skin_tone_options()
+    skin_tone_keys = list(skin_tone_opts.keys())
+    skin_tone_names = [skin_tone_opts[key]["name"] for key in skin_tone_keys]
+    
+    selected_skin_tone_name = st.selectbox(
+        "피부색",
+        skin_tone_names,
+        index=0
+    )
+    skin_tone = skin_tone_keys[skin_tone_names.index(selected_skin_tone_name)]
+    
+    # 인종
+    ethnicity_opts = ethnicity_options()
+    ethnicity_keys = list(ethnicity_opts.keys())
+    ethnicity_names = [ethnicity_opts[key]["name"] for key in ethnicity_keys]
+    
+    selected_ethnicity_name = st.selectbox(
+        "인종",
+        ethnicity_names,
+        index=0
+    )
+    ethnicity = ethnicity_keys[ethnicity_names.index(selected_ethnicity_name)]
+    
+    # 헤어스타일
+    hairstyle_opts = hairstyle_options(gender=gender)
+    hairstyle_keys = list(hairstyle_opts.keys())
+    hairstyle_names = [hairstyle_opts[key]["name"] for key in hairstyle_keys]
+    
+    selected_hairstyle_name = st.selectbox(
+        "헤어스타일",
+        hairstyle_names,
+        index=0
+    )
+    hairstyle = hairstyle_keys[hairstyle_names.index(selected_hairstyle_name)]
+    
+    # 머리색
+    hair_color_opts = hair_color_options()
+    hair_color_keys = list(hair_color_opts.keys())
+    hair_color_names = [hair_color_opts[key]["name"] for key in hair_color_keys]
+    
+    selected_hair_color_name = st.selectbox(
+        "머리색",
+        hair_color_names,
+        index=0
+    )
+    hair_color = hair_color_keys[hair_color_names.index(selected_hair_color_name)]
+
     return {
         "gender": gender,
         "fit": fit,
@@ -587,6 +655,11 @@ def sidebar():
         "length": length,
         "main_category": main_category,
         "sub_category": sub_category,
+        "age": age,
+        "skin_tone": skin_tone,
+        "ethnicity": ethnicity,
+        "hairstyle": hairstyle,
+        "hair_color": hair_color,
     }
 
 def vto_tab(settings: Dict[str, str]):
@@ -755,6 +828,12 @@ def virtual_model_tab(settings: Dict[str, str]):
                         back_image_path=tmp_back_path,
                         together_front_image_path=tmp_together_front_path,
                         together_back_image_path=tmp_together_back_path,
+                        gender=settings["gender"],
+                        age=settings.get("age"),
+                        skin_tone=settings.get("skin_tone"),
+                        ethnicity=settings.get("ethnicity"),
+                        hairstyle=settings.get("hairstyle"),
+                        hair_color=settings.get("hair_color"),
                         temperature=temperature,
                         image_count=image_count
                     ))
