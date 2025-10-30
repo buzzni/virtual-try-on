@@ -719,6 +719,7 @@ def virtual_model_tab(model_options: ModelOptions, clothes_options: ClothesOptio
                         together_front_image_path=tmp_together_front_path,
                         together_back_image_path=tmp_together_back_path,
                         model_options=model_options,
+                        clothes_options=clothes_options,
                         temperature=MODEL_TEMPERATURE,
                         image_count=image_count
                     ))

@@ -59,31 +59,25 @@ class GeminiProcesser:
         self.aio_client = self.client.aio
         self.verbose = verbose
         
-    def _extract_image_from_response(self, response) -> Optional[bytes]:
-        """응답에서 이미지 데이터를 추출하는 헬퍼 메소드"""
-        if not hasattr(response, 'candidates') or not response.candidates:
+    @staticmethod
+    def _pil_to_png_bytes(image: Image.Image) -> bytes:
+        """PIL Image를 PNG bytes로 변환"""
+        buffer = io.BytesIO()
+        image.save(buffer, format='PNG')
+        return buffer.getvalue()
+    
+    @staticmethod
+    def _extract_image_from_response(response) -> Optional[bytes]:
+        """응답에서 이미지 데이터 추출"""
+        try:
+            return response.candidates[0].content.parts[0].inline_data.data
+        except (AttributeError, IndexError):
             return None
-        
-        candidate = response.candidates[0]
-        if not hasattr(candidate, 'content') or not hasattr(candidate.content, 'parts'):
-            return None
-        
-        for part in candidate.content.parts:
-            if hasattr(part, 'inline_data') and part.inline_data:
-                if hasattr(part.inline_data, 'data'):
-                    return part.inline_data.data
-        
-        return None
-        
-    def _create_usage_data(
-        self,
-        total_token_count: int = 0,
-        prompt_token_count: int = 0,
-        candidates_token_count: int = 0,
-        cost_usd: float = 0.0,
-        cost_krw: float = 0.0
-    ) -> LiteLLMUsageData:
-        """LiteLLMUsageData 생성 헬퍼 메소드"""
+    
+    def _create_usage_data(self, total_token_count: int = 0, prompt_token_count: int = 0,
+                        candidates_token_count: int = 0, cost_usd: float = 0.0,
+                        cost_krw: float = 0.0) -> LiteLLMUsageData:
+        """LiteLLMUsageData 생성"""
         return LiteLLMUsageData(
             total_token_count=total_token_count,
             prompt_token_count=prompt_token_count,
@@ -97,155 +91,62 @@ class GeminiProcesser:
             task_name=self.TASK_NAME
         )
     
-    def _extract_token_details(self, usage_metadata) -> Tuple[int, int]:
-        """토큰 세부사항을 추출하는 헬퍼 메소드 (텍스트/이미지 분리)"""
-        prompt_text_tokens = 0
-        prompt_image_tokens = 0
+    @staticmethod
+    def _extract_token_details(usage_metadata) -> Tuple[int, int]:
+        """토큰 세부사항 추출 (텍스트/이미지)"""
+        text_tokens = image_tokens = 0
         
         if hasattr(usage_metadata, 'prompt_tokens_details') and usage_metadata.prompt_tokens_details:
             for detail in usage_metadata.prompt_tokens_details:
-                modality_str = str(detail.modality)
-                if 'TEXT' in modality_str:
-                    prompt_text_tokens = detail.token_count or 0
-                elif 'IMAGE' in modality_str:
-                    prompt_image_tokens += detail.token_count or 0
+                if 'TEXT' in str(detail.modality):
+                    text_tokens = detail.token_count or 0
+                elif 'IMAGE' in str(detail.modality):
+                    image_tokens += detail.token_count or 0
         
-        return prompt_text_tokens, prompt_image_tokens
+        return text_tokens, image_tokens
     
-    def _split_images_by_view(
-        self,
-        result_image_list: List,
-        front_has_images: bool,
-        back_has_images: bool,
-        image_count: int,
-        include_side: bool
-    ) -> Tuple[List, List, List]:
-        """결과 이미지를 뷰별로 분리하는 헬퍼 메소드"""
-        front_images, back_images, side_images = [], [], []
+    @staticmethod
+    def _split_images_by_view(result_list: List, front_has: bool, back_has: bool,
+                            count: int, include_side: bool) -> Tuple[List, List, List]:
+        """이미지를 뷰별로 분리"""
         idx = 0
+        front = [img for img in result_list[idx:idx+count] if img] if front_has else []
+        idx += count if front_has else 0
         
-        if front_has_images:
-            front_images = [img for img in result_image_list[idx:idx+image_count] if img is not None]
-            idx += image_count
+        back = [img for img in result_list[idx:idx+count] if img] if back_has else []
+        idx += count if back_has else 0
         
-        if back_has_images:
-            back_images = [img for img in result_image_list[idx:idx+image_count] if img is not None]
-            idx += image_count
+        side = [img for img in result_list[idx:idx+count] if img] if include_side and front_has else []
         
-        if include_side and front_has_images:
-            side_images = [img for img in result_image_list[idx:idx+image_count] if img is not None]
-        
-        return front_images, back_images, side_images
+        return front, back, side
 
 
-    async def create_image_content(self, image: Union[Image.Image, bytes, str], use_reize = False) -> str:
+    async def create_image_content(self, image: Union[Image.Image, bytes, str, np.ndarray], 
+                                use_resize: bool = False) -> types.Part:
+        """이미지를 Gemini API 형식으로 변환"""
+        
+        # 문자열 경로인 경우: 파일 읽기
         if isinstance(image, str):
             async with aiofiles.open(image, "rb") as f:
                 image_bytes = await f.read()
-            data = types.Part.from_bytes(
-                data=image_bytes,
-                mime_type="image/png",
-            )
-
-        elif use_reize:
-            data = Image.open(image)
-            if data.width > 1024 or data.height > 1024:
-                data.thumbnail([1024, 1024], Image.Resampling.LANCZOS)
-            # PIL Image를 PNG bytes로 변환
-            buffer = io.BytesIO()
-            data.save(buffer, format='PNG')
-            buffer.seek(0)
-            data = types.Part.from_bytes(
-                data=buffer.getvalue(),
-                mime_type="image/png",
-            )            
-        elif isinstance(image, bytes):
-            data = types.Part.from_bytes(
-                data=image,
-                mime_type="image/png",
-            )
-        elif isinstance(image, np.ndarray):
-            pil_image = Image.fromarray(image)
-            if pil_image.width > 1024 or pil_image.height > 1024:
-                pil_image.thumbnail([1024, 1024], Image.Resampling.LANCZOS)
-            # PIL Image를 PNG bytes로 변환
-            buffer = io.BytesIO()
-            pil_image.save(buffer, format='PNG')
-            buffer.seek(0)
-            data = types.Part.from_bytes(
-                data=buffer.getvalue(),
-                mime_type="image/png",
-            )
-        else:
-            # PIL Image를 PNG bytes로 변환
-            buffer = io.BytesIO()
-            image.save(buffer, format='PNG')
-            buffer.seek(0)
-            data = types.Part.from_bytes(
-                data=buffer.getvalue(),
-                mime_type="image/png",
-            )
-        return data
-
-    async def virtual_tryon_inference(self, contents, temperature: float = 1.0, top_p: float = 0.95):
-        """
-        단일 Virtual Try-On 추론 (재시도 로직 포함)
+            return types.Part.from_bytes(data=image_bytes, mime_type="image/png")
         
-        Args:
-            contents: 입력 콘텐츠 리스트 (텍스트 + 이미지들)
-            temperature: 결과의 다양성
-            top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
+        # bytes인 경우: 그대로 사용
+        if isinstance(image, bytes):
+            return types.Part.from_bytes(data=image, mime_type="image/png")
         
-        Returns:
-            tuple: (이미지 바이너리 데이터, 비용 정보)
-        """
-        last_exception = None
-        delay = self.RETRY_DELAY
+        # numpy array인 경우: PIL Image로 변환
+        if isinstance(image, np.ndarray):
+            image = Image.fromarray(image)
         
-        for attempt in range(self.MAX_RETRIES):
-            try:
-                # Gemini API 호출 (이미지만 생성하도록 설정)
-                response = await self.aio_client.models.generate_content(
-                    model=self.MODEL_NAME,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_modalities=[types.Modality.IMAGE],
-                        temperature=temperature,
-                        top_p=top_p,
-                        image_config=types.ImageConfig(aspect_ratio="1:1"),
-                        safety_settings=self.SAFETY_SETTINGS
-                    )
-                )
-                
-                # 비용 계산
-                usage_data = await self.calculate_vto_cost(
-                    response.usage_metadata if hasattr(response, 'usage_metadata') else None
-                )
-                
-                # 응답에서 이미지 데이터 추출
-                image_data = self._extract_image_from_response(response)
-                return image_data, usage_data
-                
-            except Exception as e:
-                last_exception = e
-                error_str = str(e)
-                
-                # 502, 503, 429 등 재시도 가능한 에러인지 확인
-                is_retryable = any(code in error_str for code in ['502', '503', '429', 'Bad Gateway', 'Service Unavailable', 'Too Many Requests'])
-                
-                if is_retryable and attempt < self.MAX_RETRIES - 1:
-                    if self.verbose:
-                        print(f"⚠️  재시도 가능한 에러 발생 (시도 {attempt + 1}/{self.MAX_RETRIES}): {error_str[:100]}")
-                        print(f"   {delay}초 후 재시도...")
-                    
-                    await asyncio.sleep(delay)
-                    delay *= self.RETRY_BACKOFF_MULTIPLIER
-                else:
-                    if self.verbose:
-                        print(f"❌ Inference Error (시도 {attempt + 1}/{self.MAX_RETRIES}): {error_str[:200]}")
-                    break
+        # PIL Image 처리 (resize 옵션 적용)
+        if use_resize and (image.width > 1024 or image.height > 1024):
+            image.thumbnail([1024, 1024], Image.Resampling.LANCZOS)
         
-        return None, None
+        return types.Part.from_bytes(
+            data=self._pil_to_png_bytes(image),
+            mime_type="image/png"
+        )
     
     async def calculate_vto_cost(self, usage_metadata) -> LiteLLMUsageData:
         """
@@ -328,10 +229,70 @@ class GeminiProcesser:
         back_clothes_img = Image.open(back_image_path) if back_image_path else None
         return front_clothes_img, back_clothes_img
 
+    async def gemini_image_inference(self, contents, temperature: float = 1.0, top_p: float = 0.95):
+        """
+        단일 이미지 추론 (재시도 로직 포함)
+        
+        Args:
+            contents: 입력 콘텐츠 리스트 (텍스트 + 이미지들)
+            temperature: 결과의 다양성
+            top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
+        
+        Returns:
+            tuple: (이미지 바이너리 데이터, 비용 정보)
+        """
+        last_exception = None
+        delay = self.RETRY_DELAY
+        
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                # Gemini API 호출 (이미지만 생성하도록 설정)
+                response = await self.aio_client.models.generate_content(
+                    model=self.MODEL_NAME,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_modalities=[types.Modality.IMAGE],
+                        temperature=temperature,
+                        top_p=top_p,
+                        image_config=types.ImageConfig(aspect_ratio="1:1"),
+                        safety_settings=self.SAFETY_SETTINGS
+                    )
+                )
+                
+                # 비용 계산
+                usage_data = await self.calculate_vto_cost(
+                    response.usage_metadata if hasattr(response, 'usage_metadata') else None
+                )
+                
+                # 응답에서 이미지 데이터 추출
+                image_data = self._extract_image_from_response(response)
+                return image_data, usage_data
+                
+            except Exception as e:
+                last_exception = e
+                error_str = str(e)
+                
+                # 502, 503, 429 등 재시도 가능한 에러인지 확인
+                is_retryable = any(code in error_str for code in ['502', '503', '429', 'Bad Gateway', 'Service Unavailable', 'Too Many Requests'])
+                
+                if is_retryable and attempt < self.MAX_RETRIES - 1:
+                    if self.verbose:
+                        print(f"⚠️  재시도 가능한 에러 발생 (시도 {attempt + 1}/{self.MAX_RETRIES}): {error_str[:100]}")
+                        print(f"   {delay}초 후 재시도...")
+                    
+                    await asyncio.sleep(delay)
+                    delay *= self.RETRY_BACKOFF_MULTIPLIER
+                else:
+                    if self.verbose:
+                        print(f"❌ Inference Error (시도 {attempt + 1}/{self.MAX_RETRIES}): {error_str[:200]}")
+                    break
+        
+        return None, None
+    
     async def _run_with_semaphore(self, semaphore: asyncio.Semaphore, contents, temperature: float, top_p: float):
         """세마포어를 사용하여 동시 요청 수를 제한하는 헬퍼 메소드"""
         async with semaphore:
-            return await self.virtual_tryon_inference(contents, temperature, top_p)
+            return await self.gemini_image_inference(contents, temperature, top_p)
     
     async def execute_vto_inference(
         self,
