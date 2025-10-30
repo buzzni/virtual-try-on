@@ -372,8 +372,8 @@ def virtual_model_tab(model_options: ModelOptions, clothes_options: ClothesOptio
         model_options: 모델 옵션
         clothes_options: 의상 옵션
     """
-    
-    MODEL_TEMPERATURE = 1.5
+    MODEL_TEMPERATURE = 0.5
+    MODEL_TOP_P = 0.97
     # 카테고리에 따른 업로드 수 결정
     num_uploads = 1 if clothes_options.main_category == "dress" else 2
 
@@ -421,7 +421,8 @@ def virtual_model_tab(model_options: ModelOptions, clothes_options: ClothesOptio
                         ),
                         image_paths=paths,
                         temperature=MODEL_TEMPERATURE,
-                        image_count=image_count
+                        image_count=image_count,
+                        top_p=MODEL_TOP_P
                     ))
                     st.session_state.vm_result = result
                     st.success("✅ 가상 모델 피팅 완료!")
