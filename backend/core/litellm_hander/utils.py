@@ -4,13 +4,13 @@ def gender_options():
         #     "name": "공통",
         #     "desc": "성별 구분 없이 공통으로 적용"
         # },
-        "man": {
-            "name": "남성",
-            "desc": "남성 모델에 적용"
-        },
         "woman": {
             "name": "여성",
             "desc": "여성 모델에 적용"
+        },
+        "man": {
+            "name": "남성",
+            "desc": "남성 모델에 적용"
         }
     }
 

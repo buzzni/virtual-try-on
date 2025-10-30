@@ -289,14 +289,11 @@ def side_view_component(source_mode: str):
     source_result = None
     selected_image_bytes = None
     
-    if source_mode == "vto":
-        source_result = st.session_state.get("vto_result")
-    elif source_mode == "vm":
-        source_result = st.session_state.get("vm_result")
+    source_result = st.session_state.get("vm_result")
     
     if source_result:
         # 선택된 이미지 인덱스 가져오기
-        selected_key = f"{source_mode}_selected_image_idx"
+        selected_key = "vm_selected_image_idx"
         if selected_key in st.session_state:
             selected_idx = st.session_state[selected_key]
             
@@ -321,7 +318,7 @@ def side_view_component(source_mode: str):
     st.subheader("🚀 측면 이미지 생성 실행")
     
     # 세션 상태 초기화
-    result_key = f"{source_mode}_side_result"
+    result_key = "vm_side_result"
     if result_key not in st.session_state:
         st.session_state[result_key] = None
     
@@ -333,14 +330,14 @@ def side_view_component(source_mode: str):
             max_value=10,
             value=1,
             step=1,
-            key=f"{source_mode}_side_count",
+            key="vm_side_count",
             help="동시에 생성할 이미지 개수입니다."
         )
     with col2:
         if st.button(
             "🚀 측면 이미지 생성 (좌측 + 우측)", 
             use_container_width=True,
-            key=f"{source_mode}_side_btn"
+            key="vm_side_btn"
         ):
             if selected_image_bytes is None:
                 st.error("❌ 이미지를 선택하거나 업로드해주세요.")
@@ -492,8 +489,6 @@ def side_view_component(source_mode: str):
 # ============================================================================
 
 def sidebar():
-    st.header("⚙️ 설정")
-    st.divider()
     st.markdown("### 🧑 모델 설정")
     
     # 성별
@@ -599,9 +594,7 @@ def sidebar():
     )
     
     # 선택된 name에서 key 찾기
-    sub_category = sub_cat_options[sub_cat_names.index(selected_sub_name)]    
-    
-    st.divider()
+    sub_category = sub_cat_options[sub_cat_names.index(selected_sub_name)]
     
     # 핏
     fit_opts = fit_options()
@@ -654,6 +647,7 @@ def sidebar():
     }
 
 def virtual_model_tab(settings: Dict[str, str]):
+    MODEL_TEMPERATURE = 1.5
     # 카테고리에 따른 업로드 수 결정
     num_uploads = 1 if settings["main_category"] == "dress" else 2
 
@@ -669,15 +663,6 @@ def virtual_model_tab(settings: Dict[str, str]):
     # 세션 상태 초기화 (가상모델피팅모드 전용)
     if "vm_result" not in st.session_state:
         st.session_state.vm_result = None
-    
-    temperature = st.slider(
-        "Temperature",
-        min_value=0.0,
-        max_value=2.0,
-        value=1.0,
-        step=0.1,
-        help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
-    )
     
     image_count = st.slider(
         "생성할 이미지 개수",
@@ -708,19 +693,24 @@ def virtual_model_tab(settings: Dict[str, str]):
                         front_image, back_image, together_front_image, together_back_image
                     )
                     
+                    # 모델 옵션 구성
+                    model_options = {
+                        "gender": settings.get("gender"),
+                        "age": settings.get("age"),
+                        "skin_tone": settings.get("skin_tone"),
+                        "ethnicity": settings.get("ethnicity"),
+                        "hairstyle": settings.get("hairstyle"),
+                        "hair_color": settings.get("hair_color"),
+                    }
+                    
                     # Virtual Try-On 실행
                     result = asyncio.run(vto_model_tryon(
                         front_image_path=tmp_front_path,
                         back_image_path=tmp_back_path,
                         together_front_image_path=tmp_together_front_path,
                         together_back_image_path=tmp_together_back_path,
-                        gender=settings.get("gender"),
-                        age=settings.get("age"),
-                        skin_tone=settings.get("skin_tone"),
-                        ethnicity=settings.get("ethnicity"),
-                        hairstyle=settings.get("hairstyle"),
-                        hair_color=settings.get("hair_color"),
-                        temperature=temperature,
+                        model_options=model_options,
+                        temperature=MODEL_TEMPERATURE,
                         image_count=image_count
                     ))
                     st.session_state.vm_result = result

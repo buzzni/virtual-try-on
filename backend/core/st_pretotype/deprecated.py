@@ -717,18 +717,23 @@ def virtual_model_tab(settings: Dict[str, str]):
                         front_image, back_image, together_front_image, together_back_image
                     )
                     
+                    # 모델 옵션 구성
+                    model_options = {
+                        "gender": settings["gender"],
+                        "age": settings.get("age"),
+                        "skin_tone": settings.get("skin_tone"),
+                        "ethnicity": settings.get("ethnicity"),
+                        "hairstyle": settings.get("hairstyle"),
+                        "hair_color": settings.get("hair_color"),
+                    }
+                    
                     # Virtual Try-On 실행
                     result = asyncio.run(vto_model_tryon(
                         front_image_path=tmp_front_path,
                         back_image_path=tmp_back_path,
                         together_front_image_path=tmp_together_front_path,
                         together_back_image_path=tmp_together_back_path,
-                        gender=settings["gender"],
-                        age=settings.get("age"),
-                        skin_tone=settings.get("skin_tone"),
-                        ethnicity=settings.get("ethnicity"),
-                        hairstyle=settings.get("hairstyle"),
-                        hair_color=settings.get("hair_color"),
+                        model_options=model_options,
                         temperature=temperature,
                         image_count=image_count
                     ))
