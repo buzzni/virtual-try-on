@@ -18,8 +18,7 @@ from core.litellm_hander.utils import (
     hair_color_options
 )
 from core.litellm_hander.schema import ModelOptions, ClothesOptions
-from core.vto_service.service import virtual_tryon, vto_model_tryon, single_image_inference
-from prompts.vto_prompts import assemble_prompt
+from core.vto_service.service import vto_model_tryon, single_image_inference
 from prompts.side_view_prompts import side_view_prompt
 
 # ============================================================================

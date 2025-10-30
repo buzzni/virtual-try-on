@@ -306,6 +306,7 @@ class GeminiProcesser:
     ) -> Dict:
         """
         Virtual Try-On 추론을 실행하고 결과를 반환하는 공통 로직
+        앞면 / 뒷면 / 측면 이미지 동시 요청 처리
         (동시 요청 수 제한 및 재시도 로직 포함)
         
         Args:
@@ -374,6 +375,71 @@ class GeminiProcesser:
                 "side_count": len(side_images) if include_side else 0,
                 "total_count": len(all_images),
                 "requested_count_per_view": image_count,
+                "success_count": success_count,
+                "fail_count": fail_count,
+                "model_name": self.MODEL_NAME,
+            }
+        }
+        
+    async def execute_image_inference(
+        self,
+        contents_list: List,
+        temperature: float,
+        top_p: float = 0.95
+    ) -> Dict:
+        """
+        단일 이미지 추론을 실행하고 결과를 반환하는 공통 로직
+        (동시 요청 수 제한 및 재시도 로직 포함)
+        
+        Args:
+            contents_list: Gemini API에 전달할 콘텐츠 리스트
+            temperature: 결과의 다양성
+            top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
+        
+        Returns:
+            Dict: 응답 결과 (이미지 리스트 및 비용 정보)
+        """
+        if self.verbose:
+            print(f"\n{'='*50}")
+            print(f"📸 총 생성할 이미지 수: {len(contents_list)}")
+            print(f"⚙️  동시 요청 제한: 최대 {self.MAX_CONCURRENT_REQUESTS}개")
+            print(f"🔄 재시도 설정: 최대 {self.MAX_RETRIES}회, 초기 대기 {self.RETRY_DELAY}초")
+            print(f"🔄 Top-p: {top_p}")
+            print(f"🔄 Temperature: {temperature}")
+            print(f"{'='*50}\n")
+        
+        # 세마포어를 사용하여 동시 요청 수 제한
+        semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
+        
+        # 모든 조합에 대해 병렬 호출 (동시 요청 수 제한)
+        tasks = [self._run_with_semaphore(semaphore, contents, temperature, top_p) for contents in contents_list]
+        responses = await asyncio.gather(*tasks)
+        
+        # 결과 분리
+        result_image_list, usage_data_list = zip(*responses) if responses else ([], [])
+        
+        # None이 아닌 usage_data만 필터링하여 비용 합산
+        valid_usage_data = [usage for usage in usage_data_list if usage is not None]
+        total_usage = await self.sum_usage_data(valid_usage_data) if valid_usage_data else await self.calculate_vto_cost(None)
+        
+        all_images = result_image_list
+        
+        # 성공/실패 통계
+        success_count = len([img for img in result_image_list if img is not None])
+        fail_count = len(result_image_list) - success_count
+        
+        if self.verbose:
+            print(f"\n{'='*50}")
+            print(f"✅ 성공: {success_count}개")
+            if fail_count > 0:
+                print(f"❌ 실패: {fail_count}개")
+            print(f"{'='*50}\n")
+        
+        return {
+            "response": all_images,
+            "usage": total_usage,
+            "debug_info": {
+                "total_count": len(all_images),
                 "success_count": success_count,
                 "fail_count": fail_count,
                 "model_name": self.MODEL_NAME,

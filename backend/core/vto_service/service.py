@@ -145,12 +145,8 @@ async def single_image_inference(
     for _ in range(image_count):
         contents_list.append([prompt, image_content])
     
-    return await gemini_processer.execute_vto_inference(
+    return await gemini_processer.execute_image_inference(
         contents_list=contents_list,
-        front_has_images=image_content is not None,
-        back_has_images=False,
-        image_count=image_count,
         temperature=temperature,
-        include_side=False,
         top_p=top_p
     )

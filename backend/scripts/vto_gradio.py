@@ -34,22 +34,18 @@ async def process_inputs(text_input, image1, image2, image3, temperature, top_p,
         contents_list.append(content_parts.copy())
     
     # VTO 추론 실행
-    result = await gemini_processer.execute_vto_inference(
+    result = await gemini_processer.execute_image_inference(
         contents_list=contents_list,
-        front_has_images=True,  # 항상 True로 설정하여 생성된 이미지를 front_images에 담음
-        back_has_images=False,
-        image_count=num_images,
         temperature=temperature,
-        top_p=top_p,
-        include_side=False
+        top_p=top_p
     )
     
-    # front_images를 bytes 리스트로 가져오기
-    front_images = result.get("front_images", [])
+    # response를 bytes 리스트로 가져오기
+    response = result.get("response", [])
     
     # bytes 데이터를 PIL Image로 변환
     pil_images = []
-    for img_bytes in front_images:
+    for img_bytes in response:
         if img_bytes is not None:
             pil_images.append(Image.open(io.BytesIO(img_bytes)))
     
