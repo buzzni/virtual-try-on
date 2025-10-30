@@ -2,21 +2,12 @@ from typing import Optional
 from core.litellm_hander.utils import skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
 from core.litellm_hander.utils import clothes_category
 from core.litellm_hander.utils import sleeve_options, length_options, fit_options
+from core.litellm_hander.schema import ModelOptions, ClothesOptions
 
 def assemble_model_prompt(
-    *, 
-    type: str, 
-    gender: str = "woman",
-    age: Optional[str] = None,
-    skin_tone: Optional[str] = None,
-    ethnicity: Optional[str] = None,
-    hairstyle: Optional[str] = None,
-    hair_color: Optional[str] = None,
-    main_category: Optional[str] = None,
-    sub_category: Optional[str] = None,
-    sleeve: Optional[str] = None,
-    length: Optional[str] = None,
-    fit: Optional[str] = None,
+    type: str,
+    model_options: Optional[ModelOptions] = None,
+    clothes_options: Optional[ClothesOptions] = None,
     wear_together: Optional[str] = None
 ):
     """
@@ -24,18 +15,29 @@ def assemble_model_prompt(
     
     Args:
         type: "front" 또는 "back"
-        gender: "man" 또는 "woman" (기본값: "woman")
-        age: 나이 옵션 키 (예: "young", "middle_aged", "senior")
-        skin_tone: 피부색 옵션 키 (예: "fair", "medium", "dark")
-        ethnicity: 인종 옵션 키 (예: "east_asian", "caucasian")
-        hairstyle: 헤어스타일 옵션 키 (예: "long", "short", "updo")
-        hair_color: 머리색 옵션 키 (예: "black", "brown", "blonde")
-        main_category: 메인 카테고리 (예: "tops", "bottoms", "outer")
-        sub_category: 서브 카테고리
-        sleeve: 소매 길이 옵션 키
-        length: 기장 옵션 키
-        fit: 핏 옵션 키
+        model_options: 모델 옵션 (ModelOptions Pydantic 모델)
+        clothes_options: 의상 옵션 (ClothesOptions Pydantic 모델)
+        wear_together: 함께 입을 옷 설명 (Optional)
     """
+    # 기본값 설정
+    if model_options is None:
+        model_options = ModelOptions(gender="woman")
+    
+    # ModelOptions에서 값 추출
+    gender = model_options.gender
+    age = model_options.age
+    skin_tone = model_options.skin_tone
+    ethnicity = model_options.ethnicity
+    hairstyle = model_options.hairstyle
+    hair_color = model_options.hair_color
+    
+    # ClothesOptions에서 값 추출 (있는 경우)
+    main_category = clothes_options.main_category if clothes_options else None
+    sub_category = clothes_options.sub_category if clothes_options else None
+    sleeve = clothes_options.sleeve if clothes_options else None
+    length = clothes_options.length if clothes_options else None
+    fit = clothes_options.fit if clothes_options else None
+    
     # 성별에 따른 설명 설정
     if gender == "man":
         if age == "kid" or age == "teen":
