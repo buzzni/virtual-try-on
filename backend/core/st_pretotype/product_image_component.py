@@ -5,7 +5,7 @@ from PIL import Image
 import tempfile
 import os
 from io import BytesIO
-from core.vto_service.service import single_image_inference
+from core.vto_service.service import image_inference_with_prompt
 from prompts.prod_image_prompts import product_image_prompt
 
 
@@ -115,9 +115,9 @@ def product_image_tab(settings: Dict[str, str]):
                             tmp_paths.append(tmp_path)
 
                         # 상품 이미지 생성 실행
-                        result = await single_image_inference(
+                        result = await image_inference_with_prompt(
                             prompt=product_image_prompt(type=settings["mode"]),
-                            image_path=tmp_path,
+                            image_paths=tmp_paths,
                             temperature=temperature,
                             image_count=image_count,
                         )
@@ -134,15 +134,15 @@ def product_image_tab(settings: Dict[str, str]):
 
                     # 모든 결과 합치기
                     combined_result = {
-                        "front_images": [],
+                        "response": [],
                         "usage": all_results[0]["usage"],  # 첫 번째 usage 사용
                         "debug_info": {},
                     }
 
                     # 모든 이미지 합치기
                     for result in all_results:
-                        combined_result["front_images"].extend(
-                            result.get("front_images", [])
+                        combined_result["response"].extend(
+                            result.get("response", [])
                         )
 
                     # 사용량 합산
@@ -160,7 +160,7 @@ def product_image_tab(settings: Dict[str, str]):
 
                     st.session_state.product_image_result = combined_result
                     st.success(
-                        f"✅ 상품 이미지 생성 완료! ({len(uploaded_images)}개 이미지, 총 {len(combined_result['front_images'])}개 결과)"
+                        f"✅ 상품 이미지 생성 완료! ({len(uploaded_images)}개 이미지, 총 {len(combined_result['response'])}개 결과)"
                     )
 
                 except Exception as e:
@@ -197,7 +197,7 @@ def product_image_tab(settings: Dict[str, str]):
         try:
             # 상품 이미지 개별 추출
             product_images = st.session_state.product_image_result.get(
-                "front_images", []
+                "response", []
             )
             debug_info = st.session_state.product_image_result.get("debug_info", {})
 

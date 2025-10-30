@@ -104,22 +104,6 @@ class GeminiProcesser:
                     image_tokens += detail.token_count or 0
         
         return text_tokens, image_tokens
-    
-    @staticmethod
-    def _split_images_by_view(result_list: List, front_has: bool, back_has: bool,
-                            count: int, include_side: bool) -> Tuple[List, List, List]:
-        """이미지를 뷰별로 분리"""
-        idx = 0
-        front = [img for img in result_list[idx:idx+count] if img] if front_has else []
-        idx += count if front_has else 0
-        
-        back = [img for img in result_list[idx:idx+count] if img] if back_has else []
-        idx += count if back_has else 0
-        
-        side = [img for img in result_list[idx:idx+count] if img] if include_side and front_has else []
-        
-        return front, back, side
-
 
     async def create_image_content(self, image: Union[Image.Image, bytes, str, np.ndarray], 
                                 use_resize: bool = False) -> types.Part:
@@ -212,22 +196,19 @@ class GeminiProcesser:
     
     async def load_clothes_images(
         self,
-        front_image_path: Optional[str],
-        back_image_path: Optional[str]
-    ) -> Tuple[Optional[Image.Image], Optional[Image.Image]]:
+        image_path: Optional[str],
+    ) -> Optional[Image.Image]:
         """
         의류 이미지를 로드하는 헬퍼 함수
         
         Args:
-            front_image_path: 앞면 의류 이미지 경로
-            back_image_path: 뒷면 의류 이미지 경로
+            image_path: 의류 이미지 경로
         
         Returns:
-            Tuple: (앞면 이미지, 뒷면 이미지)
+            Optional[Image.Image]: 의류 이미지
         """
-        front_clothes_img = Image.open(front_image_path) if front_image_path else None
-        back_clothes_img = Image.open(back_image_path) if back_image_path else None
-        return front_clothes_img, back_clothes_img
+        clothes_img = Image.open(image_path) if image_path else None
+        return clothes_img
 
     async def gemini_image_inference(self, contents, temperature: float = 1.0, top_p: float = 0.95):
         """
@@ -293,97 +274,11 @@ class GeminiProcesser:
         """세마포어를 사용하여 동시 요청 수를 제한하는 헬퍼 메소드"""
         async with semaphore:
             return await self.gemini_image_inference(contents, temperature, top_p)
-    
-    async def execute_vto_inference(
-        self,
-        contents_list: List,
-        front_has_images: bool,
-        back_has_images: bool,
-        image_count: int,
-        temperature: float,
-        include_side: bool = False,
-        top_p: float = 0.95
-    ) -> Dict:
-        """
-        Virtual Try-On 추론을 실행하고 결과를 반환하는 공통 로직
-        앞면 / 뒷면 / 측면 이미지 동시 요청 처리
-        (동시 요청 수 제한 및 재시도 로직 포함)
-        
-        Args:
-            contents_list: Gemini API에 전달할 콘텐츠 리스트
-            front_has_images: 앞면 이미지 존재 여부
-            back_has_images: 뒷면 이미지 존재 여부
-            image_count: 생성할 이미지 개수
-            temperature: 결과의 다양성
-            include_side: 측면 이미지 포함 여부
-            top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
-        
-        Returns:
-            Dict: 응답 결과 (앞면/뒷면/측면 이미지 리스트 및 비용 정보)
-        """
-        if self.verbose:
-            print(f"\n{'='*50}")
-            print(f"📸 총 생성할 이미지 수: {len(contents_list)}")
-            print(f"⚙️  동시 요청 제한: 최대 {self.MAX_CONCURRENT_REQUESTS}개")
-            print(f"🔄 재시도 설정: 최대 {self.MAX_RETRIES}회, 초기 대기 {self.RETRY_DELAY}초")
-            print(f"🔄 Top-p: {top_p}")
-            print(f"🔄 Temperature: {temperature}")
-            print(f"{'='*50}\n")
-        
-        # 세마포어를 사용하여 동시 요청 수 제한
-        semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
-        
-        # 모든 조합에 대해 병렬 호출 (동시 요청 수 제한)
-        tasks = [self._run_with_semaphore(semaphore, contents, temperature, top_p) for contents in contents_list]
-        responses = await asyncio.gather(*tasks)
-        
-        # 결과 분리
-        result_image_list, usage_data_list = zip(*responses) if responses else ([], [])
-        
-        # None이 아닌 usage_data만 필터링하여 비용 합산
-        valid_usage_data = [usage for usage in usage_data_list if usage is not None]
-        total_usage = await self.sum_usage_data(valid_usage_data) if valid_usage_data else await self.calculate_vto_cost(None)
-        
-        # 결과 이미지를 뷰별로 분리
-        front_images, back_images, side_images = self._split_images_by_view(
-            result_image_list, front_has_images, back_has_images, image_count, include_side
-        )
-        
-        # 모든 이미지를 하나의 리스트로 합침
-        all_images = front_images + back_images + (side_images if include_side else [])
-        
-        # 성공/실패 통계
-        success_count = len([img for img in result_image_list if img is not None])
-        fail_count = len(result_image_list) - success_count
-        
-        if self.verbose:
-            print(f"\n{'='*50}")
-            print(f"✅ 성공: {success_count}개")
-            if fail_count > 0:
-                print(f"❌ 실패: {fail_count}개")
-            print(f"{'='*50}\n")
-        
-        return {
-            "response": all_images,
-            "front_images": front_images,
-            "back_images": back_images,
-            "side_images": side_images if include_side else [],
-            "usage": total_usage,
-            "debug_info": {
-                "front_count": len(front_images),
-                "back_count": len(back_images),
-                "side_count": len(side_images) if include_side else 0,
-                "total_count": len(all_images),
-                "requested_count_per_view": image_count,
-                "success_count": success_count,
-                "fail_count": fail_count,
-                "model_name": self.MODEL_NAME,
-            }
-        }
         
     async def execute_image_inference(
         self,
         contents_list: List,
+        image_count: int,
         temperature: float,
         top_p: float = 0.95
     ) -> Dict:
@@ -401,7 +296,7 @@ class GeminiProcesser:
         """
         if self.verbose:
             print(f"\n{'='*50}")
-            print(f"📸 총 생성할 이미지 수: {len(contents_list)}")
+            print(f"📸 총 생성할 이미지 수: {image_count}")
             print(f"⚙️  동시 요청 제한: 최대 {self.MAX_CONCURRENT_REQUESTS}개")
             print(f"🔄 재시도 설정: 최대 {self.MAX_RETRIES}회, 초기 대기 {self.RETRY_DELAY}초")
             print(f"🔄 Top-p: {top_p}")
@@ -411,8 +306,12 @@ class GeminiProcesser:
         # 세마포어를 사용하여 동시 요청 수 제한
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
         
+        recursive_contents_list = []
+        for _ in range(image_count):
+            recursive_contents_list.append(contents_list)
+        
         # 모든 조합에 대해 병렬 호출 (동시 요청 수 제한)
-        tasks = [self._run_with_semaphore(semaphore, contents, temperature, top_p) for contents in contents_list]
+        tasks = [self._run_with_semaphore(semaphore, contents, temperature, top_p) for contents in recursive_contents_list]
         responses = await asyncio.gather(*tasks)
         
         # 결과 분리

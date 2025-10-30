@@ -2,7 +2,6 @@ import gradio as gr
 import io
 from PIL import Image
 from core.vto_service.gemini_handler import GeminiProcesser
-from core.vto_service.service import vto_model_tryon
 from core.litellm_hander.schema import ModelOptions, ClothesOptions
 from prompts.vto_model_prompts import assemble_model_prompt
 from prompts.vto_prompts import assemble_prompt
@@ -18,24 +17,20 @@ async def process_inputs(text_input, image1, image2, image3, temperature, top_p,
     텍스트 입력과 이미지 입력들을 처리하는 함수
     """
     gemini_processer = GeminiProcesser(verbose=True)
-    contents_list = []
     
     # 콘텐츠 생성 (이미지를 미리 변환)
-    content_parts = [text_input]
+    contents_list = [text_input]
     if image1 is not None:
-        content_parts.append(await gemini_processer.create_image_content(image1))
+        contents_list.append(await gemini_processer.create_image_content(image1))
     if image2 is not None:
-        content_parts.append(await gemini_processer.create_image_content(image2))
+        contents_list.append(await gemini_processer.create_image_content(image2))
     if image3 is not None:
-        content_parts.append(await gemini_processer.create_image_content(image3))
-    
-    # 생성할 이미지 개수만큼 같은 content를 복사하여 추가
-    for _ in range(num_images):
-        contents_list.append(content_parts.copy())
+        contents_list.append(await gemini_processer.create_image_content(image3))
     
     # VTO 추론 실행
     result = await gemini_processer.execute_image_inference(
         contents_list=contents_list,
+        image_count=num_images,
         temperature=temperature,
         top_p=top_p
     )
@@ -150,20 +145,20 @@ def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle,
             hair_color=hair_color if hair_color != "none" else None
         )
         
-        # 프롬프트 생성 (기존 방식 유지)
-        prompt = assemble_model_prompt(
-            type=view_type, 
-            gender=model_options.gender,
-            age=model_options.age,
-            skin_tone=model_options.skin_tone,
-            ethnicity=model_options.ethnicity,
-            hairstyle=model_options.hairstyle,
-            hair_color=model_options.hair_color,
-            main_category=main_category if main_category != "none" else None,
-            sub_category=sub_category if sub_category != "none" else None,
+        # ClothesOptions 생성
+        clothes_options = ClothesOptions(
+            main_category=main_category if main_category != "none" else "tops",
+            sub_category=sub_category if sub_category != "none" else "none",
             sleeve=sleeve if sleeve != "none" else None,
             length=length if length != "none" else None,
-            fit=fit if fit != "none" else None,
+            fit=fit if fit != "none" else None
+        )
+        
+        # 프롬프트 생성
+        prompt = assemble_model_prompt(
+            type=view_type,
+            model_options=model_options,
+            clothes_options=clothes_options,
             wear_together=wear_together if wear_together and wear_together.strip() else None
         )
         return prompt
@@ -385,9 +380,18 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     )
                 
                 with gr.Column(scale=2):
+                    # 초기 프롬프트 생성
+                    initial_model_options = ModelOptions(gender="woman", age="young")
+                    initial_clothes_options = ClothesOptions(main_category="tops", sub_category="none")
+                    initial_prompt = assemble_model_prompt(
+                        type="front",
+                        model_options=initial_model_options,
+                        clothes_options=initial_clothes_options
+                    )
+                    
                     model_prompt_display = gr.Textbox(
                         label="📝 생성된 프롬프트",
-                        value=assemble_model_prompt(type="front", gender="woman", age="young"),
+                        value=initial_prompt,
                         lines=15,
                         interactive=False,
                         max_lines=20
