@@ -126,6 +126,18 @@ def length_options(key = None):
 
 def clothes_category(main_category = None, sub_category = None):
     catalog = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "기본 의류",
+            "prompt": "garment",
+            "children": {
+                "none": {
+                    "name": "설정 안 함",
+                    "desc": "의류 종류 전체",
+                    "prompt": "garment"
+                },
+            }
+        },
         "tops": {
             "name": "상의",
             "desc": "상반신 기본 의류. 계절·활동·핏에 따라 선택.",
