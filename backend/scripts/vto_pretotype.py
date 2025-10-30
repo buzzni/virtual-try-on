@@ -2,7 +2,6 @@ import streamlit as st
 
 from core.st_pretotype.component import (
     sidebar,
-    vto_tab,
     virtual_model_tab,
 )
 from core.st_pretotype.product_image_component import product_image_sidebar, product_image_tab

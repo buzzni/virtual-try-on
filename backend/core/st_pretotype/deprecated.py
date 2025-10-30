@@ -281,7 +281,6 @@ def side_view_component(source_mode: str):
     Args:
         source_mode: "vto" (가상피팅모드) 또는 "vm" (가상모델피팅모드)
     """
-    SIDE_VIEW_TEMPERATURE = 0.5
     st.divider()
     st.subheader("🔄 측면 이미지 생성")
     
@@ -325,8 +324,20 @@ def side_view_component(source_mode: str):
     if result_key not in st.session_state:
         st.session_state[result_key] = None
     
-    col1, col2 = st.columns(2)  
+    col1, col2 = st.columns(2)
+    
     with col1:
+        temperature = st.slider(
+            "Temperature",
+            min_value=0.0,
+            max_value=2.0,
+            value=1.0,
+            step=0.1,
+            key=f"{source_mode}_side_temp",
+            help="결과의 다양성을 조절합니다."
+        )
+    
+    with col2:
         image_count = st.slider(
             "생성할 이미지 개수",
             min_value=1,
@@ -336,60 +347,60 @@ def side_view_component(source_mode: str):
             key=f"{source_mode}_side_count",
             help="동시에 생성할 이미지 개수입니다."
         )
-    with col2:
-        if st.button(
-            "🚀 측면 이미지 생성 (좌측 + 우측)", 
-            use_container_width=True,
-            key=f"{source_mode}_side_btn"
-        ):
-            if selected_image_bytes is None:
-                st.error("❌ 이미지를 선택하거나 업로드해주세요.")
-            else:
-                with st.spinner("측면 이미지를 생성 중입니다... (좌측 & 우측)"):
-                    tmp_image_path = None
+    
+    if st.button(
+        "🚀 측면 이미지 생성 (좌측 + 우측)", 
+        use_container_width=True,
+        key=f"{source_mode}_side_btn"
+    ):
+        if selected_image_bytes is None:
+            st.error("❌ 이미지를 선택하거나 업로드해주세요.")
+        else:
+            with st.spinner("측면 이미지를 생성 중입니다... (좌측 & 우측)"):
+                tmp_image_path = None
+                
+                try:
+                    # 이미지를 임시 파일로 저장
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                        tmp_file.write(selected_image_bytes)
+                        tmp_image_path = tmp_file.name
                     
-                    try:
-                        # 이미지를 임시 파일로 저장
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
-                            tmp_file.write(selected_image_bytes)
-                            tmp_image_path = tmp_file.name
-                        
-                        # 좌측 측면 이미지 생성
-                        left_result = asyncio.run(single_image_inference(
-                            prompt=side_view_prompt("left"),
-                            image_path=tmp_image_path,
-                            temperature=SIDE_VIEW_TEMPERATURE,
-                            image_count=image_count
-                        ))
-                        
-                        # 우측 측면 이미지 생성
-                        right_result = asyncio.run(single_image_inference(
-                            prompt=side_view_prompt("right"),
-                            image_path=tmp_image_path,
-                            temperature=SIDE_VIEW_TEMPERATURE,
-                            image_count=image_count
-                        ))
-                        
-                        # 결과 합치기
-                        combined_result = {
-                            "left_images": left_result.get("front_images", []),
-                            "right_images": right_result.get("front_images", []),
-                            "left_usage": left_result.get("usage"),
-                            "right_usage": right_result.get("usage"),
-                            "debug_info": {
-                                "left": left_result.get("debug_info", {}),
-                                "right": right_result.get("debug_info", {})
-                            }
+                    # 좌측 측면 이미지 생성
+                    left_result = asyncio.run(single_image_inference(
+                        prompt=side_view_prompt("left"),
+                        image_path=tmp_image_path,
+                        temperature=temperature,
+                        image_count=image_count
+                    ))
+                    
+                    # 우측 측면 이미지 생성
+                    right_result = asyncio.run(single_image_inference(
+                        prompt=side_view_prompt("right"),
+                        image_path=tmp_image_path,
+                        temperature=temperature,
+                        image_count=image_count
+                    ))
+                    
+                    # 결과 합치기
+                    combined_result = {
+                        "left_images": left_result.get("front_images", []),
+                        "right_images": right_result.get("front_images", []),
+                        "left_usage": left_result.get("usage"),
+                        "right_usage": right_result.get("usage"),
+                        "debug_info": {
+                            "left": left_result.get("debug_info", {}),
+                            "right": right_result.get("debug_info", {})
                         }
-                        
-                        st.session_state[result_key] = combined_result
-                        st.success("✅ 측면 이미지 생성 완료! (좌측 + 우측)")
-                    except Exception as e:
-                        st.error(f"❌ 측면 이미지 생성 중 오류 발생: {str(e)}")
-                    finally:
-                        # 임시 파일 삭제
-                        if tmp_image_path and os.path.exists(tmp_image_path):
-                            os.unlink(tmp_image_path)
+                    }
+                    
+                    st.session_state[result_key] = combined_result
+                    st.success("✅ 측면 이미지 생성 완료! (좌측 + 우측)")
+                except Exception as e:
+                    st.error(f"❌ 측면 이미지 생성 중 오류 발생: {str(e)}")
+                finally:
+                    # 임시 파일 삭제
+                    if tmp_image_path and os.path.exists(tmp_image_path):
+                        os.unlink(tmp_image_path)
     
     # 결과 표시
     if st.session_state.get(result_key):
