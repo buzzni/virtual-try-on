@@ -33,8 +33,8 @@ name_dict = {
 def virtual_model_page():
     st.title(name_dict["vto_model"]["name"])
     with st.sidebar:
-        settings = sidebar()
-    virtual_model_tab(settings)
+        model_options, clothes_options = sidebar()
+    virtual_model_tab(model_options, clothes_options)
 
 def product_page():
     st.title(name_dict["product"]["name"])

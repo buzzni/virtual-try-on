@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Tuple, Optional, List
+from typing import Dict, Tuple, Optional, List, Tuple
 import streamlit as st
 from PIL import Image
 import tempfile
@@ -17,7 +17,7 @@ from core.litellm_hander.utils import (
     age_options,
     hair_color_options
 )
-from core.litellm_hander.schema import ModelOptions
+from core.litellm_hander.schema import ModelOptions, ClothesOptions
 from core.vto_service.service import virtual_tryon, vto_model_tryon, single_image_inference
 from prompts.vto_prompts import assemble_prompt
 from prompts.side_view_prompts import side_view_prompt
@@ -153,14 +153,13 @@ def cleanup_temp_files(*file_paths):
             os.unlink(file_path)
 
 
-def render_vto_results(result: Dict, image_count: int, source_mode: str, include_side: bool = True):
+def render_vto_results(result: Dict, image_count: int, include_side: bool = True):
     """
     VTO 결과를 표시하고 측면 이미지 생성을 위한 이미지 선택 기능을 제공합니다.
     
     Args:
         result: VTO 결과 딕셔너리
         image_count: 생성한 이미지 개수
-        source_mode: "vto" 또는 "vm" (이미지 선택 키 구분용)
         include_side: 측면 이미지 포함 여부
     """
     try:
@@ -187,7 +186,7 @@ def render_vto_results(result: Dict, image_count: int, source_mode: str, include
                 all_images.append(("후면", idx + 1, img_bytes))
             
             # 선택된 이미지 인덱스 초기화
-            selected_key = f"{source_mode}_selected_image_idx"
+            selected_key = "vm_selected_image_idx"
             if selected_key not in st.session_state:
                 st.session_state[selected_key] = 0
             
@@ -208,7 +207,7 @@ def render_vto_results(result: Dict, image_count: int, source_mode: str, include
                             global_idx = idx  # 정면 이미지의 글로벌 인덱스
                             button_type = "primary" if global_idx == selected_idx else "secondary"
                             button_label = "✓ 측면 생성용 선택됨" if global_idx == selected_idx else "측면 생성용 선택"
-                            if st.button(button_label, key=f"{source_mode}_select_front_{idx}", use_container_width=True, type=button_type):
+                            if st.button(button_label, key=f"vm_select_front_{idx}", use_container_width=True, type=button_type):
                                 st.session_state[selected_key] = global_idx
                                 st.rerun()
                         else:
@@ -229,7 +228,7 @@ def render_vto_results(result: Dict, image_count: int, source_mode: str, include
                             global_idx = len(front_images) + idx  # 후면 이미지의 글로벌 인덱스
                             button_type = "primary" if global_idx == selected_idx else "secondary"
                             button_label = "✓ 측면 생성용 선택됨" if global_idx == selected_idx else "측면 생성용 선택"
-                            if st.button(button_label, key=f"{source_mode}_select_back_{idx}", use_container_width=True, type=button_type):
+                            if st.button(button_label, key=f"vm_select_back_{idx}", use_container_width=True, type=button_type):
                                 st.session_state[selected_key] = global_idx
                                 st.rerun()
                         else:
@@ -275,7 +274,7 @@ def render_usage_info(usage):
         st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
 
 
-def side_view_component(source_mode: str):
+def side_view_component(model_options: ModelOptions):
     """
     측면 이미지 생성 컴포넌트 (간소화 버전)
     
@@ -354,7 +353,7 @@ def side_view_component(source_mode: str):
                         
                         # 좌측 측면 이미지 생성
                         left_result = asyncio.run(single_image_inference(
-                            prompt=side_view_prompt("left"),
+                            prompt=side_view_prompt("left", model_options.gender),
                             image_path=tmp_image_path,
                             temperature=SIDE_VIEW_TEMPERATURE,
                             image_count=image_count
@@ -362,7 +361,7 @@ def side_view_component(source_mode: str):
                         
                         # 우측 측면 이미지 생성
                         right_result = asyncio.run(single_image_inference(
-                            prompt=side_view_prompt("right"),
+                            prompt=side_view_prompt("right", model_options.gender),
                             image_path=tmp_image_path,
                             temperature=SIDE_VIEW_TEMPERATURE,
                             image_count=image_count
@@ -489,7 +488,13 @@ def side_view_component(source_mode: str):
 # 메인 탭 함수들
 # ============================================================================
 
-def sidebar():
+def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
+    """
+    사이드바 UI를 렌더링하고 선택된 옵션을 반환합니다.
+    
+    Returns:
+        Tuple[ModelOptions, ClothesOptions]: 선택된 모델 옵션과 의상 옵션
+    """
     st.markdown("### 🧑 모델 설정")
     
     # 성별
@@ -633,24 +638,38 @@ def sidebar():
     )
     length = length_keys[length_names.index(selected_length_name)]
 
-    return {
-        "gender": gender,
-        "fit": fit,
-        "sleeve": sleeve,
-        "length": length,
-        "main_category": main_category,
-        "sub_category": sub_category,
-        "age": age,
-        "skin_tone": skin_tone,
-        "ethnicity": ethnicity,
-        "hairstyle": hairstyle,
-        "hair_color": hair_color,
-    }
+    # Pydantic 모델로 반환
+    model_options = ModelOptions(
+        gender=gender,
+        age=age,
+        skin_tone=skin_tone,
+        ethnicity=ethnicity,
+        hairstyle=hairstyle,
+        hair_color=hair_color,
+    )
+    
+    clothes_options = ClothesOptions(
+        main_category=main_category,
+        sub_category=sub_category,
+        fit=fit,
+        sleeve=sleeve,
+        length=length,
+    )
+    
+    return model_options, clothes_options
 
-def virtual_model_tab(settings: Dict[str, str]):
+def virtual_model_tab(model_options: ModelOptions, clothes_options: ClothesOptions):
+    """
+    가상 모델 피팅 탭을 렌더링합니다.
+    
+    Args:
+        model_options: 모델 옵션
+        clothes_options: 의상 옵션
+    """
+    
     MODEL_TEMPERATURE = 1.5
     # 카테고리에 따른 업로드 수 결정
-    num_uploads = 1 if settings["main_category"] == "dress" else 2
+    num_uploads = 1 if clothes_options.main_category == "dress" else 2
 
     # 이미지 업로드 섹션 (헬퍼 함수 사용)
     front_image_file, back_image_file, together_front_image_file, together_back_image_file = render_image_uploaders(
@@ -661,7 +680,6 @@ def virtual_model_tab(settings: Dict[str, str]):
     # 실행 버튼 섹션
     st.subheader("🚀 실행")
     
-    # 세션 상태 초기화 (가상모델피팅모드 전용)
     if "vm_result" not in st.session_state:
         st.session_state.vm_result = None
     
@@ -694,17 +712,7 @@ def virtual_model_tab(settings: Dict[str, str]):
                         front_image, back_image, together_front_image, together_back_image
                     )
                     
-                    # 모델 옵션 구성
-                    model_options = ModelOptions(
-                        gender=settings.get("gender"),
-                        age=settings.get("age"),
-                        skin_tone=settings.get("skin_tone"),
-                        ethnicity=settings.get("ethnicity"),
-                        hairstyle=settings.get("hairstyle"),
-                        hair_color=settings.get("hair_color"),
-                    )
-                    
-                    # Virtual Try-On 실행
+                    # Virtual Try-On 실행 (model_options를 직접 전달)
                     result = asyncio.run(vto_model_tryon(
                         front_image_path=tmp_front_path,
                         back_image_path=tmp_back_path,
@@ -725,8 +733,8 @@ def virtual_model_tab(settings: Dict[str, str]):
     # VTO 결과 출력 (헬퍼 함수 사용)
     if st.session_state.vm_result:
         st.subheader("📊 가상 모델 피팅 결과")
-        render_vto_results(st.session_state.vm_result, image_count, source_mode="vm", include_side=False)
+        render_vto_results(st.session_state.vm_result, image_count, include_side=False)
         render_usage_info(st.session_state.vm_result["usage"])
     
     # 측면 이미지 생성 컴포넌트 추가
-    side_view_component("vm")
+    side_view_component(model_options)
