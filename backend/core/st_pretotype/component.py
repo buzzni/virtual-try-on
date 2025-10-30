@@ -712,7 +712,7 @@ def virtual_model_tab(settings: Dict[str, str]):
                         back_image_path=tmp_back_path,
                         together_front_image_path=tmp_together_front_path,
                         together_back_image_path=tmp_together_back_path,
-                        gender=settings["gender"],
+                        gender=settings.get("gender"),
                         age=settings.get("age"),
                         skin_tone=settings.get("skin_tone"),
                         ethnicity=settings.get("ethnicity"),

@@ -504,6 +504,8 @@ def side_view_component(source_mode: str):
 
 def sidebar():
     st.header("⚙️ 설정")
+    st.divider()
+    st.markdown("### 🧑 모델 설정")
     
     # 성별
     gender_opts = gender_options()
@@ -516,77 +518,6 @@ def sidebar():
         index=0
     )
     gender = gender_keys[gender_names.index(selected_gender_name)]
-    
-    # 핏
-    fit_opts = fit_options()
-    fit_keys = list(fit_opts.keys())
-    fit_names = [fit_opts[key]["name"] for key in fit_keys]
-    
-    selected_fit_name = st.selectbox(
-        "핏",
-        fit_names,
-        index=0
-    )
-    fit = fit_keys[fit_names.index(selected_fit_name)]
-    
-    # 소매
-    sleeve_opts = sleeve_options()
-    sleeve_keys = list(sleeve_opts.keys())
-    sleeve_names = [sleeve_opts[key]["name"] for key in sleeve_keys]
-    
-    selected_sleeve_name = st.selectbox(
-        "소매",
-        sleeve_names,
-        index=0
-    )
-    sleeve = sleeve_keys[sleeve_names.index(selected_sleeve_name)]
-    
-    # 기장
-    length_opts = length_options()
-    length_keys = list(length_opts.keys())
-    length_names = [length_opts[key]["name"] for key in length_keys]
-    
-    selected_length_name = st.selectbox(
-        "기장",
-        length_names,
-        index=0
-    )
-    length = length_keys[length_names.index(selected_length_name)]
-    
-    st.divider()
-    
-    # 카테고리 데이터 가져오기
-    catalog = clothes_category()
-    
-    
-    # 메인 카테고리 (영문 key -> 한글 name 매핑)
-    main_cat_options = list(catalog.keys())
-    main_cat_names = [catalog[key]["name"] for key in main_cat_options]
-    
-    selected_main_name = st.selectbox(
-        "메인 카테고리",
-        main_cat_names,
-        index=0
-    )
-    
-    # 선택된 name에서 key 찾기
-    main_category = main_cat_options[main_cat_names.index(selected_main_name)]
-    
-    # 서브 카테고리 (선택된 메인 카테고리의 children)
-    sub_cat_options = list(catalog[main_category]["children"].keys())
-    sub_cat_names = [catalog[main_category]["children"][key]["name"] for key in sub_cat_options]
-    
-    selected_sub_name = st.selectbox(
-        "서브 카테고리",
-        sub_cat_names,
-        index=0
-    )
-    
-    # 선택된 name에서 key 찾기
-    sub_category = sub_cat_options[sub_cat_names.index(selected_sub_name)]
-
-    st.divider()
-    st.markdown("### 🧑 모델 설정")
     
     # 나이
     age_opts = age_options()
@@ -647,6 +578,77 @@ def sidebar():
         index=0
     )
     hair_color = hair_color_keys[hair_color_names.index(selected_hair_color_name)]
+
+    st.divider()
+    st.markdown("### 👕 의상 설정")
+    
+    # 카테고리 데이터 가져오기
+    catalog = clothes_category()
+    
+    
+    # 메인 카테고리 (영문 key -> 한글 name 매핑)
+    main_cat_options = list(catalog.keys())
+    main_cat_names = [catalog[key]["name"] for key in main_cat_options]
+    
+    selected_main_name = st.selectbox(
+        "메인 카테고리",
+        main_cat_names,
+        index=0
+    )
+    
+    # 선택된 name에서 key 찾기
+    main_category = main_cat_options[main_cat_names.index(selected_main_name)]
+    
+    # 서브 카테고리 (선택된 메인 카테고리의 children)
+    sub_cat_options = list(catalog[main_category]["children"].keys())
+    sub_cat_names = [catalog[main_category]["children"][key]["name"] for key in sub_cat_options]
+    
+    selected_sub_name = st.selectbox(
+        "서브 카테고리",
+        sub_cat_names,
+        index=0
+    )
+    
+    # 선택된 name에서 key 찾기
+    sub_category = sub_cat_options[sub_cat_names.index(selected_sub_name)]    
+    
+    st.divider()
+    
+    # 핏
+    fit_opts = fit_options()
+    fit_keys = list(fit_opts.keys())
+    fit_names = [fit_opts[key]["name"] for key in fit_keys]
+    
+    selected_fit_name = st.selectbox(
+        "핏",
+        fit_names,
+        index=0
+    )
+    fit = fit_keys[fit_names.index(selected_fit_name)]
+    
+    # 소매
+    sleeve_opts = sleeve_options()
+    sleeve_keys = list(sleeve_opts.keys())
+    sleeve_names = [sleeve_opts[key]["name"] for key in sleeve_keys]
+    
+    selected_sleeve_name = st.selectbox(
+        "소매",
+        sleeve_names,
+        index=0
+    )
+    sleeve = sleeve_keys[sleeve_names.index(selected_sleeve_name)]
+    
+    # 기장
+    length_opts = length_options()
+    length_keys = list(length_opts.keys())
+    length_names = [length_opts[key]["name"] for key in length_keys]
+    
+    selected_length_name = st.selectbox(
+        "기장",
+        length_names,
+        index=0
+    )
+    length = length_keys[length_names.index(selected_length_name)]
 
     return {
         "gender": gender,
