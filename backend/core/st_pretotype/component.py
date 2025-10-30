@@ -17,6 +17,7 @@ from core.litellm_hander.utils import (
     age_options,
     hair_color_options
 )
+from core.litellm_hander.schema import ModelOptions
 from core.vto_service.service import virtual_tryon, vto_model_tryon, single_image_inference
 from prompts.vto_prompts import assemble_prompt
 from prompts.side_view_prompts import side_view_prompt
@@ -694,14 +695,14 @@ def virtual_model_tab(settings: Dict[str, str]):
                     )
                     
                     # 모델 옵션 구성
-                    model_options = {
-                        "gender": settings.get("gender"),
-                        "age": settings.get("age"),
-                        "skin_tone": settings.get("skin_tone"),
-                        "ethnicity": settings.get("ethnicity"),
-                        "hairstyle": settings.get("hairstyle"),
-                        "hair_color": settings.get("hair_color"),
-                    }
+                    model_options = ModelOptions(
+                        gender=settings.get("gender"),
+                        age=settings.get("age"),
+                        skin_tone=settings.get("skin_tone"),
+                        ethnicity=settings.get("ethnicity"),
+                        hairstyle=settings.get("hairstyle"),
+                        hair_color=settings.get("hair_color"),
+                    )
                     
                     # Virtual Try-On 실행
                     result = asyncio.run(vto_model_tryon(

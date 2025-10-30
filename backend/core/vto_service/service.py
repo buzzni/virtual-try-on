@@ -1,7 +1,7 @@
 import json
 import os
 from typing import Dict, Optional
-from core.litellm_hander.schema import ClothesImageAnalysis
+from core.litellm_hander.schema import ClothesImageAnalysis, ModelOptions, ClothesOptions
 from core.litellm_hander.process import LiteLLMHandler
 from PIL import Image as PILImage
 from core.vto_service.gemini_handler import GeminiProcesser
@@ -115,7 +115,7 @@ async def vto_model_tryon(
     back_image_path: Optional[str], 
     together_front_image_path: Optional[str],
     together_back_image_path: Optional[str],
-    model_options: Optional[Dict[str, str]] = None,
+    model_options: Optional[ModelOptions] = None,
     temperature: float = 1.0,
     image_count: int = 1,
     top_p: float = 0.95
@@ -128,13 +128,7 @@ async def vto_model_tryon(
         back_image_path: 뒷면 의류 이미지 경로 (Optional)
         together_front_image_path: 함께 입을 옷 앞면 이미지 경로 (Optional)
         together_back_image_path: 함께 입을 옷 뒷면 이미지 경로 (Optional)
-        model_options: 모델 관련 옵션 딕셔너리 (Optional)
-            - gender: 성별 (기본값: "woman")
-            - age: 나이 옵션 (Optional)
-            - skin_tone: 피부색 옵션 (Optional)
-            - ethnicity: 인종 옵션 (Optional)
-            - hairstyle: 헤어스타일 옵션 (Optional)
-            - hair_color: 머리색 옵션 (Optional)
+        model_options: 모델 관련 옵션 (ModelOptions)
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
         top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
@@ -148,14 +142,14 @@ async def vto_model_tryon(
     
     # 모델 옵션 기본값 설정
     if model_options is None:
-        model_options = {}
+        model_options = ModelOptions(gender="woman")
     
-    gender = model_options.get("gender", "woman")
-    age = model_options.get("age")
-    skin_tone = model_options.get("skin_tone")
-    ethnicity = model_options.get("ethnicity")
-    hairstyle = model_options.get("hairstyle")
-    hair_color = model_options.get("hair_color")
+    gender = model_options.gender
+    age = model_options.age
+    skin_tone = model_options.skin_tone
+    ethnicity = model_options.ethnicity
+    hairstyle = model_options.hairstyle
+    hair_color = model_options.hair_color
     
     # GeminiProcesser 인스턴스 생성
     gemini_processer = GeminiProcesser()
