@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Tuple, Optional, List
+from typing import Dict, Tuple, Optional, List, Tuple
 import streamlit as st
 from PIL import Image
 import tempfile
@@ -17,8 +17,8 @@ from core.litellm_hander.utils import (
     age_options,
     hair_color_options
 )
-from core.vto_service.service import virtual_tryon, vto_model_tryon, single_image_inference
-from prompts.vto_prompts import assemble_prompt
+from core.litellm_hander.schema import ModelOptions, ClothesOptions
+from core.vto_service.service import vto_model_tryon, single_image_inference
 from prompts.side_view_prompts import side_view_prompt
 
 # ============================================================================
@@ -152,14 +152,13 @@ def cleanup_temp_files(*file_paths):
             os.unlink(file_path)
 
 
-def render_vto_results(result: Dict, image_count: int, source_mode: str, include_side: bool = True):
+def render_vto_results(result: Dict, image_count: int, include_side: bool = True):
     """
     VTO 결과를 표시하고 측면 이미지 생성을 위한 이미지 선택 기능을 제공합니다.
     
     Args:
         result: VTO 결과 딕셔너리
         image_count: 생성한 이미지 개수
-        source_mode: "vto" 또는 "vm" (이미지 선택 키 구분용)
         include_side: 측면 이미지 포함 여부
     """
     try:
@@ -186,7 +185,7 @@ def render_vto_results(result: Dict, image_count: int, source_mode: str, include
                 all_images.append(("후면", idx + 1, img_bytes))
             
             # 선택된 이미지 인덱스 초기화
-            selected_key = f"{source_mode}_selected_image_idx"
+            selected_key = "vm_selected_image_idx"
             if selected_key not in st.session_state:
                 st.session_state[selected_key] = 0
             
@@ -207,7 +206,7 @@ def render_vto_results(result: Dict, image_count: int, source_mode: str, include
                             global_idx = idx  # 정면 이미지의 글로벌 인덱스
                             button_type = "primary" if global_idx == selected_idx else "secondary"
                             button_label = "✓ 측면 생성용 선택됨" if global_idx == selected_idx else "측면 생성용 선택"
-                            if st.button(button_label, key=f"{source_mode}_select_front_{idx}", use_container_width=True, type=button_type):
+                            if st.button(button_label, key=f"vm_select_front_{idx}", use_container_width=True, type=button_type):
                                 st.session_state[selected_key] = global_idx
                                 st.rerun()
                         else:
@@ -228,7 +227,7 @@ def render_vto_results(result: Dict, image_count: int, source_mode: str, include
                             global_idx = len(front_images) + idx  # 후면 이미지의 글로벌 인덱스
                             button_type = "primary" if global_idx == selected_idx else "secondary"
                             button_label = "✓ 측면 생성용 선택됨" if global_idx == selected_idx else "측면 생성용 선택"
-                            if st.button(button_label, key=f"{source_mode}_select_back_{idx}", use_container_width=True, type=button_type):
+                            if st.button(button_label, key=f"vm_select_back_{idx}", use_container_width=True, type=button_type):
                                 st.session_state[selected_key] = global_idx
                                 st.rerun()
                         else:
@@ -274,28 +273,24 @@ def render_usage_info(usage):
         st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
 
 
-def side_view_component(source_mode: str):
+def side_view_component(model_options: ModelOptions, front_image_file=None):
     """
     측면 이미지 생성 컴포넌트 (간소화 버전)
     
     Args:
-        source_mode: "vto" (가상피팅모드) 또는 "vm" (가상모델피팅모드)
+        model_options: 모델 옵션
+        front_image_file: 원본 앞면 의상 이미지 파일 (Optional)
     """
+    SIDE_VIEW_TEMPERATURE = 0.5
     st.divider()
     st.subheader("🔄 측면 이미지 생성")
     
     # 세션 상태에서 결과 및 선택된 이미지 가져오기
-    source_result = None
-    selected_image_bytes = None
-    
-    if source_mode == "vto":
-        source_result = st.session_state.get("vto_result")
-    elif source_mode == "vm":
-        source_result = st.session_state.get("vm_result")
+    source_result = st.session_state.get("vm_result")
     
     if source_result:
         # 선택된 이미지 인덱스 가져오기
-        selected_key = f"{source_mode}_selected_image_idx"
+        selected_key = "vm_selected_image_idx"
         if selected_key in st.session_state:
             selected_idx = st.session_state[selected_key]
             
@@ -311,8 +306,12 @@ def side_view_component(source_mode: str):
             
             if all_images and selected_idx < len(all_images):
                 selected_image_bytes = all_images[selected_idx][2]
+                # 미리보기 표시
+                st.info(f"선택된 이미지: {all_images[selected_idx][0]} #{all_images[selected_idx][1]}")
+                preview_image = Image.open(BytesIO(selected_image_bytes))
+                st.image(preview_image, caption="측면 생성에 사용될 이미지", width=300)
     else:
-        st.warning("⚠️ 먼저 위에서 가상 피팅 또는 가상 모델 피팅을 실행해주세요.")
+        st.warning("⚠️ 먼저 위에서 가상 모델 피팅을 실행해주세요.")
     
     st.divider()
     
@@ -320,87 +319,86 @@ def side_view_component(source_mode: str):
     st.subheader("🚀 측면 이미지 생성 실행")
     
     # 세션 상태 초기화
-    result_key = f"{source_mode}_side_result"
+    result_key = "vm_side_result"
     if result_key not in st.session_state:
         st.session_state[result_key] = None
     
-    col1, col2 = st.columns(2)
-    
+    col1, col2 = st.columns(2)  
     with col1:
-        temperature = st.slider(
-            "Temperature",
-            min_value=0.0,
-            max_value=2.0,
-            value=1.0,
-            step=0.1,
-            key=f"{source_mode}_side_temp",
-            help="결과의 다양성을 조절합니다."
-        )
-    
-    with col2:
         image_count = st.slider(
             "생성할 이미지 개수",
             min_value=1,
             max_value=10,
             value=1,
             step=1,
-            key=f"{source_mode}_side_count",
+            key="vm_side_count",
             help="동시에 생성할 이미지 개수입니다."
         )
-    
-    if st.button(
-        "🚀 측면 이미지 생성 (좌측 + 우측)", 
-        use_container_width=True,
-        key=f"{source_mode}_side_btn"
-    ):
-        if selected_image_bytes is None:
-            st.error("❌ 이미지를 선택하거나 업로드해주세요.")
-        else:
-            with st.spinner("측면 이미지를 생성 중입니다... (좌측 & 우측)"):
-                tmp_image_path = None
-                
-                try:
-                    # 이미지를 임시 파일로 저장
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
-                        tmp_file.write(selected_image_bytes)
-                        tmp_image_path = tmp_file.name
+    with col2:
+        if st.button(
+            "🚀 측면 이미지 생성 (좌측 + 우측)", 
+            use_container_width=True,
+            key="vm_side_btn"
+        ):
+            if selected_image_bytes is None:
+                st.error("❌ 이미지를 선택하거나 업로드해주세요.")
+            else:
+                with st.spinner("측면 이미지를 생성 중입니다... (좌측 & 우측)"):
+                    tmp_paths = []
                     
-                    # 좌측 측면 이미지 생성
-                    left_result = asyncio.run(single_image_inference(
-                        prompt=side_view_prompt("left"),
-                        image_path=tmp_image_path,
-                        temperature=temperature,
-                        image_count=image_count
-                    ))
-                    
-                    # 우측 측면 이미지 생성
-                    right_result = asyncio.run(single_image_inference(
-                        prompt=side_view_prompt("right"),
-                        image_path=tmp_image_path,
-                        temperature=temperature,
-                        image_count=image_count
-                    ))
-                    
-                    # 결과 합치기
-                    combined_result = {
-                        "left_images": left_result.get("front_images", []),
-                        "right_images": right_result.get("front_images", []),
-                        "left_usage": left_result.get("usage"),
-                        "right_usage": right_result.get("usage"),
-                        "debug_info": {
-                            "left": left_result.get("debug_info", {}),
-                            "right": right_result.get("debug_info", {})
+                    try:
+                        # 선택된 이미지를 임시 파일로 저장
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                            tmp_file.write(selected_image_bytes)
+                            tmp_paths.append(tmp_file.name)
+                        
+                        # 원본 이미지 사용
+                        if front_image_file is not None:
+                            front_image_file.seek(0)
+                            original_bytes = front_image_file.read()
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                                tmp_file.write(original_bytes)
+                                tmp_paths.append(tmp_file.name)
+                        
+                        # 이미지 경로 리스트 (단일 또는 다중)
+                        image_path_input = tmp_paths if len(tmp_paths) > 1 else tmp_paths[0]
+                        
+                        # 좌측 측면 이미지 생성
+                        left_result = asyncio.run(single_image_inference(
+                            prompt=side_view_prompt("left", model_options.gender),
+                            image_path=image_path_input,
+                            temperature=SIDE_VIEW_TEMPERATURE,
+                            image_count=image_count
+                        ))
+                        
+                        # 우측 측면 이미지 생성
+                        right_result = asyncio.run(single_image_inference(
+                            prompt=side_view_prompt("right", model_options.gender),
+                            image_path=image_path_input,
+                            temperature=SIDE_VIEW_TEMPERATURE,
+                            image_count=image_count
+                        ))
+                        
+                        # 결과 합치기
+                        combined_result = {
+                            "left_images": left_result.get("response", []),
+                            "right_images": right_result.get("response", []),
+                            "left_usage": left_result.get("usage"),
+                            "right_usage": right_result.get("usage"),
+                            "debug_info": {
+                                "left": left_result.get("debug_info", {}),
+                                "right": right_result.get("debug_info", {}),
+                                "image_count": len(tmp_paths)
+                            }
                         }
-                    }
-                    
-                    st.session_state[result_key] = combined_result
-                    st.success("✅ 측면 이미지 생성 완료! (좌측 + 우측)")
-                except Exception as e:
-                    st.error(f"❌ 측면 이미지 생성 중 오류 발생: {str(e)}")
-                finally:
-                    # 임시 파일 삭제
-                    if tmp_image_path and os.path.exists(tmp_image_path):
-                        os.unlink(tmp_image_path)
+                        
+                        st.session_state[result_key] = combined_result
+                        st.success("✅ 측면 이미지 생성 완료! (좌측 + 우측)")
+                    except Exception as e:
+                        st.error(f"❌ 측면 이미지 생성 중 오류 발생: {str(e)}")
+                    finally:
+                        # 모든 임시 파일 삭제
+                        cleanup_temp_files(*tmp_paths)
     
     # 결과 표시
     if st.session_state.get(result_key):
@@ -502,8 +500,14 @@ def side_view_component(source_mode: str):
 # 메인 탭 함수들
 # ============================================================================
 
-def sidebar():
-    st.header("⚙️ 설정")
+def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
+    """
+    사이드바 UI를 렌더링하고 선택된 옵션을 반환합니다.
+    
+    Returns:
+        Tuple[ModelOptions, ClothesOptions]: 선택된 모델 옵션과 의상 옵션
+    """
+    st.markdown("### 🧑 모델 설정")
     
     # 성별
     gender_opts = gender_options()
@@ -516,77 +520,6 @@ def sidebar():
         index=0
     )
     gender = gender_keys[gender_names.index(selected_gender_name)]
-    
-    # 핏
-    fit_opts = fit_options()
-    fit_keys = list(fit_opts.keys())
-    fit_names = [fit_opts[key]["name"] for key in fit_keys]
-    
-    selected_fit_name = st.selectbox(
-        "핏",
-        fit_names,
-        index=0
-    )
-    fit = fit_keys[fit_names.index(selected_fit_name)]
-    
-    # 소매
-    sleeve_opts = sleeve_options()
-    sleeve_keys = list(sleeve_opts.keys())
-    sleeve_names = [sleeve_opts[key]["name"] for key in sleeve_keys]
-    
-    selected_sleeve_name = st.selectbox(
-        "소매",
-        sleeve_names,
-        index=0
-    )
-    sleeve = sleeve_keys[sleeve_names.index(selected_sleeve_name)]
-    
-    # 기장
-    length_opts = length_options()
-    length_keys = list(length_opts.keys())
-    length_names = [length_opts[key]["name"] for key in length_keys]
-    
-    selected_length_name = st.selectbox(
-        "기장",
-        length_names,
-        index=0
-    )
-    length = length_keys[length_names.index(selected_length_name)]
-    
-    st.divider()
-    
-    # 카테고리 데이터 가져오기
-    catalog = clothes_category()
-    
-    
-    # 메인 카테고리 (영문 key -> 한글 name 매핑)
-    main_cat_options = list(catalog.keys())
-    main_cat_names = [catalog[key]["name"] for key in main_cat_options]
-    
-    selected_main_name = st.selectbox(
-        "메인 카테고리",
-        main_cat_names,
-        index=0
-    )
-    
-    # 선택된 name에서 key 찾기
-    main_category = main_cat_options[main_cat_names.index(selected_main_name)]
-    
-    # 서브 카테고리 (선택된 메인 카테고리의 children)
-    sub_cat_options = list(catalog[main_category]["children"].keys())
-    sub_cat_names = [catalog[main_category]["children"][key]["name"] for key in sub_cat_options]
-    
-    selected_sub_name = st.selectbox(
-        "서브 카테고리",
-        sub_cat_names,
-        index=0
-    )
-    
-    # 선택된 name에서 key 찾기
-    sub_category = sub_cat_options[sub_cat_names.index(selected_sub_name)]
-
-    st.divider()
-    st.markdown("### 🧑 모델 설정")
     
     # 나이
     age_opts = age_options()
@@ -648,128 +581,107 @@ def sidebar():
     )
     hair_color = hair_color_keys[hair_color_names.index(selected_hair_color_name)]
 
-    return {
-        "gender": gender,
-        "fit": fit,
-        "sleeve": sleeve,
-        "length": length,
-        "main_category": main_category,
-        "sub_category": sub_category,
-        "age": age,
-        "skin_tone": skin_tone,
-        "ethnicity": ethnicity,
-        "hairstyle": hairstyle,
-        "hair_color": hair_color,
-    }
+    st.divider()
+    st.markdown("### 👕 의상 설정")
+    
+    # 카테고리 데이터 가져오기
+    catalog = clothes_category()
+    
+    
+    # 메인 카테고리 (영문 key -> 한글 name 매핑)
+    main_cat_options = list(catalog.keys())
+    main_cat_names = [catalog[key]["name"] for key in main_cat_options]
+    
+    selected_main_name = st.selectbox(
+        "메인 카테고리",
+        main_cat_names,
+        index=0
+    )
+    
+    # 선택된 name에서 key 찾기
+    main_category = main_cat_options[main_cat_names.index(selected_main_name)]
+    
+    # 서브 카테고리 (선택된 메인 카테고리의 children)
+    sub_cat_options = list(catalog[main_category]["children"].keys())
+    sub_cat_names = [catalog[main_category]["children"][key]["name"] for key in sub_cat_options]
+    
+    selected_sub_name = st.selectbox(
+        "서브 카테고리",
+        sub_cat_names,
+        index=0
+    )
+    
+    # 선택된 name에서 key 찾기
+    sub_category = sub_cat_options[sub_cat_names.index(selected_sub_name)]
+    
+    # 핏
+    fit_opts = fit_options()
+    fit_keys = list(fit_opts.keys())
+    fit_names = [fit_opts[key]["name"] for key in fit_keys]
+    
+    selected_fit_name = st.selectbox(
+        "핏",
+        fit_names,
+        index=0
+    )
+    fit = fit_keys[fit_names.index(selected_fit_name)]
+    
+    # 소매
+    sleeve_opts = sleeve_options()
+    sleeve_keys = list(sleeve_opts.keys())
+    sleeve_names = [sleeve_opts[key]["name"] for key in sleeve_keys]
+    
+    selected_sleeve_name = st.selectbox(
+        "소매",
+        sleeve_names,
+        index=0
+    )
+    sleeve = sleeve_keys[sleeve_names.index(selected_sleeve_name)]
+    
+    # 기장
+    length_opts = length_options()
+    length_keys = list(length_opts.keys())
+    length_names = [length_opts[key]["name"] for key in length_keys]
+    
+    selected_length_name = st.selectbox(
+        "기장",
+        length_names,
+        index=0
+    )
+    length = length_keys[length_names.index(selected_length_name)]
 
-def vto_tab(settings: Dict[str, str]):
+    # Pydantic 모델로 반환
+    model_options = ModelOptions(
+        gender=gender,
+        age=age,
+        skin_tone=skin_tone,
+        ethnicity=ethnicity,
+        hairstyle=hairstyle,
+        hair_color=hair_color,
+    )
+    
+    clothes_options = ClothesOptions(
+        main_category=main_category,
+        sub_category=sub_category,
+        fit=fit,
+        sleeve=sleeve,
+        length=length,
+    )
+    
+    return model_options, clothes_options
+
+def virtual_model_tab(model_options: ModelOptions, clothes_options: ClothesOptions):
+    """
+    가상 모델 피팅 탭을 렌더링합니다.
+    
+    Args:
+        model_options: 모델 옵션
+        clothes_options: 의상 옵션
+    """
+    
+    MODEL_TEMPERATURE = 1.5
     # 카테고리에 따른 업로드 수 결정
-    num_uploads = 1 if settings["main_category"] == "dress" else 2
-
-    # 이미지 업로드 섹션 (헬퍼 함수 사용)
-    front_image_file, back_image_file, together_front_image_file, together_back_image_file = render_image_uploaders(
-        key_prefix="vto",
-        num_uploads=num_uploads
-    )
-
-    # 실행 버튼 섹션
-    st.subheader("🚀 실행")
-    
-    # 세션 상태 초기화
-    if "vto_result" not in st.session_state:
-        st.session_state.vto_result = None
-    if "generated_prompt" not in st.session_state:
-        st.session_state.generated_prompt = None
-    if "prompt_version" not in st.session_state:
-        st.session_state.prompt_version = 0
-    
-    prompt = assemble_prompt(
-        main_category=settings["main_category"],
-        sub_category=settings["sub_category"],
-        replacement="clothing",
-        gender=settings["gender"],
-        fit=settings["fit"] if settings["fit"] != "none" else None,
-        sleeve=settings["sleeve"] if settings["sleeve"] != "none" else None,
-        length=settings["length"] if settings["length"] != "none" else None,
-    )
-    st.session_state.generated_prompt = prompt
-    
-    temperature = st.slider(
-        "Temperature",
-        min_value=0.0,
-        max_value=2.0,
-        value=1.0,
-        step=0.1,
-        help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
-    )
-    
-    image_count = st.slider(
-        "생성할 이미지 개수",
-        min_value=1,
-        max_value=10,
-        value=3,
-        step=1,
-        help="동시에 생성할 이미지 개수입니다. 여러 개를 생성하면 다양한 결과를 얻을 수 있습니다."
-    )
-        
-    vto_button_disabled = st.session_state.generated_prompt is None
-    if st.button(
-        "🚀 Virtual Try-On 실행", 
-        width='stretch',
-        disabled=vto_button_disabled,
-        help="먼저 프롬프트를 생성해주세요." if vto_button_disabled else None
-    ):
-        # 이미지 가져오기
-        front_image = front_image_file
-        back_image = back_image_file
-        together_front_image = together_front_image_file
-        together_back_image = together_back_image_file
-        
-        if front_image is None and back_image is None:
-            st.error("❌ 최소 하나의 이미지를 업로드해주세요.")
-        else:
-            with st.spinner("Virtual Try-On을 실행 중입니다..."):
-                try:
-                    # 이미지를 임시 파일로 저장
-                    tmp_front_path, tmp_back_path, tmp_together_front_path, tmp_together_back_path = save_images_to_temp_files(
-                        front_image, back_image, together_front_image, together_back_image
-                    )
-                    
-                    # text_area에서 현재 프롬프트 가져오기 (사용자가 수정했을 수 있음)
-                    prompt_key = f"prompt_editor_{st.session_state.prompt_version}"
-                    prompt = st.session_state.get(prompt_key, st.session_state.generated_prompt)
-                    
-                    # Virtual Try-On 실행
-                    result = asyncio.run(virtual_tryon(
-                        front_image_path=tmp_front_path,
-                        back_image_path=tmp_back_path,
-                        prompt=prompt,
-                        together_front_image_path=tmp_together_front_path,
-                        together_back_image_path=tmp_together_back_path,
-                        temperature=temperature,
-                        image_count=image_count
-                    ))
-                    st.session_state.vto_result = result
-                    st.success("✅ Virtual Try-On 완료!")
-                except Exception as e:
-                    st.error(f"❌ Virtual Try-On 중 오류 발생: {str(e)}")
-                finally:
-                    # 임시 파일 삭제
-                    cleanup_temp_files(tmp_front_path, tmp_back_path, tmp_together_front_path, tmp_together_back_path)
-    
-    # VTO 결과 출력 (헬퍼 함수 사용)
-    if st.session_state.vto_result:
-        st.subheader("📊 Virtual Try-On 결과")
-        render_vto_results(st.session_state.vto_result, image_count, source_mode="vto", include_side=False)
-        render_usage_info(st.session_state.vto_result["usage"])
-    
-    # 측면 이미지 생성 컴포넌트 추가
-    side_view_component("vto")
-            
-            
-def virtual_model_tab(settings: Dict[str, str]):
-    # 카테고리에 따른 업로드 수 결정
-    num_uploads = 1 if settings["main_category"] == "dress" else 2
+    num_uploads = 1 if clothes_options.main_category == "dress" else 2
 
     # 이미지 업로드 섹션 (헬퍼 함수 사용)
     front_image_file, back_image_file, together_front_image_file, together_back_image_file = render_image_uploaders(
@@ -780,18 +692,8 @@ def virtual_model_tab(settings: Dict[str, str]):
     # 실행 버튼 섹션
     st.subheader("🚀 실행")
     
-    # 세션 상태 초기화 (가상모델피팅모드 전용)
     if "vm_result" not in st.session_state:
         st.session_state.vm_result = None
-    
-    temperature = st.slider(
-        "Temperature",
-        min_value=0.0,
-        max_value=2.0,
-        value=1.0,
-        step=0.1,
-        help="결과의 다양성을 조절합니다. 높을수록 더 다양하고 창의적인 결과가 나옵니다."
-    )
     
     image_count = st.slider(
         "생성할 이미지 개수",
@@ -822,19 +724,15 @@ def virtual_model_tab(settings: Dict[str, str]):
                         front_image, back_image, together_front_image, together_back_image
                     )
                     
-                    # Virtual Try-On 실행
+                    # Virtual Try-On 실행 (model_options를 직접 전달)
                     result = asyncio.run(vto_model_tryon(
                         front_image_path=tmp_front_path,
                         back_image_path=tmp_back_path,
                         together_front_image_path=tmp_together_front_path,
                         together_back_image_path=tmp_together_back_path,
-                        gender=settings["gender"],
-                        age=settings.get("age"),
-                        skin_tone=settings.get("skin_tone"),
-                        ethnicity=settings.get("ethnicity"),
-                        hairstyle=settings.get("hairstyle"),
-                        hair_color=settings.get("hair_color"),
-                        temperature=temperature,
+                        model_options=model_options,
+                        clothes_options=clothes_options,
+                        temperature=MODEL_TEMPERATURE,
                         image_count=image_count
                     ))
                     st.session_state.vm_result = result
@@ -848,8 +746,8 @@ def virtual_model_tab(settings: Dict[str, str]):
     # VTO 결과 출력 (헬퍼 함수 사용)
     if st.session_state.vm_result:
         st.subheader("📊 가상 모델 피팅 결과")
-        render_vto_results(st.session_state.vm_result, image_count, source_mode="vm", include_side=False)
+        render_vto_results(st.session_state.vm_result, image_count, include_side=False)
         render_usage_info(st.session_state.vm_result["usage"])
     
-    # 측면 이미지 생성 컴포넌트 추가
-    side_view_component("vm")
+    # 측면 이미지 생성 컴포넌트 추가 (원본 앞면 이미지 전달)
+    side_view_component(model_options, front_image_file)

@@ -2,6 +2,8 @@ import gradio as gr
 import io
 from PIL import Image
 from core.vto_service.gemini_handler import GeminiProcesser
+from core.vto_service.service import vto_model_tryon
+from core.litellm_hander.schema import ModelOptions, ClothesOptions
 from prompts.vto_model_prompts import assemble_model_prompt
 from prompts.vto_prompts import assemble_prompt
 from prompts.prod_image_prompts import product_image_prompt
@@ -32,22 +34,18 @@ async def process_inputs(text_input, image1, image2, image3, temperature, top_p,
         contents_list.append(content_parts.copy())
     
     # VTO 추론 실행
-    result = await gemini_processer.execute_vto_inference(
+    result = await gemini_processer.execute_image_inference(
         contents_list=contents_list,
-        front_has_images=True,  # 항상 True로 설정하여 생성된 이미지를 front_images에 담음
-        back_has_images=False,
-        image_count=num_images,
         temperature=temperature,
-        top_p=top_p,
-        include_side=False
+        top_p=top_p
     )
     
-    # front_images를 bytes 리스트로 가져오기
-    front_images = result.get("front_images", [])
+    # response를 bytes 리스트로 가져오기
+    response = result.get("response", [])
     
     # bytes 데이터를 PIL Image로 변환
     pil_images = []
-    for img_bytes in front_images:
+    for img_bytes in response:
         if img_bytes is not None:
             pil_images.append(Image.open(io.BytesIO(img_bytes)))
     
@@ -139,17 +137,28 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
 
 def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, main_category, sub_category, sleeve, length, fit, wear_together):
     """
-    선택된 옵션에 따라 모델 프롬프트를 업데이트하는 함수
+    선택된 옵션에 따라 모델 프롬프트를 업데이트하는 함수 (Pydantic 모델 사용)
     """
     try:
-        prompt = assemble_model_prompt(
-            type=view_type, 
+        # ModelOptions 생성
+        model_options = ModelOptions(
             gender=gender,
             age=age if age != "none" else None,
             skin_tone=skin_tone if skin_tone != "none" else None,
             ethnicity=ethnicity if ethnicity != "none" else None,
             hairstyle=hairstyle if hairstyle != "none" else None,
-            hair_color=hair_color if hair_color != "none" else None,
+            hair_color=hair_color if hair_color != "none" else None
+        )
+        
+        # 프롬프트 생성 (기존 방식 유지)
+        prompt = assemble_model_prompt(
+            type=view_type, 
+            gender=model_options.gender,
+            age=model_options.age,
+            skin_tone=model_options.skin_tone,
+            ethnicity=model_options.ethnicity,
+            hairstyle=model_options.hairstyle,
+            hair_color=model_options.hair_color,
             main_category=main_category if main_category != "none" else None,
             sub_category=sub_category if sub_category != "none" else None,
             sleeve=sleeve if sleeve != "none" else None,
@@ -254,9 +263,10 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             outputs=[output, usage_output, debug_output]
         )
     
-    with gr.Tab("👔 가상 입어보기 프롬프트"):
+    with gr.Tab("🧑 가상 모델 생성 프롬프트"):
         with gr.Column():
-            gr.Markdown("## 모델에게 입히는 프롬프트")
+            gr.Markdown("## 가상 모델 생성 프롬프트")
+            gr.Markdown("Front View와 Back View 모델 이미지를 생성하기 위한 프롬프트입니다.")
             gr.Markdown("### 옵션 선택")
             
             # 옵션 데이터 준비
@@ -265,116 +275,6 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             sleeve_opts = sleeve_options()
             length_opts = length_options()
             catalog = clothes_category()
-            
-            with gr.Row():
-                default_prompt_display = gr.Textbox(
-                    label="📝 생성된 프롬프트",
-                    value=assemble_prompt(
-                        main_category="default",
-                        sub_category="default",
-                        replacement="clothing",
-                    ),
-                    lines=10,
-                    interactive=False,
-                    max_lines=15
-                )
-                with gr.Column():
-                    # 성별 선택
-                    gender_dropdown = gr.Dropdown(
-                        label="👤 성별",
-                        choices=[(gender_opts[key]["name"], key) for key in gender_opts.keys()],
-                        value="person",
-                        info=gender_opts["person"]["desc"]
-                    )
-                    
-                    # 메인 카테고리 선택
-                    main_category_dropdown = gr.Dropdown(
-                        label="📂 메인 카테고리",
-                        choices=[("Default", "default")] + [(catalog[key]["name"], key) for key in catalog.keys()],
-                        value="default",
-                        info="의류 메인 카테고리 선택"
-                    )
-                    
-                    # 서브 카테고리 선택
-                    sub_category_dropdown = gr.Dropdown(
-                        label="📁 서브 카테고리",
-                        choices=["default"],
-                        value="default",
-                        info="메인 카테고리에 따라 변경됩니다"
-                    )
-                    
-                    # Replacement 입력
-                    replacement_input = gr.Textbox(
-                        label="🔄 Replacement",
-                        value="clothing",
-                        info="대체할 의상 부위 (예: clothing, tops, bottoms)"
-                    )
-                
-                with gr.Column():
-                    # 핏 선택
-                    fit_dropdown = gr.Dropdown(
-                        label="👔 핏",
-                        choices=[(fit_opts[key]["name"], key) for key in fit_opts.keys()],
-                        value="none",
-                        info=fit_opts["none"]["desc"]
-                    )
-                    
-                    # 소매 길이 선택
-                    sleeve_dropdown = gr.Dropdown(
-                        label="👕 소매 길이",
-                        choices=[(sleeve_opts[key]["name"], key) for key in sleeve_opts.keys()],
-                        value="none",
-                        info=sleeve_opts["none"]["desc"]
-                    )
-                    
-                    # 기장 선택
-                    length_dropdown = gr.Dropdown(
-                        label="📏 기장",
-                        choices=[(length_opts[key]["name"], key) for key in length_opts.keys()],
-                        value="none",
-                        info=length_opts["none"]["desc"]
-                    )
-            
-            # 메인 카테고리 변경 시 서브 카테고리와 프롬프트 업데이트
-            main_category_dropdown.change(
-                fn=update_sub_category_choices,
-                inputs=[
-                    main_category_dropdown,
-                    replacement_input,
-                    gender_dropdown,
-                    fit_dropdown,
-                    sleeve_dropdown,
-                    length_dropdown
-                ],
-                outputs=[sub_category_dropdown, default_prompt_display]
-            )
-            
-            # 나머지 옵션 변경 시 프롬프트만 업데이트 (메인 카테고리 제외)
-            other_option_inputs = [
-                main_category_dropdown,
-                sub_category_dropdown,
-                replacement_input,
-                gender_dropdown,
-                fit_dropdown,
-                sleeve_dropdown,
-                length_dropdown
-            ]
-            
-            # 메인 카테고리를 제외한 나머지 옵션들의 change 이벤트 등록
-            for option_input in [sub_category_dropdown, replacement_input, gender_dropdown, fit_dropdown, sleeve_dropdown, length_dropdown]:
-                option_input.change(
-                    fn=update_prompt,
-                    inputs=other_option_inputs,
-                    outputs=[default_prompt_display]
-                )
-    
-    with gr.Tab("🧑 가상 모델 생성 프롬프트"):
-        with gr.Column():
-            gr.Markdown("## 가상 모델 생성 프롬프트")
-            gr.Markdown("Front View와 Back View 모델 이미지를 생성하기 위한 프롬프트입니다.")
-            gr.Markdown("### 옵션 선택")
-            
-            # 옵션 데이터 준비
             age_opts = age_options()
             skin_opts = skin_tone_options()
             ethnicity_opts = ethnicity_options()
@@ -433,16 +333,25 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     )
                     
                 with gr.Column(scale=1):
+                    # catalog의 첫 번째 키를 기본값으로 사용
+                    default_main_category = list(catalog.keys())[0] if catalog else "none"
+                    
                     model_main_category_dropdown = gr.Dropdown(
                         label="📂 메인 카테고리",
-                        choices=[("설정 안 함", "none")] + [(catalog[key]["name"], key) for key in catalog.keys()],
-                        value="none",
+                        choices=[(catalog[key]["name"], key) for key in catalog.keys()],
+                        value=default_main_category,
                         info="의류 메인 카테고리 선택"
                     )
                     
+                    # 기본 서브 카테고리 초기화 (catalog의 children에 이미 "none" 포함)
+                    default_sub_choices = [("설정 안 함", "none")]
+                    if default_main_category in catalog:
+                        sub_cats = catalog[default_main_category]["children"]
+                        default_sub_choices = [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
+                    
                     model_sub_category_dropdown = gr.Dropdown(
                         label="📁 서브 카테고리",
-                        choices=[("설정 안 함", "none")],
+                        choices=default_sub_choices,
                         value="none",
                         info="메인 카테고리에 따라 변경됩니다"
                     )
@@ -487,15 +396,14 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             # 메인 카테고리 변경 시 서브 카테고리와 프롬프트 업데이트
             def update_model_sub_category_choices(main_category, view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, sleeve, length, fit, wear_together):
                 """메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트"""
-                if main_category == "none":
-                    sub_category_value = "none"
-                    dropdown_update = gr.update(choices=[("설정 안 함", "none")], value="none")
-                elif main_category in catalog:
+                # catalog의 children에 이미 "none" 옵션이 포함되어 있음
+                if main_category in catalog:
                     sub_cats = catalog[main_category]["children"]
-                    choices = [("설정 안 함", "none")] + [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
+                    choices = [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
                     sub_category_value = "none"
                     dropdown_update = gr.update(choices=choices, value="none")
                 else:
+                    # catalog에 없는 경우 기본값
                     sub_category_value = "none"
                     dropdown_update = gr.update(choices=[("설정 안 함", "none")], value="none")
                 

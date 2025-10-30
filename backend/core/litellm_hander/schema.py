@@ -34,3 +34,21 @@ class Detection(BaseModel):
 class ValidGeneratedVTO(BaseModel):
     result: str = Field(..., description="결과")
     detections: List[Detection] = Field(..., description="불일치 항목 리스트")
+    
+class ModelOptions(BaseModel):
+    gender: str = Field(..., description="성별")
+    age: Optional[str] = Field(None, description="나이")
+    skin_tone: Optional[str] = Field(None, description="피부색")
+    ethnicity: Optional[str] = Field(None, description="인종")
+    hairstyle: Optional[str] = Field(None, description="헤어스타일")
+    hair_color: Optional[str] = Field(None, description="머리색")
+
+class ClothesOptions(BaseModel):
+    main_category: str = Field(..., description="메인 카테고리")
+    sub_category: str = Field(..., description="서브 카테고리")
+    replacement: Optional[str] = Field(None, description="대체할 의상 부위")
+    image_count: Optional[int] = Field(None, description="입력 이미지 개수")
+    how: Optional[str] = Field(None, description="입히는 방법")
+    sleeve: Optional[str] = Field(None, description="소매 속성")
+    length: Optional[str] = Field(None, description="기장 속성")
+    fit: Optional[str] = Field(None, description="핏 속성")
