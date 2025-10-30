@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from core.litellm_hander.schema import ClothesImageAnalysis, ModelOptions, ClothesOptions
 from core.litellm_hander.process import LiteLLMHandler
 from PIL import Image as PILImage
@@ -121,17 +121,17 @@ async def vto_model_tryon(
     
 async def single_image_inference(
     prompt: str,
-    image_path: str,
+    image_path: Union[str, list[str]],
     temperature: float = 1.0,
     image_count: int = 1,
     top_p: float = 0.95
 ) -> Dict:
     """
-    Single Image Inference: 주어진 이미지에 대해 추론 실행
+    Single Image Inference: 주어진 이미지(단일 또는 여러 개)에 대해 추론 실행
     
     Args:
         prompt: 프롬프트
-        image_path: 이미지 경로
+        image_path: 이미지 경로(단일 또는 여러 개)
         temperature: 결과의 다양성 (기본값: 1.0)
         image_count: 생성할 이미지 개수 (기본값: 1)
         top_p: Top-p (nucleus) 샘플링 값 (기본값: 0.95)
@@ -140,10 +140,17 @@ async def single_image_inference(
         Dict: 응답 결과 (이미지 리스트 및 비용 정보)
     """
     gemini_processer = GeminiProcesser()
-    image_content, _ = await gemini_processer.load_clothes_images(image_path, None)
-    contents_list = []
-    for _ in range(image_count):
-        contents_list.append([prompt, image_content])
+    if isinstance(image_path, list):
+        image_contents = [await gemini_processer.create_image_content(img) for img in image_path]
+        # 리스트인 경우 펼쳐서 추가
+        contents_list = []
+        for _ in range(image_count):
+            contents_list.append([prompt] + image_contents)
+    else:
+        image_content = await gemini_processer.create_image_content(image_path)
+        contents_list = []
+        for _ in range(image_count):
+            contents_list.append([prompt, image_content])
     
     return await gemini_processer.execute_image_inference(
         contents_list=contents_list,

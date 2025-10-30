@@ -273,21 +273,19 @@ def render_usage_info(usage):
         st.metric("비용 (KRW)", f"₩{usage.cost_krw:.2f}")
 
 
-def side_view_component(model_options: ModelOptions):
+def side_view_component(model_options: ModelOptions, front_image_file=None):
     """
     측면 이미지 생성 컴포넌트 (간소화 버전)
     
     Args:
-        source_mode: "vto" (가상피팅모드) 또는 "vm" (가상모델피팅모드)
+        model_options: 모델 옵션
+        front_image_file: 원본 앞면 의상 이미지 파일 (Optional)
     """
     SIDE_VIEW_TEMPERATURE = 0.5
     st.divider()
     st.subheader("🔄 측면 이미지 생성")
     
     # 세션 상태에서 결과 및 선택된 이미지 가져오기
-    source_result = None
-    selected_image_bytes = None
-    
     source_result = st.session_state.get("vm_result")
     
     if source_result:
@@ -308,8 +306,12 @@ def side_view_component(model_options: ModelOptions):
             
             if all_images and selected_idx < len(all_images):
                 selected_image_bytes = all_images[selected_idx][2]
+                # 미리보기 표시
+                st.info(f"선택된 이미지: {all_images[selected_idx][0]} #{all_images[selected_idx][1]}")
+                preview_image = Image.open(BytesIO(selected_image_bytes))
+                st.image(preview_image, caption="측면 생성에 사용될 이미지", width=300)
     else:
-        st.warning("⚠️ 먼저 위에서 가상 피팅 또는 가상 모델 피팅을 실행해주세요.")
+        st.warning("⚠️ 먼저 위에서 가상 모델 피팅을 실행해주세요.")
     
     st.divider()
     
@@ -342,18 +344,29 @@ def side_view_component(model_options: ModelOptions):
                 st.error("❌ 이미지를 선택하거나 업로드해주세요.")
             else:
                 with st.spinner("측면 이미지를 생성 중입니다... (좌측 & 우측)"):
-                    tmp_image_path = None
+                    tmp_paths = []
                     
                     try:
-                        # 이미지를 임시 파일로 저장
+                        # 선택된 이미지를 임시 파일로 저장
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
                             tmp_file.write(selected_image_bytes)
-                            tmp_image_path = tmp_file.name
+                            tmp_paths.append(tmp_file.name)
+                        
+                        # 원본 이미지 사용
+                        if front_image_file is not None:
+                            front_image_file.seek(0)
+                            original_bytes = front_image_file.read()
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                                tmp_file.write(original_bytes)
+                                tmp_paths.append(tmp_file.name)
+                        
+                        # 이미지 경로 리스트 (단일 또는 다중)
+                        image_path_input = tmp_paths if len(tmp_paths) > 1 else tmp_paths[0]
                         
                         # 좌측 측면 이미지 생성
                         left_result = asyncio.run(single_image_inference(
                             prompt=side_view_prompt("left", model_options.gender),
-                            image_path=tmp_image_path,
+                            image_path=image_path_input,
                             temperature=SIDE_VIEW_TEMPERATURE,
                             image_count=image_count
                         ))
@@ -361,20 +374,21 @@ def side_view_component(model_options: ModelOptions):
                         # 우측 측면 이미지 생성
                         right_result = asyncio.run(single_image_inference(
                             prompt=side_view_prompt("right", model_options.gender),
-                            image_path=tmp_image_path,
+                            image_path=image_path_input,
                             temperature=SIDE_VIEW_TEMPERATURE,
                             image_count=image_count
                         ))
                         
                         # 결과 합치기
                         combined_result = {
-                            "left_images": left_result.get("front_images", []),
-                            "right_images": right_result.get("front_images", []),
+                            "left_images": left_result.get("response", []),
+                            "right_images": right_result.get("response", []),
                             "left_usage": left_result.get("usage"),
                             "right_usage": right_result.get("usage"),
                             "debug_info": {
                                 "left": left_result.get("debug_info", {}),
-                                "right": right_result.get("debug_info", {})
+                                "right": right_result.get("debug_info", {}),
+                                "image_count": len(tmp_paths)
                             }
                         }
                         
@@ -383,9 +397,8 @@ def side_view_component(model_options: ModelOptions):
                     except Exception as e:
                         st.error(f"❌ 측면 이미지 생성 중 오류 발생: {str(e)}")
                     finally:
-                        # 임시 파일 삭제
-                        if tmp_image_path and os.path.exists(tmp_image_path):
-                            os.unlink(tmp_image_path)
+                        # 모든 임시 파일 삭제
+                        cleanup_temp_files(*tmp_paths)
     
     # 결과 표시
     if st.session_state.get(result_key):
@@ -736,5 +749,5 @@ def virtual_model_tab(model_options: ModelOptions, clothes_options: ClothesOptio
         render_vto_results(st.session_state.vm_result, image_count, include_side=False)
         render_usage_info(st.session_state.vm_result["usage"])
     
-    # 측면 이미지 생성 컴포넌트 추가
-    side_view_component(model_options)
+    # 측면 이미지 생성 컴포넌트 추가 (원본 앞면 이미지 전달)
+    side_view_component(model_options, front_image_file)
