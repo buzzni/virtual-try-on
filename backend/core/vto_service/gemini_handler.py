@@ -222,7 +222,6 @@ class GeminiProcesser:
         Returns:
             tuple: (이미지 바이너리 데이터, 비용 정보)
         """
-        last_exception = None
         delay = self.RETRY_DELAY
         
         for attempt in range(self.MAX_RETRIES):
@@ -250,7 +249,6 @@ class GeminiProcesser:
                 return image_data, usage_data
                 
             except Exception as e:
-                last_exception = e
                 error_str = str(e)
                 
                 # 502, 503, 429 등 재시도 가능한 에러인지 확인

@@ -145,14 +145,17 @@ def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle,
             hair_color=hair_color if hair_color != "none" else None
         )
         
-        # ClothesOptions 생성
-        clothes_options = ClothesOptions(
-            main_category=main_category if main_category != "none" else "tops",
-            sub_category=sub_category if sub_category != "none" else "none",
-            sleeve=sleeve if sleeve != "none" else None,
-            length=length if length != "none" else None,
-            fit=fit if fit != "none" else None
-        )
+        # ClothesOptions 생성 (main_category가 "none"이면 ClothesOptions 자체를 None으로)
+        if main_category != "none":
+            clothes_options = ClothesOptions(
+                main_category=main_category,
+                sub_category=sub_category if sub_category != "none" else "none",
+                sleeve=sleeve if sleeve != "none" else None,
+                length=length if length != "none" else None,
+                fit=fit if fit != "none" else None
+            )
+        else:
+            clothes_options = None
         
         # 프롬프트 생성
         prompt = assemble_model_prompt(
@@ -328,25 +331,20 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     )
                     
                 with gr.Column(scale=1):
-                    # catalog의 첫 번째 키를 기본값으로 사용
-                    default_main_category = list(catalog.keys())[0] if catalog else "none"
+                    # "설정 안 함" 옵션 추가
+                    main_category_choices = [(catalog[key]["name"], key) for key in catalog.keys()]
                     
                     model_main_category_dropdown = gr.Dropdown(
                         label="📂 메인 카테고리",
-                        choices=[(catalog[key]["name"], key) for key in catalog.keys()],
-                        value=default_main_category,
+                        choices=main_category_choices,
+                        value="none",
                         info="의류 메인 카테고리 선택"
                     )
                     
-                    # 기본 서브 카테고리 초기화 (catalog의 children에 이미 "none" 포함)
-                    default_sub_choices = [("설정 안 함", "none")]
-                    if default_main_category in catalog:
-                        sub_cats = catalog[default_main_category]["children"]
-                        default_sub_choices = [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
-                    
+                    # 기본 서브 카테고리는 "설정 안 함"만 표시
                     model_sub_category_dropdown = gr.Dropdown(
                         label="📁 서브 카테고리",
-                        choices=default_sub_choices,
+                        choices=[("설정 안 함", "none")],
                         value="none",
                         info="메인 카테고리에 따라 변경됩니다"
                     )
@@ -380,13 +378,12 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     )
                 
                 with gr.Column(scale=2):
-                    # 초기 프롬프트 생성
+                    # 초기 프롬프트 생성 (의상 옵션 없음)
                     initial_model_options = ModelOptions(gender="woman", age="young")
-                    initial_clothes_options = ClothesOptions(main_category="tops", sub_category="none")
                     initial_prompt = assemble_model_prompt(
                         type="front",
                         model_options=initial_model_options,
-                        clothes_options=initial_clothes_options
+                        clothes_options=None
                     )
                     
                     model_prompt_display = gr.Textbox(

@@ -129,12 +129,12 @@ def clothes_category(main_category = None, sub_category = None):
         "none": {
             "name": "설정 안 함",
             "desc": "기본 의류",
-            "prompt": "garment",
+            "prompt": "outfit",
             "children": {
                 "none": {
                     "name": "설정 안 함",
                     "desc": "의류 종류 전체",
-                    "prompt": "garment"
+                    "prompt": "outfit"
                 },
             }
         },
