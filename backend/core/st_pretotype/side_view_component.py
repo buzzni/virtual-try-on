@@ -81,7 +81,7 @@ def side_view_component(model_options: ModelOptions, front_image_file=None):
     with col2:
         if st.button(
             "🚀 측면 이미지 생성 (좌측 + 우측)", 
-            use_container_width=True,
+            width='stretch',
             key="vm_side_btn"
         ):
             if selected_image_bytes is None:
@@ -170,7 +170,7 @@ def side_view_component(model_options: ModelOptions, front_image_file=None):
                         with cols[idx % num_cols]:
                             if isinstance(image_bytes, bytes):
                                 image = Image.open(BytesIO(image_bytes))
-                                st.image(image, caption=f"좌측 #{idx+1}", use_container_width=True)
+                                st.image(image, caption=f"좌측 #{idx+1}", width='stretch')
                             else:
                                 st.warning(f"⚠️ 좌측 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
                 
@@ -183,7 +183,7 @@ def side_view_component(model_options: ModelOptions, front_image_file=None):
                         with cols[idx % num_cols]:
                             if isinstance(image_bytes, bytes):
                                 image = Image.open(BytesIO(image_bytes))
-                                st.image(image, caption=f"우측 #{idx+1}", use_container_width=True)
+                                st.image(image, caption=f"우측 #{idx+1}", width='stretch')
                             else:
                                 st.warning(f"⚠️ 우측 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
                 

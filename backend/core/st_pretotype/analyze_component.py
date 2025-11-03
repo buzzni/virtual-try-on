@@ -21,7 +21,7 @@ def analyze_page():
         )
         if uploaded_file:
             image = Image.open(uploaded_file)
-            st.image(image, caption="업로드된 이미지", use_container_width=True)
+            st.image(image, caption="업로드된 이미지", width='stretch')
     
     with col2:
         st.markdown("### 분석 정보")
@@ -46,7 +46,7 @@ def analyze_page():
     if "analyze_result" not in st.session_state:
         st.session_state.analyze_result = None
     
-    if st.button("🔍 이미지 분석 실행", use_container_width=True, type="primary"):
+    if st.button("🔍 이미지 분석 실행", width='stretch', type="primary"):
         if uploaded_file is None:
             st.error("❌ 이미지를 업로드해주세요.")
         else:

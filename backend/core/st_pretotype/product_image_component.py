@@ -38,7 +38,7 @@ def product_image_tab(settings: Dict[str, str]):
         )
         if uploaded_file_1:
             image = Image.open(uploaded_file_1)
-            st.image(image, caption="이미지 1", use_container_width=True)
+            st.image(image, caption="이미지 1", width='stretch')
 
     with col2:
         st.markdown("**이미지 2 (선택사항)**")
@@ -49,7 +49,7 @@ def product_image_tab(settings: Dict[str, str]):
         )
         if uploaded_file_2:
             image = Image.open(uploaded_file_2)
-            st.image(image, caption="이미지 2", use_container_width=True)
+            st.image(image, caption="이미지 2", width='stretch')
 
     st.divider()
 
@@ -85,7 +85,7 @@ def product_image_tab(settings: Dict[str, str]):
         st.subheader("")  # 높이 맞추기용
         st.write("")
 
-    if st.button("🚀 상품 이미지 생성", use_container_width=True, type="primary"):
+    if st.button("🚀 상품 이미지 생성", width='stretch', type="primary"):
         # 업로드된 이미지 수집
         uploaded_images = []
         if uploaded_file_1:

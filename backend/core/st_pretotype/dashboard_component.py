@@ -241,7 +241,7 @@ def dashboard_page():
                     data=zip_bytes,
                     file_name=filename,
                     mime="application/zip",
-                    use_container_width=True,
+                    width='stretch',
                     type="primary",
                 )
 
@@ -253,7 +253,7 @@ def dashboard_page():
         else:
             st.button(
                 "📥 ZIP 파일 다운로드",
-                use_container_width=True,
+                width='stretch',
                 type="primary",
                 disabled=True,
             )

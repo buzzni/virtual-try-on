@@ -157,7 +157,7 @@ def render_vto_results(result: Dict, image_count: int):
                             global_idx = idx  # 정면 이미지의 글로벌 인덱스
                             button_type = "primary" if global_idx == selected_idx else "secondary"
                             button_label = "✓ 측면 생성용 선택됨" if global_idx == selected_idx else "측면 생성용 선택"
-                            if st.button(button_label, key=f"vm_select_front_{idx}", use_container_width=True, type=button_type):
+                            if st.button(button_label, key=f"vm_select_front_{idx}", width='stretch', type=button_type):
                                 st.session_state[selected_key] = global_idx
                                 st.rerun()
                         else:
