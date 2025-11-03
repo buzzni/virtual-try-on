@@ -30,6 +30,8 @@ def assemble_model_prompt(
     ethnicity = model_options.ethnicity
     hairstyle = model_options.hairstyle
     hair_color = model_options.hair_color
+    height = model_options.height
+    weight = model_options.weight
     
     # ClothesOptions에서 값 추출 (있는 경우)
     main_category = clothes_options.main_category if clothes_options else None
@@ -124,8 +126,11 @@ def assemble_model_prompt(
         model_characteristics += f", {', '.join(characteristics)}"
     if makeup_desc and age != "kid":
         model_characteristics += makeup_desc
-    
-    
+
+    if height:
+        model_characteristics += f", {height}cm tall"
+    if weight:
+        model_characteristics += f", {weight}kg"
     # 의류 설명 조합
     base_outfit = clothes_category(main_category=main_category, sub_category=sub_category)
     

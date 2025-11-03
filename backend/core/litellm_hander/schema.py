@@ -42,6 +42,8 @@ class ModelOptions(BaseModel):
     ethnicity: Optional[str] = Field(None, description="인종")
     hairstyle: Optional[str] = Field(None, description="헤어스타일")
     hair_color: Optional[str] = Field(None, description="머리색")
+    height: Optional[float] = Field(None, description="키(cm)")
+    weight: Optional[float] = Field(None, description="몸무게(kg)")
 
 class ClothesOptions(BaseModel):
     main_category: str = Field(..., description="메인 카테고리")
