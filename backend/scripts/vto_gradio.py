@@ -12,7 +12,7 @@ from core.litellm_hander.utils import (
     skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
 )
 
-async def process_inputs(text_input, image1, image2, image3, temperature, top_p, num_images):
+async def process_inputs(text_input, image1, image2, image3, temperature, top_p, num_images, aspect_ratio):
     """
     텍스트 입력과 이미지 입력들을 처리하는 함수
     """
@@ -32,7 +32,8 @@ async def process_inputs(text_input, image1, image2, image3, temperature, top_p,
         contents_list=contents_list,
         image_count=num_images,
         temperature=temperature,
-        top_p=top_p
+        top_p=top_p,
+        aspect_ratio=aspect_ratio
     )
     
     # response를 bytes 리스트로 가져오기
@@ -213,6 +214,26 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     label="생성할 이미지 개수",
                     info="생성할 이미지의 개수를 선택하세요"
                 )
+                
+                aspect_ratio = gr.Dropdown(
+                    label="🖼️ 이미지 비율",
+                    choices=[
+                        ("1:1 (1024*1024)", "1:1"),
+                        ("2:3 (832*1248)", "2:3"),
+                        ("3:2 (1248*832)", "3:2"),
+                        ("3:4 (864*1184)", "3:4"),
+                        ("4:3 (1184*864)", "4:3"),
+                        ("4:5 (896*1152)", "4:5"),
+                        ("5:4 (1152*896)", "5:4"),
+                        ("9:16 (768*1344)", "9:16"),
+                        ("16:9 (1344*768)", "16:9"),
+                        ("21:9 (1536*672)", "21:9")
+                    ],
+                    value="1:1",
+                    info="이미지 비율 선택",
+                    interactive=True
+                )
+                
                 submit_btn = gr.Button("🚀 실행", variant="primary")
         with gr.Row():
             image1 = gr.Image(
@@ -258,10 +279,10 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     lines=12,
                     interactive=False
                 )
-        
+            
         submit_btn.click(
             fn=process_inputs,
-            inputs=[text_input, image1, image2, image3, temperature, top_p, num_images],
+            inputs=[text_input, image1, image2, image3, temperature, top_p, num_images, aspect_ratio],
             outputs=[output, usage_output, debug_output]
         )
     

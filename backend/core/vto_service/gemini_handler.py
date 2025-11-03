@@ -210,7 +210,7 @@ class GeminiProcesser:
         clothes_img = Image.open(image_path) if image_path else None
         return clothes_img
 
-    async def gemini_image_inference(self, contents, temperature: float = 1.0, top_p: float = 0.95):
+    async def gemini_image_inference(self, contents, temperature: float = 1.0, top_p: float = 0.95, aspect_ratio: str = "1:1"):
         """
         단일 이미지 추론 (재시도 로직 포함)
         
@@ -234,7 +234,7 @@ class GeminiProcesser:
                         response_modalities=[types.Modality.IMAGE],
                         temperature=temperature,
                         top_p=top_p,
-                        image_config=types.ImageConfig(aspect_ratio="1:1"),
+                        image_config=types.ImageConfig(aspect_ratio=aspect_ratio),
                         safety_settings=self.SAFETY_SETTINGS
                     )
                 )
@@ -268,17 +268,18 @@ class GeminiProcesser:
         
         return None, None
     
-    async def _run_with_semaphore(self, semaphore: asyncio.Semaphore, contents, temperature: float, top_p: float):
+    async def _run_with_semaphore(self, semaphore: asyncio.Semaphore, contents, temperature: float, top_p: float, aspect_ratio: str):
         """세마포어를 사용하여 동시 요청 수를 제한하는 헬퍼 메소드"""
         async with semaphore:
-            return await self.gemini_image_inference(contents, temperature, top_p)
+            return await self.gemini_image_inference(contents, temperature, top_p, aspect_ratio)
         
     async def execute_image_inference(
         self,
         contents_list: List,
         image_count: int,
         temperature: float,
-        top_p: float = 0.95
+        top_p: float = 0.95,
+        aspect_ratio: str = "1:1"
     ) -> Dict:
         """
         단일 이미지 추론을 실행하고 결과를 반환하는 공통 로직
@@ -309,7 +310,7 @@ class GeminiProcesser:
             recursive_contents_list.append(contents_list)
         
         # 모든 조합에 대해 병렬 호출 (동시 요청 수 제한)
-        tasks = [self._run_with_semaphore(semaphore, contents, temperature, top_p) for contents in recursive_contents_list]
+        tasks = [self._run_with_semaphore(semaphore, contents, temperature, top_p, aspect_ratio) for contents in recursive_contents_list]
         responses = await asyncio.gather(*tasks)
         
         # 결과 분리
