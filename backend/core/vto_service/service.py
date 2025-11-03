@@ -43,6 +43,7 @@ async def image_inference_with_prompt(
     print(f"\n{'='*50}")
     print(f"이미지 생성 호출 내용")
     print(f"프롬프트: {prompt}")
+    print(f"입력 이미지 개수: {len(image_paths)}")
     print(f"생성 이미지 개수: {image_count}")
     print(f"Temperature: {temperature}")
     print(f"Top-p (Nucleus Sampling): {top_p}")
