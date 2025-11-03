@@ -394,6 +394,18 @@ def clothes_category(main_category = None, sub_category = None):
                     "desc": "발목까지 흐르는 롱 실루엣.",
                     "prompt": "maxi dress"
                 },
+            },
+        },
+        "skirt": {
+            "name": "치마",
+            "desc": "길이·실루엣 다양.",
+            "prompt": "skirt",
+            "children": {
+                "none": {
+                    "name": "전체",
+                    "desc": "치마 종류 전체",
+                    "prompt": "skirt"
+                },
                 "mini_skirt": {
                     "name": "미니스커트",
                     "desc": "짧은 길이의 스커트.",

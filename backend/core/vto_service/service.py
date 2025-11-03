@@ -18,7 +18,8 @@ async def image_inference_with_prompt(
     image_paths : List[str],
     temperature: float = 1.0,
     image_count: int = 1,
-    top_p: float = 0.95
+    top_p: float = 0.95,
+    aspect_ratio: str = "1:1"
 ) -> Dict:
     """
     Single Image Inference: 주어진 이미지(단일 또는 여러 개)에 대해 추론 실행
@@ -43,5 +44,6 @@ async def image_inference_with_prompt(
         contents_list=[prompt] + image_contents,
         image_count=image_count,
         temperature=temperature,
-        top_p=top_p
+        top_p=top_p,
+        aspect_ratio=aspect_ratio
     )

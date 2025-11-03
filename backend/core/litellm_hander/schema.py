@@ -54,3 +54,4 @@ class ClothesOptions(BaseModel):
     sleeve: Optional[str] = Field(None, description="소매 속성")
     length: Optional[str] = Field(None, description="기장 속성")
     fit: Optional[str] = Field(None, description="핏 속성")
+    total_length: Optional[float] = Field(None, description="전체 기장(cm)")
