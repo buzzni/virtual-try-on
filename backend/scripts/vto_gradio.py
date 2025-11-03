@@ -130,7 +130,7 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
     return dropdown_update, prompt
 
 
-def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, main_category, sub_category, sleeve, length, fit, wear_together):
+def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, main_category, sub_category, sleeve, length, fit, wear_together, total_length):
     """
     선택된 옵션에 따라 모델 프롬프트를 업데이트하는 함수 (Pydantic 모델 사용)
     """
@@ -147,14 +147,16 @@ def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle,
             weight=weight if weight is not None and weight > 0 else None
         )
         
-        # ClothesOptions 생성 (main_category가 "none"이면 ClothesOptions 자체를 None으로)
-        if main_category != "none":
+        # ClothesOptions 생성
+        # main_category가 "none"이어도 total_length가 있으면 ClothesOptions 생성
+        if main_category != "none" or (total_length is not None and total_length > 0):
             clothes_options = ClothesOptions(
-                main_category=main_category,
+                main_category=main_category if main_category != "none" else "none",
                 sub_category=sub_category if sub_category != "none" else "none",
                 sleeve=sleeve if sleeve != "none" else None,
                 length=length if length != "none" else None,
-                fit=fit if fit != "none" else None
+                fit=fit if fit != "none" else None,
+                total_length=total_length if total_length is not None and total_length > 0 else None
             )
         else:
             clothes_options = None
@@ -238,7 +240,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 elem_id="output_gallery",
                 columns=3,
                 object_fit="contain",
-                height=600,
+                height=700,
                 format="png"
             )
         
@@ -398,6 +400,16 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         placeholder="예: black pants, white sneakers",
                         info="함께 입을 다른 의류를 입력하세요 (선택사항)"
                     )
+                    
+                    model_total_length_number = gr.Number(
+                        label="📏 전체 기장 (cm)",
+                        value=None,
+                        minimum=0,
+                        maximum=300,
+                        step=0.1,
+                        precision=1,
+                        info="전체 기장을 입력하세요 (선택사항)"
+                    )
                 
                 with gr.Column(scale=2):
                     # 초기 프롬프트 생성 (의상 옵션 없음)
@@ -417,7 +429,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     )
             
             # 메인 카테고리 변경 시 서브 카테고리와 프롬프트 업데이트
-            def update_model_sub_category_choices(main_category, view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, sleeve, length, fit, wear_together):
+            def update_model_sub_category_choices(main_category, view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, sleeve, length, fit, wear_together, total_length):
                 """메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트"""
                 # catalog의 children에 이미 "none" 옵션이 포함되어 있음
                 if main_category in catalog:
@@ -431,7 +443,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     dropdown_update = gr.update(choices=[("설정 안 함", "none")], value="none")
                 
                 # 프롬프트도 함께 업데이트
-                prompt = update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, main_category, sub_category_value, sleeve, length, fit, wear_together)
+                prompt = update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, main_category, sub_category_value, sleeve, length, fit, wear_together, total_length)
                 return dropdown_update, prompt
             
             model_main_category_dropdown.change(
@@ -450,7 +462,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     model_sleeve_dropdown,
                     model_length_dropdown,
                     model_fit_dropdown,
-                    model_wear_together_textbox
+                    model_wear_together_textbox,
+                    model_total_length_number
                 ],
                 outputs=[model_sub_category_dropdown, model_prompt_display]
             )
@@ -471,7 +484,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 model_sleeve_dropdown,
                 model_length_dropdown,
                 model_fit_dropdown,
-                model_wear_together_textbox
+                model_wear_together_textbox,
+                model_total_length_number
             ]
             
             # 메인 카테고리를 제외한 나머지 옵션들의 change 이벤트 등록
@@ -489,7 +503,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 model_sleeve_dropdown,
                 model_length_dropdown,
                 model_fit_dropdown,
-                model_wear_together_textbox
+                model_wear_together_textbox,
+                model_total_length_number
             ]:
                 option_input.change(
                     fn=update_model_prompt,

@@ -39,6 +39,7 @@ def assemble_model_prompt(
     sleeve = clothes_options.sleeve if clothes_options else None
     length = clothes_options.length if clothes_options else None
     fit = clothes_options.fit if clothes_options else None
+    total_length = clothes_options.total_length if clothes_options else None
     
     # 성별에 따른 설명 설정
     if gender == "man":
@@ -48,6 +49,7 @@ def assemble_model_prompt(
             person_desc = "man"
         pronoun = "his"
         pronoun_obj = "him"
+        pronoun_subj = "he"
         default_hair = "a neat hairstyle"
         makeup_desc = ""
     else:  # woman
@@ -57,6 +59,7 @@ def assemble_model_prompt(
             person_desc = "woman"
         pronoun = "her"
         pronoun_obj = "her"
+        pronoun_subj = "she"
         default_hair = "a loose updo hairstyle and soft bangs"
         makeup_desc = ", natural makeup"
     
@@ -121,18 +124,21 @@ def assemble_model_prompt(
         person_desc_2 = person_desc
         
     # 특성 설명 조합
-    model_characteristics = f"{person_desc_2} with {hair_desc}"
+    model_characteristics = f"{person_desc} with {hair_desc}"
     if characteristics:
         model_characteristics += f", {', '.join(characteristics)}"
     if makeup_desc and age != "kid":
         model_characteristics += makeup_desc
 
     if height:
-        model_characteristics += f", {height}cm tall"
+        model_characteristics += f", {int(height)}cm tall"
     if weight:
-        model_characteristics += f", {weight}kg"
+        model_characteristics += f", {int(weight)}kg"
     # 의류 설명 조합
-    base_outfit = clothes_category(main_category=main_category, sub_category=sub_category)
+    if main_category == None:
+        base_outfit = "outfit"
+    else:
+        base_outfit = clothes_category(main_category=main_category, sub_category=sub_category)
     
     # 옵션들을 앞에 붙이기 위해 수집
     modifiers = []
@@ -144,34 +150,36 @@ def assemble_model_prompt(
         modifiers.append(sleeve_options(sleeve))
     
     # outfit_desc 구성
-    if main_category == None:
-        if modifiers:
-            outfit_desc = f"{', '.join(modifiers)} outfit"
-        else:
-            outfit_desc = "outfit"
+    if modifiers:
+        outfit_desc = f"the {', '.join(modifiers)} {base_outfit}"
     else:
-        if modifiers:
-            outfit_desc = f"the {', '.join(modifiers)} {base_outfit}"
-        else:
-            outfit_desc = f"the {base_outfit}"
+        outfit_desc = f"the {base_outfit}"
     
     if wear_together:
-        wear_together_desc = f" with {wear_together}."
+        wear_together_desc = f", paired with {wear_together}"
     else:
-        wear_together_desc = "."
-        
-    front_prompt = f"""Generate a photorealistic full-body image of {person_desc} wearing {outfit_desc} exactly as shown in the provided Source Image{wear_together_desc}
-**The model's head and shoes must both be fully visible in the image, with nothing cropped.**
-The entire clothing provided in the Source Image must be fully visible within the frame. No part of the clothing should be cropped, cut off, or out of view.
-The clothing's design, pattern, color, fabric texture, and fit must be perfectly replicated with no alteration.
-Create a model who matches this description: {model_characteristics}.
-Maintain realistic body proportions, gentle facial expression, and soft, even lighting that matches the clothing's visual tone.
-Place {pronoun_obj} in a minimalist, plain light gray background with no props, patterns, or textures.
-Lighting should be even and diffused, matching the direction implied by the outfit photo.
-Ensure the clothing drapes naturally on the model's body with realistic folds and contact shadows.
-Preserve accurate color balance and texture detail; avoid seams, blur, or artificial effects.
-Output a single high-resolution, full-body image in neutral, editorial style.
-"""
+        wear_together_desc = ""
+    
+    # front_prompt 구성
+    front_prompt_parts = [
+        f"Generate a photorealistic full-body studio image of {model_characteristics}.",
+        f"{pronoun_subj.capitalize()} is wearing {outfit_desc} exactly as shown in the provided Source Image{wear_together_desc}."
+    ]
+    
+    # total_length가 있으면 비율 조정 문장 추가
+    if total_length:
+        front_prompt_parts.append(f"Adjust the overall proportions based on the {base_outfit} length of {total_length} cm to maintain realistic body-to-clothing ratio.")
+    
+    front_prompt_parts.extend([
+        f"Show {pronoun_obj} entire body clearly from head to shoes — nothing cropped or out of frame.",
+        "Maintain realistic body proportions, gentle facial expression, and soft, even lighting that matches the clothing's visual tone.",
+        "Replicate the outfit's design, color, fabric texture, and fit perfectly with natural folds and soft contact shadows.",
+        "Use soft, even studio lighting on a plain light gray background with no props or patterns.",
+        "The final image should look like a high-resolution professional studio photo, not an AI-generated image.",
+        "Output a single high-resolution, full-body image in neutral, editorial style."
+    ])
+    
+    front_prompt = "\n".join(front_prompt_parts) + "\n"
     
     # 뒷면 프롬프트용 특성 설명
     back_model_desc = f"{person_desc_2} with {hair_desc} visible from behind"
@@ -203,3 +211,18 @@ The final image must be high-resolution and editorial in tone, with no artificia
     
     
 # Include subtle natural imperfections such as slight skin texture, soft shadow gradients, and natural garment creases to avoid an overly airbrushed look.
+
+
+# v 1.0.0
+#     front_prompt = f"""Generate a photorealistic full-body image of {person_desc} wearing {outfit_desc} exactly as shown in the provided Source Image{wear_together_desc}
+# **The model's head and shoes must both be fully visible in the image, with nothing cropped.**
+# The entire clothing provided in the Source Image must be fully visible within the frame. No part of the clothing should be cropped, cut off, or out of view.
+# The clothing's design, pattern, color, fabric texture, and fit must be perfectly replicated with no alteration.
+# Create a model who matches this description: {model_characteristics}.
+# Maintain realistic body proportions, gentle facial expression, and soft, even lighting that matches the clothing's visual tone.
+# Place {pronoun_obj} in a minimalist, plain light gray background with no props, patterns, or textures.
+# Lighting should be even and diffused, matching the direction implied by the outfit photo.
+# Ensure the clothing drapes naturally on the model's body with realistic folds and contact shadows.
+# Preserve accurate color balance and texture detail; avoid seams, blur, or artificial effects.
+# Output a single high-resolution, full-body image in neutral, editorial style.
+# """
