@@ -130,7 +130,7 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
     return dropdown_update, prompt
 
 
-def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, main_category, sub_category, sleeve, length, fit, wear_together):
+def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, main_category, sub_category, sleeve, length, fit, wear_together):
     """
     선택된 옵션에 따라 모델 프롬프트를 업데이트하는 함수 (Pydantic 모델 사용)
     """
@@ -142,7 +142,9 @@ def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle,
             skin_tone=skin_tone if skin_tone != "none" else None,
             ethnicity=ethnicity if ethnicity != "none" else None,
             hairstyle=hairstyle if hairstyle != "none" else None,
-            hair_color=hair_color if hair_color != "none" else None
+            hair_color=hair_color if hair_color != "none" else None,
+            height=height if height is not None and height > 0 else None,
+            weight=weight if weight is not None and weight > 0 else None
         )
         
         # ClothesOptions 생성 (main_category가 "none"이면 ClothesOptions 자체를 None으로)
@@ -330,6 +332,26 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         info=hair_color_opts["none"]["desc"]
                     )
                     
+                    model_height_number = gr.Number(
+                        label="📏 키 (cm)",
+                        value=None,
+                        minimum=0,
+                        maximum=300,
+                        step=0.1,
+                        precision=1,
+                        info="모델의 키를 입력하세요 (선택사항)"
+                    )
+                    
+                    model_weight_number = gr.Number(
+                        label="⚖️ 몸무게 (kg)",
+                        value=None,
+                        minimum=0,
+                        maximum=300,
+                        step=0.1,
+                        precision=1,
+                        info="모델의 몸무게를 입력하세요 (선택사항)"
+                    )
+                    
                 with gr.Column(scale=1):
                     # "설정 안 함" 옵션 추가
                     main_category_choices = [(catalog[key]["name"], key) for key in catalog.keys()]
@@ -395,7 +417,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     )
             
             # 메인 카테고리 변경 시 서브 카테고리와 프롬프트 업데이트
-            def update_model_sub_category_choices(main_category, view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, sleeve, length, fit, wear_together):
+            def update_model_sub_category_choices(main_category, view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, sleeve, length, fit, wear_together):
                 """메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트"""
                 # catalog의 children에 이미 "none" 옵션이 포함되어 있음
                 if main_category in catalog:
@@ -409,7 +431,7 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     dropdown_update = gr.update(choices=[("설정 안 함", "none")], value="none")
                 
                 # 프롬프트도 함께 업데이트
-                prompt = update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, main_category, sub_category_value, sleeve, length, fit, wear_together)
+                prompt = update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, main_category, sub_category_value, sleeve, length, fit, wear_together)
                 return dropdown_update, prompt
             
             model_main_category_dropdown.change(
@@ -423,6 +445,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     model_ethnicity_dropdown,
                     model_hairstyle_dropdown,
                     model_hair_color_dropdown,
+                    model_height_number,
+                    model_weight_number,
                     model_sleeve_dropdown,
                     model_length_dropdown,
                     model_fit_dropdown,
@@ -440,6 +464,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 model_ethnicity_dropdown,
                 model_hairstyle_dropdown,
                 model_hair_color_dropdown,
+                model_height_number,
+                model_weight_number,
                 model_main_category_dropdown,
                 model_sub_category_dropdown,
                 model_sleeve_dropdown,
@@ -457,6 +483,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 model_ethnicity_dropdown,
                 model_hairstyle_dropdown,
                 model_hair_color_dropdown,
+                model_height_number,
+                model_weight_number,
                 model_sub_category_dropdown,
                 model_sleeve_dropdown,
                 model_length_dropdown,
