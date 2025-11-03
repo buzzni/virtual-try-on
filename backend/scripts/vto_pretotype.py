@@ -30,18 +30,18 @@ name_dict = {
 
 
 # 페이지 정의
-def virtual_model_page():
-    st.title(name_dict["vto_model"]["name"])
-    with st.sidebar:
-        model_options, clothes_options = sidebar()
-    virtual_model_tab(model_options, clothes_options)
-
 def product_page():
     st.title(name_dict["product"]["name"])
     with st.sidebar:
         st.header(f"⚙️ {name_dict['product']['name']} 설정")
         settings = product_image_sidebar()
     product_image_tab(settings)
+    
+def virtual_model_page():
+    st.title(name_dict["vto_model"]["name"])
+    with st.sidebar:
+        model_options, clothes_options = sidebar()
+    virtual_model_tab(model_options, clothes_options)
 
 def analyze_image_page():
     st.title(name_dict["analyze"]["name"])
