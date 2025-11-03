@@ -30,18 +30,18 @@ name_dict = {
 
 
 # 페이지 정의
+def virtual_model_page():
+    st.title(name_dict["vto_model"]["name"])
+    with st.sidebar:
+        model_options, clothes_options = sidebar()
+    virtual_model_tab(model_options, clothes_options)
+
 def product_page():
     st.title(name_dict["product"]["name"])
     with st.sidebar:
         st.header(f"⚙️ {name_dict['product']['name']} 설정")
         settings = product_image_sidebar()
     product_image_tab(settings)
-    
-def virtual_model_page():
-    st.title(name_dict["vto_model"]["name"])
-    with st.sidebar:
-        model_options, clothes_options = sidebar()
-    virtual_model_tab(model_options, clothes_options)
 
 def analyze_image_page():
     st.title(name_dict["analyze"]["name"])
@@ -53,8 +53,8 @@ def result_dashboard_page():
 
 # 네비게이션 설정
 page = st.navigation([
-    st.Page(virtual_model_page, title=name_dict["vto_model"]["name"], icon=name_dict["vto_model"]["icon"]),
     st.Page(product_page, title=name_dict["product"]["name"], icon=name_dict["product"]["icon"]),
+    st.Page(virtual_model_page, title=name_dict["vto_model"]["name"], icon=name_dict["vto_model"]["icon"]),
     st.Page(analyze_image_page, title=name_dict["analyze"]["name"], icon=name_dict["analyze"]["icon"]),
     st.Page(result_dashboard_page, title=name_dict["dashboard"]["name"], icon=name_dict["dashboard"]["icon"]),
 ])
