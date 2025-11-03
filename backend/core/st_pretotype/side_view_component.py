@@ -104,21 +104,24 @@ def side_view_component(model_options: ModelOptions, front_image_file=None):
                                 tmp_file.write(original_bytes)
                                 tmp_paths.append(tmp_file.name)
                         
-                        # 좌측 측면 이미지 생성
-                        left_result = asyncio.run(image_inference_with_prompt(
-                            prompt=side_view_prompt("left", model_options.gender),
-                            image_paths=tmp_paths,
-                            temperature=SIDE_VIEW_TEMPERATURE,
-                            image_count=image_count
-                        ))
+                        # 좌측/우측 측면 이미지를 동시에 생성
+                        async def generate_side_views():
+                            left_task = image_inference_with_prompt(
+                                prompt=side_view_prompt("left", model_options.gender),
+                                image_paths=tmp_paths,
+                                temperature=SIDE_VIEW_TEMPERATURE,
+                                image_count=image_count
+                            )
+                            right_task = image_inference_with_prompt(
+                                prompt=side_view_prompt("right", model_options.gender),
+                                image_paths=tmp_paths,
+                                temperature=SIDE_VIEW_TEMPERATURE,
+                                image_count=image_count
+                            )
+                            left_result, right_result = await asyncio.gather(left_task, right_task)
+                            return left_result, right_result
                         
-                        # 우측 측면 이미지 생성
-                        right_result = asyncio.run(image_inference_with_prompt(
-                            prompt=side_view_prompt("right", model_options.gender),
-                            image_paths=tmp_paths,
-                            temperature=SIDE_VIEW_TEMPERATURE,
-                            image_count=image_count
-                        ))
+                        left_result, right_result = asyncio.run(generate_side_views())
                         
                         # 결과 합치기
                         combined_result = {
