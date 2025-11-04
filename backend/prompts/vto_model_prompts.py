@@ -167,8 +167,8 @@ def assemble_model_prompt(
     ]
     
     # total_length가 있으면 비율 조정 문장 추가
-    if total_length:
-        front_prompt_parts.append(f"Adjust the overall proportions based on the {base_outfit} length of {total_length} cm to maintain realistic body-to-clothing ratio.")
+    if total_length and height:
+        front_prompt_parts.append(f"Adjust the overall proportions based on the {base_outfit} length of {int(total_length)}cm and model's height of {int(height)}cm to maintain realistic body-to-clothing ratio.")
     
     front_prompt_parts.extend([
         f"Show {pronoun_obj} entire body clearly from head to shoes — nothing cropped or out of frame.",
