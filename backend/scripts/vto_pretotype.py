@@ -53,8 +53,8 @@ def result_dashboard_page():
 
 # 네비게이션 설정
 page = st.navigation([
-    st.Page(virtual_model_page, title=name_dict["vto_model"]["name"], icon=name_dict["vto_model"]["icon"]),
     st.Page(product_page, title=name_dict["product"]["name"], icon=name_dict["product"]["icon"]),
+    st.Page(virtual_model_page, title=name_dict["vto_model"]["name"], icon=name_dict["vto_model"]["icon"]),
     st.Page(analyze_image_page, title=name_dict["analyze"]["name"], icon=name_dict["analyze"]["icon"]),
     st.Page(result_dashboard_page, title=name_dict["dashboard"]["name"], icon=name_dict["dashboard"]["icon"]),
 ])

@@ -81,7 +81,7 @@ def side_view_component(model_options: ModelOptions, front_image_file=None):
     with col2:
         if st.button(
             "🚀 측면 이미지 생성 (좌측 + 우측)", 
-            use_container_width=True,
+            width='stretch',
             key="vm_side_btn"
         ):
             if selected_image_bytes is None:
@@ -104,21 +104,24 @@ def side_view_component(model_options: ModelOptions, front_image_file=None):
                                 tmp_file.write(original_bytes)
                                 tmp_paths.append(tmp_file.name)
                         
-                        # 좌측 측면 이미지 생성
-                        left_result = asyncio.run(image_inference_with_prompt(
-                            prompt=side_view_prompt("left", model_options.gender),
-                            image_paths=tmp_paths,
-                            temperature=SIDE_VIEW_TEMPERATURE,
-                            image_count=image_count
-                        ))
+                        # 좌측/우측 측면 이미지를 동시에 생성
+                        async def generate_side_views():
+                            left_task = image_inference_with_prompt(
+                                prompt=side_view_prompt("left", model_options.gender),
+                                image_paths=tmp_paths,
+                                temperature=SIDE_VIEW_TEMPERATURE,
+                                image_count=image_count
+                            )
+                            right_task = image_inference_with_prompt(
+                                prompt=side_view_prompt("right", model_options.gender),
+                                image_paths=tmp_paths,
+                                temperature=SIDE_VIEW_TEMPERATURE,
+                                image_count=image_count
+                            )
+                            left_result, right_result = await asyncio.gather(left_task, right_task)
+                            return left_result, right_result
                         
-                        # 우측 측면 이미지 생성
-                        right_result = asyncio.run(image_inference_with_prompt(
-                            prompt=side_view_prompt("right", model_options.gender),
-                            image_paths=tmp_paths,
-                            temperature=SIDE_VIEW_TEMPERATURE,
-                            image_count=image_count
-                        ))
+                        left_result, right_result = asyncio.run(generate_side_views())
                         
                         # 결과 합치기
                         combined_result = {
@@ -170,7 +173,7 @@ def side_view_component(model_options: ModelOptions, front_image_file=None):
                         with cols[idx % num_cols]:
                             if isinstance(image_bytes, bytes):
                                 image = Image.open(BytesIO(image_bytes))
-                                st.image(image, caption=f"좌측 #{idx+1}", use_container_width=True)
+                                st.image(image, caption=f"좌측 #{idx+1}", width='stretch')
                             else:
                                 st.warning(f"⚠️ 좌측 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
                 
@@ -183,7 +186,7 @@ def side_view_component(model_options: ModelOptions, front_image_file=None):
                         with cols[idx % num_cols]:
                             if isinstance(image_bytes, bytes):
                                 image = Image.open(BytesIO(image_bytes))
-                                st.image(image, caption=f"우측 #{idx+1}", use_container_width=True)
+                                st.image(image, caption=f"우측 #{idx+1}", width='stretch')
                             else:
                                 st.warning(f"⚠️ 우측 이미지 #{idx+1}의 형식이 올바르지 않습니다.")
                 

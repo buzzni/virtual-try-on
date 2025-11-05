@@ -167,14 +167,14 @@ def assemble_model_prompt(
     ]
     
     # total_length가 있으면 비율 조정 문장 추가
-    if total_length:
-        front_prompt_parts.append(f"Adjust the overall proportions based on the {base_outfit} length of {total_length} cm to maintain realistic body-to-clothing ratio.")
+    if total_length and height:
+        front_prompt_parts.append(f"Adjust the overall proportions based on the {base_outfit} length of {int(total_length)}cm and model's height of {int(height)}cm to maintain realistic body-to-clothing ratio.")
     
     front_prompt_parts.extend([
         f"Show {pronoun_obj} entire body clearly from head to shoes — nothing cropped or out of frame.",
         "Maintain realistic body proportions, gentle facial expression, and soft, even lighting that matches the clothing's visual tone.",
         "Replicate the outfit's design, color, fabric texture, and fit perfectly with natural folds and soft contact shadows.",
-        "Use soft, even studio lighting on a plain light gray background with no props or patterns.",
+        "Use soft, diffused studio lighting with a light gray background and a cool, muted and low-contrast color palette for a minimal look.",
         "The final image should look like a high-resolution professional studio photo, not an AI-generated image.",
         "Output a single high-resolution, full-body image in neutral, editorial style."
     ])

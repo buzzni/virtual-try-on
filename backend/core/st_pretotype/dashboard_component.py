@@ -37,8 +37,6 @@ def dashboard_page():
             st.write(f"- {key}: 존재={exists}, 데이터={has_data}")
 
     # 세션 상태 확인
-    vto_result = st.session_state.get("vto_result")
-    vto_side_result = st.session_state.get("vto_side_result")
     vm_result = st.session_state.get("vm_result")
     vm_side_result = st.session_state.get("vm_side_result")
     product_result = st.session_state.get("product_image_result")
@@ -46,7 +44,6 @@ def dashboard_page():
     analyze_result = st.session_state.get("analyze_result")
 
     # 완료 상태 확인
-    vto_complete = vto_result is not None and vto_side_result is not None
     vm_complete = vm_result is not None and vm_side_result is not None
     product_complete = product_result is not None
     analyze_complete = analyze_result is not None or vto_analys is not None
@@ -75,39 +72,24 @@ def dashboard_page():
         # 가상 피팅 관련
         st.markdown("#### 👔 가상 피팅")
 
-        vto_status = (
-            "✅ 완료"
-            if vto_complete
-            else "❌ 미완료"
-            if vto_result
-            else "⚠️ 측면 이미지 필요"
-        )
-        st.info(f"**가상 피팅 모드:** {vto_status}")
-        if vto_complete:
-            vto_count = len(vto_result.get("front_images", [])) + len(
-                vto_result.get("back_images", [])
-            )
-            vto_side_count = len(vto_side_result.get("left_images", [])) + len(
-                vto_side_result.get("right_images", [])
-            )
-            st.caption(f"정면/후면: {vto_count}개, 측면: {vto_side_count}개")
-
         vm_status = (
             "✅ 완료"
-            if vm_complete
-            else "❌ 미완료"
             if vm_result
-            else "⚠️ 측면 이미지 필요"
+            else "❌ 미완료"
         )
-        st.info(f"**가상 모델 피팅 모드:** {vm_status}")
+        vm_side_status = (
+            "✅ 완료"
+            if vm_side_result
+            else "❌ 미완료"
+        )
+        st.info(f"**가상 모델 피팅 정면 이미지:** {vm_status}")
+        st.info(f"**가상 모델 피팅 측면 이미지:** {vm_side_status}")
         if vm_complete:
-            vm_count = len(vm_result.get("front_images", [])) + len(
-                vm_result.get("back_images", [])
-            )
+            vm_count = len(vm_result.get("response", []))
             vm_side_count = len(vm_side_result.get("left_images", [])) + len(
                 vm_side_result.get("right_images", [])
             )
-            st.caption(f"정면/후면: {vm_count}개, 측면: {vm_side_count}개")
+            st.caption(f"정면: {vm_count}개, 측면: {vm_side_count}개")
 
     with col2:
         # 기타 작업
@@ -134,27 +116,14 @@ def dashboard_page():
     with col1:
         st.markdown("#### 👔 가상 피팅 선택")
 
-        # 라디오 버튼으로 둘 중 하나만 선택
-        fitting_options = ["선택 안 함"]
-        if vto_complete:
-            fitting_options.append("가상 피팅 모드")
-        if vm_complete:
-            fitting_options.append("가상 모델 피팅 모드")
-
-        selected_fitting = st.radio(
-            "피팅 결과 선택 (둘 중 하나)",
-            fitting_options,
-            index=0,
-            key="fitting_selection",
+        fitting_disabled = not vm_complete
+        fitting_selected = st.checkbox(
+            "가상 모델 피팅 모드 결과", disabled=fitting_disabled, key="fitting_selection"
         )
+        st.session_state.dashboard_selections["fitting"] = "vm" if fitting_selected else None
 
-        # 선택 상태 업데이트
-        if selected_fitting == "가상 피팅 모드":
-            st.session_state.dashboard_selections["fitting"] = "vto"
-        elif selected_fitting == "가상 모델 피팅 모드":
-            st.session_state.dashboard_selections["fitting"] = "vm"
-        else:
-            st.session_state.dashboard_selections["fitting"] = None
+        if fitting_disabled:
+            st.caption("⚠️ 먼저 가상 모델 피팅을 완료해주세요.")
 
     with col2:
         st.markdown("#### 📸 상품 이미지")
@@ -188,9 +157,7 @@ def dashboard_page():
     st.markdown("### 📋 선택 요약")
 
     selected_items = []
-    if st.session_state.dashboard_selections["fitting"] == "vto":
-        selected_items.append("✅ 가상 피팅 모드 결과")
-    elif st.session_state.dashboard_selections["fitting"] == "vm":
+    if st.session_state.dashboard_selections["fitting"] == "vm":
         selected_items.append("✅ 가상 모델 피팅 모드 결과")
 
     if st.session_state.dashboard_selections["product"]:
@@ -214,7 +181,6 @@ def dashboard_page():
         download_disabled = len(selected_items) == 0
 
         # 선택된 이미지 인덱스 가져오기
-        vto_selected_idx = st.session_state.get("vto_selected_image_idx", 0)
         vm_selected_idx = st.session_state.get("vm_selected_image_idx", 0)
 
         # ZIP 파일 생성 및 다운로드
@@ -222,14 +188,11 @@ def dashboard_page():
             try:
                 zip_bytes = create_download_zip(
                     st.session_state.dashboard_selections,
-                    vto_result,
-                    vto_side_result,
                     vm_result,
                     vm_side_result,
                     product_result,
                     vto_analys,
                     analyze_result,
-                    vto_selected_idx,
                     vm_selected_idx,
                 )
 
@@ -241,7 +204,7 @@ def dashboard_page():
                     data=zip_bytes,
                     file_name=filename,
                     mime="application/zip",
-                    use_container_width=True,
+                    width='stretch',
                     type="primary",
                 )
 
@@ -253,7 +216,7 @@ def dashboard_page():
         else:
             st.button(
                 "📥 ZIP 파일 다운로드",
-                use_container_width=True,
+                width='stretch',
                 type="primary",
                 disabled=True,
             )
@@ -261,62 +224,26 @@ def dashboard_page():
 
 def create_download_zip(
     selections,
-    vto_result,
-    vto_side_result,
     vm_result,
     vm_side_result,
     product_result,
     vto_analys,
     analyze_result,
-    vto_selected_idx,
     vm_selected_idx,
 ):
     """선택된 항목들로 ZIP 파일 생성 (선택된 이미지만 포함)"""
 
     # 메모리에 ZIP 파일 생성
     zip_buffer = BytesIO()
+    
+    print(f"vm_selected_idx: {vm_selected_idx}")
 
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        # 가상 피팅 결과 - 선택된 이미지만
-        if selections["fitting"] == "vto" and vto_result and vto_side_result:
-            front_images = vto_result.get("front_images", [])
-            back_images = vto_result.get("back_images", [])
-
-            # 선택된 이미지가 정면인지 후면인지 판단
-            if vto_selected_idx < len(front_images):
-                # 정면 이미지 선택됨
-                selected_img = front_images[vto_selected_idx]
-                zip_file.writestr("front_001.png", selected_img)
-            else:
-                # 후면 이미지 선택됨
-                back_idx = vto_selected_idx - len(front_images)
-                if back_idx < len(back_images):
-                    selected_img = back_images[back_idx]
-                    zip_file.writestr("back_001.png", selected_img)
-
-            # 측면 이미지는 모두 포함
-            for idx, img_bytes in enumerate(vto_side_result.get("left_images", [])):
-                zip_file.writestr(f"left_side_{idx + 1:03d}.png", img_bytes)
-
-            for idx, img_bytes in enumerate(vto_side_result.get("right_images", [])):
-                zip_file.writestr(f"right_side_{idx + 1:03d}.png", img_bytes)
-
         # 가상 모델 피팅 결과 - 선택된 이미지만
-        elif selections["fitting"] == "vm" and vm_result and vm_side_result:
-            front_images = vm_result.get("front_images", [])
-            back_images = vm_result.get("back_images", [])
-
-            # 선택된 이미지가 정면인지 후면인지 판단
-            if vm_selected_idx < len(front_images):
-                # 정면 이미지 선택됨
-                selected_img = front_images[vm_selected_idx]
-                zip_file.writestr("front_001.png", selected_img)
-            else:
-                # 후면 이미지 선택됨
-                back_idx = vm_selected_idx - len(front_images)
-                if back_idx < len(back_images):
-                    selected_img = back_images[back_idx]
-                    zip_file.writestr("back_001.png", selected_img)
+        if selections["fitting"] == "vm" and vm_result and vm_side_result:
+            front_images = vm_result.get("response", [])
+            selected_img = front_images[vm_selected_idx]
+            zip_file.writestr("front_001.png", selected_img)
 
             # 측면 이미지는 모두 포함
             for idx, img_bytes in enumerate(vm_side_result.get("left_images", [])):

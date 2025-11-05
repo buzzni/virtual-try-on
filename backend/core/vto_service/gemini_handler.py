@@ -20,7 +20,7 @@ class GeminiProcesser:
     # 가격 정보 (USD)
     INPUT_PRICE_PER_1M_TOKENS = 0.35
     OUTPUT_PRICE_PER_1M_TOKENS = 30.00
-    USD_TO_KRW_RATE = 1380
+    USD_TO_KRW_RATE = 1425
     
     # 재시도 설정
     MAX_RETRIES = 3
