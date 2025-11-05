@@ -483,7 +483,7 @@ def ethnicity_options(key = None):
         "asian": {
             "name": "아시아인",
             "desc": "한국, 중국, 일본 등",
-            "prompt": "Asian"
+            "prompt": "Korean"
         },
         "caucasian": {
             "name": "백인",
