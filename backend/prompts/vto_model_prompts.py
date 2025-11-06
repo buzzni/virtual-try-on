@@ -50,7 +50,7 @@ def assemble_model_prompt(
         pronoun = "his"
         pronoun_obj = "him"
         pronoun_subj = "he"
-        default_hair = "a neat hairstyle"
+        default_hair = "neat hairstyle"
         makeup_desc = ""
     else:  # woman
         if age == "kid" or age == "teen":
@@ -60,7 +60,7 @@ def assemble_model_prompt(
         pronoun = "her"
         pronoun_obj = "her"
         pronoun_subj = "she"
-        default_hair = "a loose updo hairstyle and soft bangs"
+        default_hair = "loose updo hairstyle and soft bangs"
         makeup_desc = ", natural makeup"
     
     # 옵션에 따른 특성 빌드
@@ -124,7 +124,7 @@ def assemble_model_prompt(
         person_desc_2 = person_desc
         
     # 특성 설명 조합
-    model_characteristics = f"{person_desc} with {hair_desc}"
+    model_characteristics = f"{person_desc} with a {hair_desc}"
     if characteristics:
         model_characteristics += f", {', '.join(characteristics)}"
     if makeup_desc and age != "kid":
