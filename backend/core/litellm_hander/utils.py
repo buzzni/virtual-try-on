@@ -576,10 +576,20 @@ def hair_color_options(key = None):
             "desc": "밝은 갈색 머리",
             "prompt": "light brown hair"
         },
+        "light_brown_tint": {
+            "name": "밝은 갈색 (염색)",
+            "desc": "밝은 갈색 머리 (염색)",
+            "prompt": "light brown tinted hair"
+        },
         "blonde": {
             "name": "금발",
             "desc": "금발 머리",
             "prompt": "blonde hair"
+        },
+        "blonde_tint": {
+            "name": "금발 (염색)",
+            "desc": "금발 머리 (염색)",
+            "prompt": "bleached light hair"
         },
         "platinum": {
             "name": "플래티넘",
