@@ -174,7 +174,7 @@ def assemble_model_prompt(
         f"Show {pronoun_obj} entire body clearly from head to shoes — nothing cropped or out of frame.",
         "Maintain realistic body proportions, gentle facial expression, and soft, even lighting that matches the clothing's visual tone.",
         "Replicate the outfit's design, color, fabric texture, and fit perfectly with natural folds and soft contact shadows.",
-        "Use soft, diffused studio lighting with a light gray background and a cool, muted and low-contrast color palette for a minimal look.",
+        "Use soft, diffused studio lighting with a light gray background and muted, low-contrast color palette for a minimal look.",
         "The final image should look like a high-resolution professional studio photo, not an AI-generated image.",
         "Output a single high-resolution, full-body image in neutral, editorial style."
     ])
