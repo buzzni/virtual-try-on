@@ -50,7 +50,7 @@ def assemble_model_prompt(
         pronoun = "his"
         pronoun_obj = "him"
         pronoun_subj = "he"
-        default_hair = "a neat hairstyle"
+        default_hair = "neat hairstyle"
         makeup_desc = ""
     else:  # woman
         if age == "kid" or age == "teen":
@@ -60,7 +60,7 @@ def assemble_model_prompt(
         pronoun = "her"
         pronoun_obj = "her"
         pronoun_subj = "she"
-        default_hair = "a loose updo hairstyle and soft bangs"
+        default_hair = "loose updo hairstyle and soft bangs"
         makeup_desc = ", natural makeup"
     
     # 옵션에 따른 특성 빌드
@@ -124,7 +124,7 @@ def assemble_model_prompt(
         person_desc_2 = person_desc
         
     # 특성 설명 조합
-    model_characteristics = f"{person_desc} with {hair_desc}"
+    model_characteristics = f"{person_desc} with a {hair_desc}"
     if characteristics:
         model_characteristics += f", {', '.join(characteristics)}"
     if makeup_desc and age != "kid":
@@ -174,7 +174,7 @@ def assemble_model_prompt(
         f"Show {pronoun_obj} entire body clearly from head to shoes — nothing cropped or out of frame.",
         "Maintain realistic body proportions, gentle facial expression, and soft, even lighting that matches the clothing's visual tone.",
         "Replicate the outfit's design, color, fabric texture, and fit perfectly with natural folds and soft contact shadows.",
-        "Use soft, diffused studio lighting with a light gray background and a cool, muted and low-contrast color palette for a minimal look.",
+        "Use soft, diffused studio lighting with a light gray background and muted, low-contrast color palette for a minimal look.",
         "The final image should look like a high-resolution professional studio photo, not an AI-generated image.",
         "Output a single high-resolution, full-body image in neutral, editorial style."
     ])

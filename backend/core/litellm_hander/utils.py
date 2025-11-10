@@ -483,7 +483,7 @@ def ethnicity_options(key = None):
         "asian": {
             "name": "아시아인",
             "desc": "한국, 중국, 일본 등",
-            "prompt": "Korean"
+            "prompt": "East Asian"
         },
         "caucasian": {
             "name": "백인",
@@ -691,7 +691,7 @@ def hairstyle_options(key = None, gender = "woman"):
         "bun": {
             "name": "올림머리/번 (여) - 여성 기본값",
             "desc": "머리를 뒤로 묶어 올린 스타일",
-            "prompt": "a loose updo hairstyle and soft bangs"
+            "prompt": "loose updo hairstyle and soft bangs"
         },
         "slicked_back": {
             "name": "올백 (공통)",
