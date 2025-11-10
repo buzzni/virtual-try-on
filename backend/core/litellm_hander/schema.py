@@ -55,3 +55,15 @@ class ClothesOptions(BaseModel):
     length: Optional[str] = Field(None, description="기장 속성")
     fit: Optional[str] = Field(None, description="핏 속성")
     total_length: Optional[float] = Field(None, description="전체 기장(cm)")
+    
+class StyleCutOptions(BaseModel):
+    shot_type: Optional[str] = Field(None, description="카메라 구도 및 프레임 구성")
+    camera_angle: Optional[str] = Field(None, description="카메라 앵글")
+    pose: Optional[str] = Field(None, description="인물의 자세")
+    facial_expression: Optional[str] = Field(None, description="표정 또는 감정 분위기")
+    background: Optional[str] = Field(None, description="배경 컨텍스트")
+    lighting_style: Optional[str] = Field(None, description="조명 세팅")
+    color_tone: Optional[str] = Field(None, description="색감")
+    camera_specs: Optional[str] = Field(None, description="카메라 스펙")
+    output_style_keywords: Optional[str] = Field(None, description="사진 장르")
+    post_processing_keywords: Optional[str] = Field(None, description="질감 및 후보정")
