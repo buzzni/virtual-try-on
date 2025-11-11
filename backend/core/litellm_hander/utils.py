@@ -435,6 +435,8 @@ def clothes_category(main_category = None, sub_category = None):
     else:
         return catalog
 
+# 모델 관련 속성
+
 def skin_tone_options(key = None):
     options = {
         "none": {
@@ -708,6 +710,20 @@ def hairstyle_options(key = None, gender = "woman"):
             "desc": "매우 짧은 남성 헤어",
             "prompt": "crew cut"
         }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+    
+# 스타일 컷 관련 속성
+def background_options(key = None):
+    options = {
+        "custom": {
+            "name": "사용자 지정",
+            "desc": "사용자가 지정한 배경",
+            "prompt": "custom"
+        },
     }
     if key in options.keys():
         return options[key]["prompt"]
