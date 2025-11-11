@@ -193,7 +193,7 @@ def update_style_cut_prompt(gender, age, shot_type, camera_angle, pose, facial_e
             camera_angle=camera_angle if camera_angle and camera_angle.strip() else None,
             pose=pose if pose and pose.strip() else None,
             facial_expression=facial_expression if facial_expression and facial_expression.strip() else None,
-            background=background if background != "none" else None,
+            background=background,
             lighting_style=lighting_style if lighting_style and lighting_style.strip() else None,
             color_tone=color_tone if color_tone and color_tone.strip() else None,
             camera_specs=camera_specs if camera_specs and camera_specs.strip() else None,
@@ -677,8 +677,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     style_cut_background_dropdown = gr.Dropdown(
                         label="🌆 배경",
                         choices=[(background_opts[key]["name"], key) for key in background_opts.keys()],
-                        value="none",
-                        info=background_opts["none"]["desc"]
+                        value="custom",
+                        info=background_opts["custom"]["desc"]
                     )
                 
                 with gr.Column(scale=1):

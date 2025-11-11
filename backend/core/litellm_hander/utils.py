@@ -719,11 +719,6 @@ def hairstyle_options(key = None, gender = "woman"):
 # 스타일 컷 관련 속성
 def background_options(key = None):
     options = {
-        "none": {
-            "name": "설정 안 함",
-            "desc": "배경을 지정하지 않음",
-            "prompt": "none"
-        },
         "custom": {
             "name": "사용자 지정",
             "desc": "사용자가 지정한 배경",
