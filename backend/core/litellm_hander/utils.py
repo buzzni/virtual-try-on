@@ -724,6 +724,11 @@ def background_options(key = None):
             "desc": "사용자가 지정한 배경",
             "prompt": "custom"
         },
+        "dummy": {
+            "name": "더미 배경",
+            "desc": "더미 배경",
+            "prompt": "dummy"
+        }
     }
     if key in options.keys():
         return options[key]["prompt"]
