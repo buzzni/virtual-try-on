@@ -2,14 +2,16 @@ import gradio as gr
 import io
 from PIL import Image
 from core.vto_service.gemini_handler import GeminiProcesser
-from core.litellm_hander.schema import ModelOptions, ClothesOptions
+from core.litellm_hander.schema import ModelOptions, ClothesOptions, StyleCutOptions
 from prompts.vto_model_prompts import assemble_model_prompt
 from prompts.vto_prompts import assemble_prompt
 from prompts.prod_image_prompts import product_image_prompt
 from prompts.side_view_prompts import side_view_prompt
+from prompts.style_cut_prompts import assemble_style_cut_prompt
 from core.litellm_hander.utils import (
     gender_options, fit_options, sleeve_options, length_options, clothes_category,
-    skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
+    skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options,
+    background_options
 )
 
 async def process_inputs(text_input, image1, image2, image3, temperature, top_p, num_images, aspect_ratio):
@@ -168,6 +170,40 @@ def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle,
             model_options=model_options,
             clothes_options=clothes_options,
             wear_together=wear_together if wear_together and wear_together.strip() else None
+        )
+        return prompt
+    except Exception as e:
+        return f"오류 발생: {str(e)}"
+
+
+def update_style_cut_prompt(gender, age, shot_type, camera_angle, pose, facial_expression, background, lighting_style, color_tone, camera_specs, post_processing_keywords):
+    """
+    선택된 옵션에 따라 스타일 컷 프롬프트를 업데이트하는 함수
+    """
+    try:
+        # ModelOptions 생성
+        model_options = ModelOptions(
+            gender=gender,
+            age=age if age != "none" else None
+        )
+        
+        # StyleCutOptions 생성
+        style_cut_options = StyleCutOptions(
+            shot_type=shot_type if shot_type and shot_type.strip() else None,
+            camera_angle=camera_angle if camera_angle and camera_angle.strip() else None,
+            pose=pose if pose and pose.strip() else None,
+            facial_expression=facial_expression if facial_expression and facial_expression.strip() else None,
+            background=background if background != "none" else None,
+            lighting_style=lighting_style if lighting_style and lighting_style.strip() else None,
+            color_tone=color_tone if color_tone and color_tone.strip() else None,
+            camera_specs=camera_specs if camera_specs and camera_specs.strip() else None,
+            post_processing_keywords=post_processing_keywords if post_processing_keywords and post_processing_keywords.strip() else None
+        )
+        
+        # 프롬프트 생성
+        prompt = assemble_style_cut_prompt(
+            model_options=model_options,
+            style_cut_options=style_cut_options
         )
         return prompt
     except Exception as e:
@@ -611,7 +647,136 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 inputs=[side_view_gender_radio, side_view_direction_radio],
                 outputs=[side_view_prompt_display]
             )
-        
+    
+    with gr.Tab("🎨 스타일 컷 프롬프트"):
+        with gr.Column():
+            gr.Markdown("## 스타일 컷 프롬프트")
+            gr.Markdown("다양한 스타일의 이미지를 생성하기 위한 프롬프트입니다.")
+            gr.Markdown("### 옵션 선택")
+            
+            # 옵션 데이터 준비
+            age_opts = age_options()
+            background_opts = background_options()
+            
+            with gr.Row():
+                with gr.Column(scale=1):
+                    style_cut_gender_radio = gr.Radio(
+                        label="👤 성별",
+                        choices=[("여성", "woman"), ("남성", "man")],
+                        value="woman",
+                        info="모델 성별 선택"
+                    )
+                    
+                    style_cut_age_dropdown = gr.Dropdown(
+                        label="🎂 나이",
+                        choices=[(age_opts[key]["name"], key) for key in age_opts.keys()],
+                        value="young",
+                        info=age_opts["young"]["desc"]
+                    )
+                    
+                    style_cut_background_dropdown = gr.Dropdown(
+                        label="🌆 배경",
+                        choices=[(background_opts[key]["name"], key) for key in background_opts.keys()],
+                        value="none",
+                        info=background_opts["none"]["desc"]
+                    )
+                
+                with gr.Column(scale=1):
+                    style_cut_shot_type_textbox = gr.Textbox(
+                        label="📷 Shot Type (구도/프레이밍)",
+                        value="",
+                        placeholder="예: full-body, mid-shot, close-up, headshot",
+                        info="카메라 구도 및 프레임 구성"
+                    )
+                    
+                    style_cut_camera_angle_textbox = gr.Textbox(
+                        label="📐 Camera Angle",
+                        value="",
+                        placeholder="예: eye-level, high-angle, low-angle",
+                        info="카메라 앵글"
+                    )
+                    
+                    style_cut_pose_textbox = gr.Textbox(
+                        label="🧍 Pose (자세)",
+                        value="",
+                        placeholder="예: facing camera, profile, 45° turn, walking",
+                        info="인물의 자세"
+                    )
+                    
+                    style_cut_facial_expression_textbox = gr.Textbox(
+                        label="😊 Facial Expression (표정)",
+                        value="",
+                        placeholder="예: confident, calm, smiling, nostalgic",
+                        info="표정 또는 감정 분위기"
+                    )
+                
+                with gr.Column(scale=1):
+                    style_cut_lighting_style_textbox = gr.Textbox(
+                        label="💡 Lighting Style (조명)",
+                        value="",
+                        placeholder="예: natural daylight, golden hour, cinematic dual-tone",
+                        info="조명 세팅"
+                    )
+                    
+                    style_cut_color_tone_textbox = gr.Textbox(
+                        label="🎨 Color Tone (색감)",
+                        value="",
+                        placeholder="예: warm golden, cool urban, vintage film",
+                        info="색감"
+                    )
+                    
+                    style_cut_camera_specs_textbox = gr.Textbox(
+                        label="📸 Camera Specs (카메라 스펙)",
+                        value="",
+                        placeholder="예: 85mm f/1.4, ISO 100, iPhone 17 Pro Max",
+                        info="기기, 렌즈, 설정값"
+                    )
+                    
+                    style_cut_post_processing_textbox = gr.Textbox(
+                        label="✨ Post-processing & Texture",
+                        value="",
+                        placeholder="예: film grain, subtle desaturation, sharp details",
+                        info="질감 및 후보정"
+                    )
+            
+            with gr.Row():
+                # 초기 프롬프트 생성
+                initial_model_options = ModelOptions(gender="woman", age="young")
+                initial_style_cut_options = StyleCutOptions()
+                initial_style_prompt = assemble_style_cut_prompt(
+                    model_options=initial_model_options,
+                    style_cut_options=initial_style_cut_options
+                )
+                
+                style_cut_prompt_display = gr.Textbox(
+                    label="📝 생성된 프롬프트",
+                    value=initial_style_prompt,
+                    lines=15,
+                    interactive=False,
+                    max_lines=20
+                )
+            
+            # 모든 옵션 변경 시 프롬프트 업데이트
+            style_cut_option_inputs = [
+                style_cut_gender_radio,
+                style_cut_age_dropdown,
+                style_cut_shot_type_textbox,
+                style_cut_camera_angle_textbox,
+                style_cut_pose_textbox,
+                style_cut_facial_expression_textbox,
+                style_cut_background_dropdown,
+                style_cut_lighting_style_textbox,
+                style_cut_color_tone_textbox,
+                style_cut_camera_specs_textbox,
+                style_cut_post_processing_textbox
+            ]
+            
+            for option_input in style_cut_option_inputs:
+                option_input.change(
+                    fn=update_style_cut_prompt,
+                    inputs=style_cut_option_inputs,
+                    outputs=[style_cut_prompt_display]
+                )
 
 
 if __name__ == "__main__":
