@@ -92,6 +92,8 @@ def assemble_style_cut_prompt(
         prompt += "."
     elif facial_expression:
         prompt += f"\n{pronoun_subj} is making {facial_expression}."
+    else:
+        prompt += f"\n{pronoun_subj} is standing casually."
 
     # 샷 타입 및 카메라 앵글 추가
     if shot_type and camera_angle:
