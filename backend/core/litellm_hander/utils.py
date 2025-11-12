@@ -809,21 +809,45 @@ class StyleCutOptions:
                 "desc": "포즈를 지정하지 않음",
                 "prompt": "none"
             },
-            "sitting": {
-                "name": "앉아있기",
-                "desc": "앉아있는 자세",
-                "prompt": "sitting pose"
+            "sitting_on_chair": {
+                "name": "의자에 앉아있기",
+                "desc": "의자에 앉아있는 자세",
+                "prompt": "sitting on a chair"
+            },
+            "sitting_on_floor": {
+                "name": "바닥에 앉아있기",
+                "desc": "바닥에 앉아있는 자세",
+                "prompt": "sitting on the floor"
             },
             "standing_hands_together": {
                 "name": "손을 모으고 서있기",
                 "desc": "손을 모으고 서있는 자세",
-                "prompt": "standing with hands together"
+                "prompt": "standing"
             },
             "leaning_wall": {
                 "name": "벽에 기대기",
                 "desc": "벽에 기대어 있는 자세",
-                "prompt": "leaning against wall"
+                "prompt": "leaning slightly forward near the wall"
             }
+        }
+        if key in options.keys():
+            return options[key]["prompt"]
+        else:
+            return options
+    
+    @staticmethod
+    def arms_pose_options(key=None):
+        options = {
+            "none": {
+                "name": "설정 안 함",
+                "desc": "팔 포즈를 지정하지 않음",
+                "prompt": "none"
+            },
+            "hands_together": {
+                "name": "손을 모으고 있기",
+                "desc": "손을 모으고 있는 자세",
+                "prompt": "hands together"
+            },
         }
         if key in options.keys():
             return options[key]["prompt"]
