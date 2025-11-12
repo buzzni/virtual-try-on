@@ -940,11 +940,11 @@ class StyleCutOptions:
                 "desc": "자연스러운 조명",
                 "prompt": "Neutral yet diffused lighting casts soft shadows"
             },
-            "backlit": {
-                "name": "역광",
-                "desc": "역광 조명",
-                "prompt": "The lighting creates a soft glow around the person"
-            },
+            # "backlit": {
+            #     "name": "역광",
+            #     "desc": "역광 조명",
+            #     "prompt": "The lighting creates a soft glow around the person"
+            # },
             "studio_high_contrast": {
                 "name": "스튜디오 조명 (주황/파랑)",
                 "desc": "대비가 큰 스튜디오 조명",
@@ -1051,10 +1051,10 @@ class StyleCutOptions:
                 "desc": "사용자가 지정한 배경",
                 "prompt": "custom"
             },
-            "dummy": {
-                "name": "더미 배경",
-                "desc": "더미 배경",
-                "prompt": "dummy"
+            "same": {
+                "name": "동일 배경",
+                "desc": "동일 배경",
+                "prompt": "same background"
             }
         }
         if key in options.keys():
