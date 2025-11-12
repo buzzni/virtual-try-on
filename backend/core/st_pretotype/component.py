@@ -5,18 +5,7 @@ from PIL import Image
 import tempfile
 import os
 from io import BytesIO
-from core.litellm_hander.utils import (
-    clothes_category,
-    gender_options,
-    fit_options,
-    sleeve_options,
-    length_options,
-    skin_tone_options,
-    ethnicity_options,
-    hairstyle_options,
-    age_options,
-    hair_color_options
-)
+from core.litellm_hander.utils import ModelOptions as ModelOptionsUtils, ClothesOptions as ClothesOptionsUtils
 from core.litellm_hander.schema import ModelOptions, ClothesOptions
 from core.vto_service.service import image_inference_with_prompt
 from prompts.vto_model_prompts import assemble_model_prompt
@@ -204,7 +193,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     st.markdown("### 🧑 모델 설정")
     
     # 성별
-    gender_opts = gender_options()
+    gender_opts = ModelOptionsUtils.gender_options()
     gender_keys = list(gender_opts.keys())
     gender_names = [gender_opts[key]["name"] for key in gender_keys]
     
@@ -216,7 +205,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     gender = gender_keys[gender_names.index(selected_gender_name)]
     
     # 나이
-    age_opts = age_options()
+    age_opts = ModelOptionsUtils.age_options()
     age_keys = list(age_opts.keys())
     age_names = [age_opts[key]["name"] for key in age_keys]
     
@@ -228,7 +217,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     age = age_keys[age_names.index(selected_age_name)]
     
     # 피부색
-    skin_tone_opts = skin_tone_options()
+    skin_tone_opts = ModelOptionsUtils.skin_tone_options()
     skin_tone_keys = list(skin_tone_opts.keys())
     skin_tone_names = [skin_tone_opts[key]["name"] for key in skin_tone_keys]
     
@@ -240,7 +229,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     skin_tone = skin_tone_keys[skin_tone_names.index(selected_skin_tone_name)]
     
     # 인종
-    ethnicity_opts = ethnicity_options()
+    ethnicity_opts = ModelOptionsUtils.ethnicity_options()
     ethnicity_keys = list(ethnicity_opts.keys())
     ethnicity_names = [ethnicity_opts[key]["name"] for key in ethnicity_keys]
     
@@ -252,7 +241,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     ethnicity = ethnicity_keys[ethnicity_names.index(selected_ethnicity_name)]
     
     # 헤어스타일
-    hairstyle_opts = hairstyle_options(gender=gender)
+    hairstyle_opts = ModelOptionsUtils.hairstyle_options(gender=gender)
     hairstyle_keys = list(hairstyle_opts.keys())
     hairstyle_names = [hairstyle_opts[key]["name"] for key in hairstyle_keys]
     
@@ -264,7 +253,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     hairstyle = hairstyle_keys[hairstyle_names.index(selected_hairstyle_name)]
     
     # 머리색
-    hair_color_opts = hair_color_options()
+    hair_color_opts = ModelOptionsUtils.hair_color_options()
     hair_color_keys = list(hair_color_opts.keys())
     hair_color_names = [hair_color_opts[key]["name"] for key in hair_color_keys]
     
@@ -279,7 +268,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     st.markdown("### 👕 의상 설정")
     
     # 카테고리 데이터 가져오기
-    catalog = clothes_category()
+    catalog = ClothesOptionsUtils.clothes_category()
     
     
     # 메인 카테고리 (영문 key -> 한글 name 매핑)
@@ -309,7 +298,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     sub_category = sub_cat_options[sub_cat_names.index(selected_sub_name)]
     
     # 핏
-    fit_opts = fit_options()
+    fit_opts = ClothesOptionsUtils.fit_options()
     fit_keys = list(fit_opts.keys())
     fit_names = [fit_opts[key]["name"] for key in fit_keys]
     
@@ -321,7 +310,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     fit = fit_keys[fit_names.index(selected_fit_name)]
     
     # 소매
-    sleeve_opts = sleeve_options()
+    sleeve_opts = ClothesOptionsUtils.sleeve_options()
     sleeve_keys = list(sleeve_opts.keys())
     sleeve_names = [sleeve_opts[key]["name"] for key in sleeve_keys]
     
@@ -333,7 +322,7 @@ def sidebar() -> Tuple[ModelOptions, ClothesOptions]:
     sleeve = sleeve_keys[sleeve_names.index(selected_sleeve_name)]
     
     # 기장
-    length_opts = length_options()
+    length_opts = ClothesOptionsUtils.length_options()
     length_keys = list(length_opts.keys())
     length_names = [length_opts[key]["name"] for key in length_keys]
     

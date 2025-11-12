@@ -2,14 +2,16 @@ import gradio as gr
 import io
 from PIL import Image
 from core.vto_service.gemini_handler import GeminiProcesser
-from core.litellm_hander.schema import ModelOptions, ClothesOptions
+from core.litellm_hander.schema import ModelOptions, ClothesOptions, StyleCutOptions
 from prompts.vto_model_prompts import assemble_model_prompt
 from prompts.vto_prompts import assemble_prompt
 from prompts.prod_image_prompts import product_image_prompt
 from prompts.side_view_prompts import side_view_prompt
+from prompts.style_cut_prompts import assemble_style_cut_prompt
 from core.litellm_hander.utils import (
-    gender_options, fit_options, sleeve_options, length_options, clothes_category,
-    skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
+    ModelOptions as ModelOptionsUtils,
+    ClothesOptions as ClothesOptionsUtils,
+    StyleCutOptions as StyleCutOptionsUtils
 )
 
 async def process_inputs(text_input, image1, image2, image3, temperature, top_p, num_images, aspect_ratio):
@@ -113,7 +115,7 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
     """
     메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트하는 함수
     """
-    catalog = clothes_category()
+    catalog = ClothesOptionsUtils.clothes_category()
     if main_category == "default":
         sub_category_value = "default"
         dropdown_update = gr.update(choices=["default"], value="default")
@@ -168,6 +170,40 @@ def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle,
             model_options=model_options,
             clothes_options=clothes_options,
             wear_together=wear_together if wear_together and wear_together.strip() else None
+        )
+        return prompt
+    except Exception as e:
+        return f"오류 발생: {str(e)}"
+
+
+def update_style_cut_prompt(gender, age, shot_type, camera_angle, pose, facial_expression, background, lighting_style, color_tone, camera_specs, post_processing_keywords):
+    """
+    선택된 옵션에 따라 스타일 컷 프롬프트를 업데이트하는 함수
+    """
+    try:
+        # ModelOptions 생성
+        model_options = ModelOptions(
+            gender=gender,
+            age=age if age != "none" else None
+        )
+        
+        # StyleCutOptions 생성
+        style_cut_options = StyleCutOptions(
+            shot_type=shot_type if shot_type != "none" else None,
+            camera_angle=camera_angle if camera_angle != "none" else None,
+            pose=pose if pose != "none" else None,
+            facial_expression=facial_expression if facial_expression != "none" else None,
+            background=background,
+            lighting_style=lighting_style if lighting_style != "none" else None,
+            color_tone=color_tone if color_tone != "none" else None,
+            camera_specs=camera_specs if camera_specs != "none" else None,
+            post_processing_keywords=post_processing_keywords if post_processing_keywords != "none" else None
+        )
+        
+        # 프롬프트 생성
+        prompt = assemble_style_cut_prompt(
+            model_options=model_options,
+            style_cut_options=style_cut_options
         )
         return prompt
     except Exception as e:
@@ -294,16 +330,16 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             gr.Markdown("### 옵션 선택")
             
             # 옵션 데이터 준비
-            gender_opts = gender_options()
-            fit_opts = fit_options()
-            sleeve_opts = sleeve_options()
-            length_opts = length_options()
-            catalog = clothes_category()
-            age_opts = age_options()
-            skin_opts = skin_tone_options()
-            ethnicity_opts = ethnicity_options()
-            hair_opts = hairstyle_options()
-            hair_color_opts = hair_color_options()
+            gender_opts = ModelOptionsUtils.gender_options()
+            fit_opts = ClothesOptionsUtils.fit_options()
+            sleeve_opts = ClothesOptionsUtils.sleeve_options()
+            length_opts = ClothesOptionsUtils.length_options()
+            catalog = ClothesOptionsUtils.clothes_category()
+            age_opts = ModelOptionsUtils.age_options()
+            skin_opts = ModelOptionsUtils.skin_tone_options()
+            ethnicity_opts = ModelOptionsUtils.ethnicity_options()
+            hair_opts = ModelOptionsUtils.hairstyle_options()
+            hair_color_opts = ModelOptionsUtils.hair_color_options()
             
             with gr.Row():
                 with gr.Column(scale=1):
@@ -451,8 +487,9 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             def update_model_sub_category_choices(main_category, view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, sleeve, length, fit, wear_together, total_length):
                 """메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트"""
                 # catalog의 children에 이미 "none" 옵션이 포함되어 있음
-                if main_category in catalog:
-                    sub_cats = catalog[main_category]["children"]
+                catalog_local = ClothesOptionsUtils.clothes_category()
+                if main_category in catalog_local:
+                    sub_cats = catalog_local[main_category]["children"]
                     choices = [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
                     sub_category_value = "none"
                     dropdown_update = gr.update(choices=choices, value="none")
@@ -611,7 +648,144 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 inputs=[side_view_gender_radio, side_view_direction_radio],
                 outputs=[side_view_prompt_display]
             )
-        
+    
+    with gr.Tab("🎨 스타일 컷 프롬프트"):
+        with gr.Column():
+            gr.Markdown("## 스타일 컷 프롬프트")
+            gr.Markdown("다양한 스타일의 이미지를 생성하기 위한 프롬프트입니다.")
+            gr.Markdown("### 옵션 선택")
+            
+            # 옵션 데이터 준비
+            age_opts = ModelOptionsUtils.age_options()
+            background_opts = StyleCutOptionsUtils.background_options()
+            shot_type_opts = StyleCutOptionsUtils.shot_type_options()
+            camera_angle_opts = StyleCutOptionsUtils.camera_angle_options()
+            pose_opts = StyleCutOptionsUtils.pose_options()
+            facial_expression_opts = StyleCutOptionsUtils.facial_expression_options()
+            lighting_style_opts = StyleCutOptionsUtils.lighting_style_options()
+            color_tone_opts = StyleCutOptionsUtils.color_tone_options()
+            camera_specs_opts = StyleCutOptionsUtils.camera_specs_options()
+            post_processing_opts = StyleCutOptionsUtils.post_processing_options()
+            
+            with gr.Row():
+                with gr.Column(scale=1):
+                    style_cut_gender_radio = gr.Radio(
+                        label="👤 성별",
+                        choices=[("여성", "woman"), ("남성", "man")],
+                        value="woman",
+                        info="모델 성별 선택"
+                    )
+                    
+                    style_cut_age_dropdown = gr.Dropdown(
+                        label="🎂 나이",
+                        choices=[(age_opts[key]["name"], key) for key in age_opts.keys()],
+                        value="young",
+                        info=age_opts["young"]["desc"]
+                    )
+                    
+                    style_cut_background_dropdown = gr.Dropdown(
+                        label="🌆 배경",
+                        choices=[(background_opts[key]["name"], key) for key in background_opts.keys()],
+                        value="custom",
+                        info=background_opts["custom"]["desc"]
+                    )
+                
+                with gr.Column(scale=1):
+                    style_cut_shot_type_dropdown = gr.Dropdown(
+                        label="📷 Shot Type",
+                        choices=[(shot_type_opts[key]["name"], key) for key in shot_type_opts.keys()],
+                        value="none",
+                        info=shot_type_opts["none"]["desc"]
+                    )
+                    
+                    style_cut_camera_angle_dropdown = gr.Dropdown(
+                        label="📐 Camera Angle",
+                        choices=[(camera_angle_opts[key]["name"], key) for key in camera_angle_opts.keys()],
+                        value="none",
+                        info=camera_angle_opts["none"]["desc"]
+                    )
+                    
+                    style_cut_pose_dropdown = gr.Dropdown(
+                        label="🧍 Pose",
+                        choices=[(pose_opts[key]["name"], key) for key in pose_opts.keys()],
+                        value="none",
+                        info=pose_opts["none"]["desc"]
+                    )
+                    
+                    style_cut_facial_expression_dropdown = gr.Dropdown(
+                        label="😊 Facial Expression",
+                        choices=[(facial_expression_opts[key]["name"], key) for key in facial_expression_opts.keys()],
+                        value="none",
+                        info=facial_expression_opts["none"]["desc"]
+                    )
+                
+                with gr.Column(scale=1):
+                    style_cut_lighting_style_dropdown = gr.Dropdown(
+                        label="💡 Lighting Style",
+                        choices=[(lighting_style_opts[key]["name"], key) for key in lighting_style_opts.keys()],
+                        value="none",
+                        info=lighting_style_opts["none"]["desc"]
+                    )
+                    
+                    style_cut_color_tone_dropdown = gr.Dropdown(
+                        label="🎨 Color Tone",
+                        choices=[(color_tone_opts[key]["name"], key) for key in color_tone_opts.keys()],
+                        value="none",
+                        info=color_tone_opts["none"]["desc"]
+                    )
+                    
+                    style_cut_camera_specs_dropdown = gr.Dropdown(
+                        label="📸 Camera Specs",
+                        choices=[(camera_specs_opts[key]["name"], key) for key in camera_specs_opts.keys()],
+                        value="none",
+                        info=camera_specs_opts["none"]["desc"]
+                    )
+                    
+                    style_cut_post_processing_dropdown = gr.Dropdown(
+                        label="✨ Post-processing",
+                        choices=[(post_processing_opts[key]["name"], key) for key in post_processing_opts.keys()],
+                        value="none",
+                        info=post_processing_opts["none"]["desc"]
+                    )
+            
+            with gr.Row():
+                # 초기 프롬프트 생성
+                initial_model_options = ModelOptions(gender="woman", age="young")
+                initial_style_cut_options = StyleCutOptions()
+                initial_style_prompt = assemble_style_cut_prompt(
+                    model_options=initial_model_options,
+                    style_cut_options=initial_style_cut_options
+                )
+                
+                style_cut_prompt_display = gr.Textbox(
+                    label="📝 생성된 프롬프트",
+                    value=initial_style_prompt,
+                    lines=15,
+                    interactive=False,
+                    max_lines=20
+                )
+            
+            # 모든 옵션 변경 시 프롬프트 업데이트
+            style_cut_option_inputs = [
+                style_cut_gender_radio,
+                style_cut_age_dropdown,
+                style_cut_shot_type_dropdown,
+                style_cut_camera_angle_dropdown,
+                style_cut_pose_dropdown,
+                style_cut_facial_expression_dropdown,
+                style_cut_background_dropdown,
+                style_cut_lighting_style_dropdown,
+                style_cut_color_tone_dropdown,
+                style_cut_camera_specs_dropdown,
+                style_cut_post_processing_dropdown
+            ]
+            
+            for option_input in style_cut_option_inputs:
+                option_input.change(
+                    fn=update_style_cut_prompt,
+                    inputs=style_cut_option_inputs,
+                    outputs=[style_cut_prompt_display]
+                )
 
 
 if __name__ == "__main__":
