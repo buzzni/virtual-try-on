@@ -28,6 +28,8 @@ def assemble_style_cut_prompt(
     shot_type = StyleCutOptionsUtils.shot_type_options(style_cut_options.shot_type) if style_cut_options.shot_type else None
     camera_angle = StyleCutOptionsUtils.camera_angle_options(style_cut_options.camera_angle) if style_cut_options.camera_angle else None
     pose = StyleCutOptionsUtils.pose_options(style_cut_options.pose) if style_cut_options.pose else None
+    arms_pose = StyleCutOptionsUtils.arms_pose_options(style_cut_options.arms_pose) if style_cut_options.arms_pose else None
+    gaze = StyleCutOptionsUtils.gaze_options(style_cut_options.gaze) if style_cut_options.gaze else None
     facial_expression = StyleCutOptionsUtils.facial_expression_options(style_cut_options.facial_expression) if style_cut_options.facial_expression else None
     background = StyleCutOptionsUtils.background_options(style_cut_options.background) if style_cut_options.background else None
     lighting_style = StyleCutOptionsUtils.lighting_style_options(style_cut_options.lighting_style) if style_cut_options.lighting_style else None
@@ -44,7 +46,7 @@ def assemble_style_cut_prompt(
             person_desc = "man"
         pronoun = "his"
         pronoun_obj = "him"
-        pronoun_subj = "he"
+        pronoun_subj = "He"
     else:  # woman
         if age == "kid" or age == "teen":
             person_desc = "girl"
@@ -52,7 +54,7 @@ def assemble_style_cut_prompt(
             person_desc = "woman"
         pronoun = "her"
         pronoun_obj = "her"
-        pronoun_subj = "she"
+        pronoun_subj = "She"
     
     # 샷 타입 설명
     if shot_type:
@@ -62,24 +64,35 @@ def assemble_style_cut_prompt(
     
     # 기본 프롬프트 시작
     if background == "custom":
-        prompt = f"Generate a photorealistic {image_desc} of a {person_desc} from the first image in a place from the second image."
+        prompt = f"Generate a photorealistic {image_desc} of a {person_desc} from the first image. The image is taken on a place described in the second image."
     else:
         prompt = f"Generate a photorealistic {image_desc} of a {person_desc} from the image."
     
     # 자세와 표정 설명 추가
     if pose:
         prompt += f"\n{pronoun_subj} is {pose}"
-        
+        if arms_pose:
+            prompt += f", while {pronoun} {arms_pose}"
+        if gaze:
+            prompt += f", {gaze}"
         if facial_expression:
-            prompt += f", with {facial_expression} expression."
-        else:
-            prompt += "."
-    else:
+            prompt += f" with {facial_expression}"
+        prompt += "."
+    elif arms_pose:
+        prompt += f"\n{pronoun_subj} is keeping {pronoun} {arms_pose}"
+        if gaze:
+            prompt += f", {gaze}"
         if facial_expression:
-            prompt += f"\n{pronoun_subj} has {facial_expression} expression."
-        else:
-            prompt += f"\n{pronoun_subj} is standing, looking toward the light with a calm and thoughtful expression."
-    
+            prompt += f" with {facial_expression}"
+        prompt += "."
+    elif gaze:
+        prompt += f"\n{pronoun_subj} is {gaze}"
+        if facial_expression:
+            prompt += f" with {facial_expression}"
+        prompt += "."
+    elif facial_expression:
+        prompt += f"\n{pronoun_subj} is making {facial_expression}."
+
     # 샷 타입 및 카메라 앵글 추가
     if shot_type and camera_angle:
         prompt += f"\nThe main shot is a {shot_type} from a {camera_angle}, capturing {pronoun_obj}."

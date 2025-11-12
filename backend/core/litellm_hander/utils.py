@@ -820,8 +820,8 @@ class StyleCutOptions:
                 "prompt": "sitting on the floor"
             },
             "standing_hands_together": {
-                "name": "손을 모으고 서있기",
-                "desc": "손을 모으고 서있는 자세",
+                "name": "서있기",
+                "desc": "서있는 자세",
                 "prompt": "standing"
             },
             "leaning_wall": {
@@ -846,8 +846,47 @@ class StyleCutOptions:
             "hands_together": {
                 "name": "손을 모으고 있기",
                 "desc": "손을 모으고 있는 자세",
-                "prompt": "hands together"
+                "prompt": "hands gently clapsed in front"
             },
+            "hands_on_waist": {
+                "name": "허리에 손을 얹고 있기",
+                "desc": "허리에 손을 얹고 있는 자세",
+                "prompt": "hands gently resting on waist"
+            },
+            "cheek_resting_on_hand": {
+                "name": "턱을 괴고 있는 자세",
+                "desc": "턱을 괴고 있는 자세",
+                "prompt": "cheek resting gently on one hand in a thoughtful pose, the other hand relaxed by their side"
+            },
+        }
+        if key in options.keys():
+            return options[key]["prompt"]
+        else:
+            return options
+        
+    @staticmethod
+    def gaze_options(key=None):
+        options = {
+            "none": {
+                "name": "설정 안 함",
+                "desc": "시선을 지정하지 않음",
+                "prompt": "none"
+            },
+            "looking_camera": {
+                "name": "카메라를 보고 있는 자세",
+                "desc": "카메라를 보고 있는 자세",
+                "prompt": "looking at the camera"
+            },
+            "looking_light": {
+                "name": "빛을 보고 있는 자세",
+                "desc": "빛을 보고 있는 자세",
+                "prompt": "looking towrad the light"
+            },
+            "closed_eyes": {
+                "name": "눈을 감고 있는 자세",
+                "desc": "눈을 감고 있는 자세",
+                "prompt": "keeping eyes closed"
+            }
         }
         if key in options.keys():
             return options[key]["prompt"]
@@ -865,13 +904,18 @@ class StyleCutOptions:
             "neutral": {
                 "name": "중립/평온",
                 "desc": "중립적이고 평온하며 생각하는 표정",
-                "prompt": "neutral, calm, thoughtful expression"
+                "prompt": "a calm, thoughtful expression"
             },
             "smile": {
                 "name": "미소",
                 "desc": "미소 짓는 표정",
-                "prompt": "smiling expression"
-            }
+                "prompt": "a smile"
+            },
+            "confident": {
+                "name": "자신감 있는",
+                "desc": "자신감 있는 표정",
+                "prompt": "a confident smirk"
+            },
         }
         if key in options.keys():
             return options[key]["prompt"]
