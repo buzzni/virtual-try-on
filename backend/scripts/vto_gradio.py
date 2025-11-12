@@ -11,7 +11,9 @@ from prompts.style_cut_prompts import assemble_style_cut_prompt
 from core.litellm_hander.utils import (
     gender_options, fit_options, sleeve_options, length_options, clothes_category,
     skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options,
-    background_options
+    background_options, shot_type_options, camera_angle_options, pose_options,
+    facial_expression_options, lighting_style_options, color_tone_options,
+    camera_specs_options, post_processing_options
 )
 
 async def process_inputs(text_input, image1, image2, image3, temperature, top_p, num_images, aspect_ratio):
@@ -189,15 +191,15 @@ def update_style_cut_prompt(gender, age, shot_type, camera_angle, pose, facial_e
         
         # StyleCutOptions 생성
         style_cut_options = StyleCutOptions(
-            shot_type=shot_type if shot_type and shot_type.strip() else None,
-            camera_angle=camera_angle if camera_angle and camera_angle.strip() else None,
-            pose=pose if pose and pose.strip() else None,
-            facial_expression=facial_expression if facial_expression and facial_expression.strip() else None,
+            shot_type=shot_type if shot_type != "none" else None,
+            camera_angle=camera_angle if camera_angle != "none" else None,
+            pose=pose if pose != "none" else None,
+            facial_expression=facial_expression if facial_expression != "none" else None,
             background=background,
-            lighting_style=lighting_style if lighting_style and lighting_style.strip() else None,
-            color_tone=color_tone if color_tone and color_tone.strip() else None,
-            camera_specs=camera_specs if camera_specs and camera_specs.strip() else None,
-            post_processing_keywords=post_processing_keywords if post_processing_keywords and post_processing_keywords.strip() else None
+            lighting_style=lighting_style if lighting_style != "none" else None,
+            color_tone=color_tone if color_tone != "none" else None,
+            camera_specs=camera_specs if camera_specs != "none" else None,
+            post_processing_keywords=post_processing_keywords if post_processing_keywords != "none" else None
         )
         
         # 프롬프트 생성
@@ -657,6 +659,14 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             # 옵션 데이터 준비
             age_opts = age_options()
             background_opts = background_options()
+            shot_type_opts = shot_type_options()
+            camera_angle_opts = camera_angle_options()
+            pose_opts = pose_options()
+            facial_expression_opts = facial_expression_options()
+            lighting_style_opts = lighting_style_options()
+            color_tone_opts = color_tone_options()
+            camera_specs_opts = camera_specs_options()
+            post_processing_opts = post_processing_options()
             
             with gr.Row():
                 with gr.Column(scale=1):
@@ -682,61 +692,61 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     )
                 
                 with gr.Column(scale=1):
-                    style_cut_shot_type_textbox = gr.Textbox(
-                        label="📷 Shot Type (구도/프레이밍)",
-                        value="",
-                        placeholder="예: full-body, mid-shot, close-up, headshot",
-                        info="카메라 구도 및 프레임 구성"
+                    style_cut_shot_type_dropdown = gr.Dropdown(
+                        label="📷 Shot Type",
+                        choices=[(shot_type_opts[key]["name"], key) for key in shot_type_opts.keys()],
+                        value="none",
+                        info=shot_type_opts["none"]["desc"]
                     )
                     
-                    style_cut_camera_angle_textbox = gr.Textbox(
+                    style_cut_camera_angle_dropdown = gr.Dropdown(
                         label="📐 Camera Angle",
-                        value="",
-                        placeholder="예: eye-level, high-angle, low-angle",
-                        info="카메라 앵글"
+                        choices=[(camera_angle_opts[key]["name"], key) for key in camera_angle_opts.keys()],
+                        value="none",
+                        info=camera_angle_opts["none"]["desc"]
                     )
                     
-                    style_cut_pose_textbox = gr.Textbox(
-                        label="🧍 Pose (자세)",
-                        value="",
-                        placeholder="예: facing camera, profile, 45° turn, walking",
-                        info="인물의 자세"
+                    style_cut_pose_dropdown = gr.Dropdown(
+                        label="🧍 Pose",
+                        choices=[(pose_opts[key]["name"], key) for key in pose_opts.keys()],
+                        value="none",
+                        info=pose_opts["none"]["desc"]
                     )
                     
-                    style_cut_facial_expression_textbox = gr.Textbox(
-                        label="😊 Facial Expression (표정)",
-                        value="",
-                        placeholder="예: confident, calm, smiling, nostalgic",
-                        info="표정 또는 감정 분위기"
+                    style_cut_facial_expression_dropdown = gr.Dropdown(
+                        label="😊 Facial Expression",
+                        choices=[(facial_expression_opts[key]["name"], key) for key in facial_expression_opts.keys()],
+                        value="none",
+                        info=facial_expression_opts["none"]["desc"]
                     )
                 
                 with gr.Column(scale=1):
-                    style_cut_lighting_style_textbox = gr.Textbox(
-                        label="💡 Lighting Style (조명)",
-                        value="",
-                        placeholder="예: natural daylight, golden hour, cinematic dual-tone",
-                        info="조명 세팅"
+                    style_cut_lighting_style_dropdown = gr.Dropdown(
+                        label="💡 Lighting Style",
+                        choices=[(lighting_style_opts[key]["name"], key) for key in lighting_style_opts.keys()],
+                        value="none",
+                        info=lighting_style_opts["none"]["desc"]
                     )
                     
-                    style_cut_color_tone_textbox = gr.Textbox(
-                        label="🎨 Color Tone (색감)",
-                        value="",
-                        placeholder="예: warm golden, cool urban, vintage film",
-                        info="색감"
+                    style_cut_color_tone_dropdown = gr.Dropdown(
+                        label="🎨 Color Tone",
+                        choices=[(color_tone_opts[key]["name"], key) for key in color_tone_opts.keys()],
+                        value="none",
+                        info=color_tone_opts["none"]["desc"]
                     )
                     
-                    style_cut_camera_specs_textbox = gr.Textbox(
-                        label="📸 Camera Specs (카메라 스펙)",
-                        value="",
-                        placeholder="예: 85mm f/1.4, ISO 100, iPhone 17 Pro Max",
-                        info="기기, 렌즈, 설정값"
+                    style_cut_camera_specs_dropdown = gr.Dropdown(
+                        label="📸 Camera Specs",
+                        choices=[(camera_specs_opts[key]["name"], key) for key in camera_specs_opts.keys()],
+                        value="none",
+                        info=camera_specs_opts["none"]["desc"]
                     )
                     
-                    style_cut_post_processing_textbox = gr.Textbox(
-                        label="✨ Post-processing & Texture",
-                        value="",
-                        placeholder="예: film grain, subtle desaturation, sharp details",
-                        info="질감 및 후보정"
+                    style_cut_post_processing_dropdown = gr.Dropdown(
+                        label="✨ Post-processing",
+                        choices=[(post_processing_opts[key]["name"], key) for key in post_processing_opts.keys()],
+                        value="none",
+                        info=post_processing_opts["none"]["desc"]
                     )
             
             with gr.Row():
@@ -760,15 +770,15 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             style_cut_option_inputs = [
                 style_cut_gender_radio,
                 style_cut_age_dropdown,
-                style_cut_shot_type_textbox,
-                style_cut_camera_angle_textbox,
-                style_cut_pose_textbox,
-                style_cut_facial_expression_textbox,
+                style_cut_shot_type_dropdown,
+                style_cut_camera_angle_dropdown,
+                style_cut_pose_dropdown,
+                style_cut_facial_expression_dropdown,
                 style_cut_background_dropdown,
-                style_cut_lighting_style_textbox,
-                style_cut_color_tone_textbox,
-                style_cut_camera_specs_textbox,
-                style_cut_post_processing_textbox
+                style_cut_lighting_style_dropdown,
+                style_cut_color_tone_dropdown,
+                style_cut_camera_specs_dropdown,
+                style_cut_post_processing_dropdown
             ]
             
             for option_input in style_cut_option_inputs:

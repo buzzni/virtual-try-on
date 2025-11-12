@@ -717,6 +717,226 @@ def hairstyle_options(key = None, gender = "woman"):
         return options
     
 # 스타일 컷 관련 속성
+
+def shot_type_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "샷 타입을 지정하지 않음",
+            "prompt": "none"
+        },
+        "full_body": {
+            "name": "전신",
+            "desc": "전신이 나오는 구도",
+            "prompt": "full body shot"
+        },
+        "upper_body": {
+            "name": "상반신",
+            "desc": "상반신이 나오는 구도",
+            "prompt": "upper body shot"
+        },
+        "lower_body": {
+            "name": "하반신",
+            "desc": "하반신이 나오는 구도",
+            "prompt": "lower body shot"
+        },
+        "close_up": {
+            "name": "클로즈업",
+            "desc": "가까이서 찍은 구도",
+            "prompt": "close-up shot"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def camera_angle_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "카메라 각도를 지정하지 않음",
+            "prompt": "none"
+        },
+        "front": {
+            "name": "정면",
+            "desc": "정면에서 촬영",
+            "prompt": "front view"
+        },
+        "side": {
+            "name": "측면",
+            "desc": "측면에서 촬영",
+            "prompt": "side view"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def pose_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "포즈를 지정하지 않음",
+            "prompt": "none"
+        },
+        "sitting": {
+            "name": "앉아있기",
+            "desc": "앉아있는 자세",
+            "prompt": "sitting pose"
+        },
+        "standing_hands_together": {
+            "name": "손을 모으고 서있기",
+            "desc": "손을 모으고 서있는 자세",
+            "prompt": "standing with hands together"
+        },
+        "leaning_wall": {
+            "name": "벽에 기대기",
+            "desc": "벽에 기대어 있는 자세",
+            "prompt": "leaning against wall"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def facial_expression_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "표정을 지정하지 않음",
+            "prompt": "none"
+        },
+        "neutral": {
+            "name": "중립/평온",
+            "desc": "중립적이고 평온하며 생각하는 표정",
+            "prompt": "neutral, calm, thoughtful expression"
+        },
+        "smile": {
+            "name": "미소",
+            "desc": "미소 짓는 표정",
+            "prompt": "smiling expression"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def lighting_style_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "조명 스타일을 지정하지 않음",
+            "prompt": "none"
+        },
+        "direct_sunlight": {
+            "name": "직사광선",
+            "desc": "오후의 햇빛, 직사광선",
+            "prompt": "direct afternoon sunlight"
+        },
+        "natural_indoor": {
+            "name": "자연스러운 실내 조명",
+            "desc": "자연스러운 실내 조명",
+            "prompt": "natural indoor lighting"
+        },
+        "studio_high_contrast": {
+            "name": "스튜디오 조명",
+            "desc": "대비가 큰 스튜디오 조명",
+            "prompt": "high contrast studio lighting"
+        },
+        "night_flash": {
+            "name": "야간 플래시",
+            "desc": "야간 플래시 조명",
+            "prompt": "night flash photography"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def color_tone_options(key = None):
+    options = {
+        "none": {
+            "name": "중립",
+            "desc": "색감을 지정하지 않음",
+            "prompt": "none"
+        },
+        "warm": {
+            "name": "따뜻하게",
+            "desc": "따뜻한 색감",
+            "prompt": "warm color tone"
+        },
+        "cool": {
+            "name": "차갑게",
+            "desc": "차가운 색감",
+            "prompt": "cool color tone"
+        },
+        "black_white": {
+            "name": "흑백",
+            "desc": "흑백 색감",
+            "prompt": "black and white"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def camera_specs_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "카메라 스펙을 지정하지 않음",
+            "prompt": "none"
+        },
+        "high_end": {
+            "name": "고성능 카메라",
+            "desc": "고성능 카메라로 촬영",
+            "prompt": "high-end camera"
+        },
+        "smartphone": {
+            "name": "휴대폰 카메라",
+            "desc": "휴대폰 카메라로 촬영",
+            "prompt": "smartphone camera"
+        },
+        "polaroid": {
+            "name": "폴라로이드",
+            "desc": "폴라로이드 카메라로 촬영",
+            "prompt": "polaroid camera"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
+def post_processing_options(key = None):
+    options = {
+        "none": {
+            "name": "설정 안 함",
+            "desc": "후보정 스타일을 지정하지 않음",
+            "prompt": "none"
+        },
+        "stylish_modern": {
+            "name": "스타일리쉬 앤 모던",
+            "desc": "스타일리쉬하고 모던한 느낌",
+            "prompt": "stylish and modern"
+        },
+        "analog_nostalgic": {
+            "name": "아날로그 느낌",
+            "desc": "아날로그 느낌, 그레인, 노스탤직",
+            "prompt": "analog feel, grainy, nostalgic"
+        }
+    }
+    if key in options.keys():
+        return options[key]["prompt"]
+    else:
+        return options
+
 def background_options(key = None):
     options = {
         "custom": {
