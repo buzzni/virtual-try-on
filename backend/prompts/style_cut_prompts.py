@@ -97,31 +97,27 @@ def assemble_style_cut_prompt(
 
     # 샷 타입 및 카메라 앵글 추가
     if shot_type and camera_angle:
-        prompt += f"\nThe main shot is a {shot_type} from a {camera_angle}, capturing {pronoun_obj}."
-    elif shot_type:
-        prompt += f"\nThe main shot is a {shot_type}, capturing {pronoun_obj}."
+        prompt += f"\nThe main shot is a {shot_type} taken from the {camera_angle} angle of {pronoun_obj}."
     elif camera_angle:
-        prompt += f"\nThe shot is from a {camera_angle}, capturing {pronoun_obj}."
+        prompt += f"\nThe shot is taken from the {camera_angle} angle of {pronoun_obj}."
     else:
-        prompt += f"\nThe main shot is a full-body shot from a front-side angle, capturing {pronoun_obj}."
+        prompt += f"\nThe main shot is a full-body shot taken from the front-side angle of {pronoun_obj}."
     
     # 조명 및 색감 추가
-    if lighting_style and color_tone:
-        prompt += f"\nUse {lighting_style} to illuminate the scene, ensuring {color_tone} color palette."
+    if lighting_style and post_processing_keywords:
+        prompt += f"\n{lighting_style}, making the scene {post_processing_keywords}."
     elif lighting_style:
-        prompt += f"\nUse {lighting_style} to illuminate the scene."
-    elif color_tone:
-        prompt += f"\nEnsure {color_tone} color palette."
+        prompt += f"\n{lighting_style}, making the scene natural and realistic."
     else:
-        prompt += "\nUse natural lighting to illuminate the scene, ensuring a natural and realistic look."
+        prompt += "\nUse natural lighting to illuminate the scene, making the scene natural and realistic."
     
     # 카메라 스펙 및 후보정 추가
-    if camera_specs and post_processing_keywords:
-        prompt += f"\nThis should be captured as if using an {camera_specs} setup to achieve {post_processing_keywords}."
+    if camera_specs and color_tone:
+        prompt += f"\nThis should be captured as if using an {camera_specs} setup with {color_tone}."
     elif camera_specs:
         prompt += f"\nThis should be captured as if using an {camera_specs} setup."
-    elif post_processing_keywords:
-        prompt += f"\nApply {post_processing_keywords}."
+    elif color_tone:
+        prompt += f"\nApply {color_tone} to the output image."
     else:
         prompt += "\nThis should be captured as if using an high-end editorial fashion photography setup."
     
