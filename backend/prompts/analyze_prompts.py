@@ -1,12 +1,12 @@
 from textwrap import dedent
 import json
-from core.litellm_hander.utils import clothes_category
+from core.litellm_hander.utils import ClothesOptions as ClothesOptionsUtils
 
 
 def analyze_clothes_image_prompt():
     def get_clothes_category_as_text():
         clothes_dict = {}
-        data = clothes_category()
+        data = ClothesOptionsUtils.clothes_category()
         for category_name, category_data in data.items():
             for sub_category_name, sub_category_data in category_data[
                 "children"

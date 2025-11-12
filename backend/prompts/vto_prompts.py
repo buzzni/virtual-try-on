@@ -1,5 +1,5 @@
 from typing import Optional
-from core.litellm_hander.utils import fit_options, sleeve_options, length_options, clothes_category
+from core.litellm_hander.utils import ClothesOptions as ClothesOptionsUtils
 
 """
 Virtual Try-On 프롬프트 모음
@@ -46,16 +46,16 @@ def assemble_prompt(
         his_her = "their"
         
     # target에 속성들을 붙여서 상세한 설명 생성
-    target = clothes_category(main_category=main_category, sub_category = sub_category)
+    target = ClothesOptionsUtils.clothes_category(main_category=main_category, sub_category=sub_category)
     detailed_target = target
     modifiers = []
     
     if length:
-        modifiers.append(length_options(length))
+        modifiers.append(ClothesOptionsUtils.length_options(length))
     if fit:
-        modifiers.append(fit_options(fit))
+        modifiers.append(ClothesOptionsUtils.fit_options(fit))
     if sleeve:
-        modifiers.append(sleeve_options(sleeve))
+        modifiers.append(ClothesOptionsUtils.sleeve_options(sleeve))
     
     if modifiers:
         detailed_target = f"{', '.join(modifiers)} {target}"
