@@ -9,11 +9,9 @@ from prompts.prod_image_prompts import product_image_prompt
 from prompts.side_view_prompts import side_view_prompt
 from prompts.style_cut_prompts import assemble_style_cut_prompt
 from core.litellm_hander.utils import (
-    gender_options, fit_options, sleeve_options, length_options, clothes_category,
-    skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options,
-    background_options, shot_type_options, camera_angle_options, pose_options,
-    facial_expression_options, lighting_style_options, color_tone_options,
-    camera_specs_options, post_processing_options
+    ModelOptions as ModelOptionsUtils,
+    ClothesOptions as ClothesOptionsUtils,
+    StyleCutOptions as StyleCutOptionsUtils
 )
 
 async def process_inputs(text_input, image1, image2, image3, temperature, top_p, num_images, aspect_ratio):
@@ -117,7 +115,7 @@ def update_sub_category_choices(main_category, replacement, gender, fit, sleeve,
     """
     메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트하는 함수
     """
-    catalog = clothes_category()
+    catalog = ClothesOptionsUtils.clothes_category()
     if main_category == "default":
         sub_category_value = "default"
         dropdown_update = gr.update(choices=["default"], value="default")
@@ -332,16 +330,16 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             gr.Markdown("### 옵션 선택")
             
             # 옵션 데이터 준비
-            gender_opts = gender_options()
-            fit_opts = fit_options()
-            sleeve_opts = sleeve_options()
-            length_opts = length_options()
-            catalog = clothes_category()
-            age_opts = age_options()
-            skin_opts = skin_tone_options()
-            ethnicity_opts = ethnicity_options()
-            hair_opts = hairstyle_options()
-            hair_color_opts = hair_color_options()
+            gender_opts = ModelOptionsUtils.gender_options()
+            fit_opts = ClothesOptionsUtils.fit_options()
+            sleeve_opts = ClothesOptionsUtils.sleeve_options()
+            length_opts = ClothesOptionsUtils.length_options()
+            catalog = ClothesOptionsUtils.clothes_category()
+            age_opts = ModelOptionsUtils.age_options()
+            skin_opts = ModelOptionsUtils.skin_tone_options()
+            ethnicity_opts = ModelOptionsUtils.ethnicity_options()
+            hair_opts = ModelOptionsUtils.hairstyle_options()
+            hair_color_opts = ModelOptionsUtils.hair_color_options()
             
             with gr.Row():
                 with gr.Column(scale=1):
@@ -489,8 +487,9 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             def update_model_sub_category_choices(main_category, view_type, gender, age, skin_tone, ethnicity, hairstyle, hair_color, height, weight, sleeve, length, fit, wear_together, total_length):
                 """메인 카테고리에 따라 서브 카테고리 선택지를 업데이트하고 프롬프트도 업데이트"""
                 # catalog의 children에 이미 "none" 옵션이 포함되어 있음
-                if main_category in catalog:
-                    sub_cats = catalog[main_category]["children"]
+                catalog_local = ClothesOptionsUtils.clothes_category()
+                if main_category in catalog_local:
+                    sub_cats = catalog_local[main_category]["children"]
                     choices = [(sub_cats[key]["name"], key) for key in sub_cats.keys()]
                     sub_category_value = "none"
                     dropdown_update = gr.update(choices=choices, value="none")
@@ -657,16 +656,16 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             gr.Markdown("### 옵션 선택")
             
             # 옵션 데이터 준비
-            age_opts = age_options()
-            background_opts = background_options()
-            shot_type_opts = shot_type_options()
-            camera_angle_opts = camera_angle_options()
-            pose_opts = pose_options()
-            facial_expression_opts = facial_expression_options()
-            lighting_style_opts = lighting_style_options()
-            color_tone_opts = color_tone_options()
-            camera_specs_opts = camera_specs_options()
-            post_processing_opts = post_processing_options()
+            age_opts = ModelOptionsUtils.age_options()
+            background_opts = StyleCutOptionsUtils.background_options()
+            shot_type_opts = StyleCutOptionsUtils.shot_type_options()
+            camera_angle_opts = StyleCutOptionsUtils.camera_angle_options()
+            pose_opts = StyleCutOptionsUtils.pose_options()
+            facial_expression_opts = StyleCutOptionsUtils.facial_expression_options()
+            lighting_style_opts = StyleCutOptionsUtils.lighting_style_options()
+            color_tone_opts = StyleCutOptionsUtils.color_tone_options()
+            camera_specs_opts = StyleCutOptionsUtils.camera_specs_options()
+            post_processing_opts = StyleCutOptionsUtils.post_processing_options()
             
             with gr.Row():
                 with gr.Column(scale=1):

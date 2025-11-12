@@ -1,7 +1,5 @@
 from typing import Optional
-from core.litellm_hander.utils import skin_tone_options, ethnicity_options, hairstyle_options, age_options, hair_color_options
-from core.litellm_hander.utils import clothes_category
-from core.litellm_hander.utils import sleeve_options, length_options, fit_options
+from core.litellm_hander.utils import ModelOptions as ModelOptionsUtils, ClothesOptions as ClothesOptionsUtils
 from core.litellm_hander.schema import ModelOptions, ClothesOptions
 
 def assemble_model_prompt(
@@ -68,7 +66,7 @@ def assemble_model_prompt(
     
     # 나이 설정
     if age and age != "none":
-        age_text = age_options(age)
+        age_text = ModelOptionsUtils.age_options(age)
         if age_text != "none":
             age_prefix = age_text
         else:
@@ -78,7 +76,7 @@ def assemble_model_prompt(
     
     # 인종 추가
     if ethnicity and ethnicity != "none":
-        ethnicity_text = ethnicity_options(ethnicity)
+        ethnicity_text = ModelOptionsUtils.ethnicity_options(ethnicity)
         if ethnicity_text != "none":
             person_desc = f"a {age_prefix} {ethnicity_text} {person_desc}"
         else:
@@ -88,14 +86,14 @@ def assemble_model_prompt(
     
     # 피부색 추가
     if skin_tone and skin_tone != "none":
-        skin_text = skin_tone_options(skin_tone)
+        skin_text = ModelOptionsUtils.skin_tone_options(skin_tone)
         if skin_text != "none":
             characteristics.append(skin_text)
     
     # 헤어스타일과 머리색 조합
     # 먼저 헤어스타일 결정 (지정되지 않으면 기본값 사용)
     if hairstyle and hairstyle != "none":
-        style_text = hairstyle_options(hairstyle, gender)
+        style_text = ModelOptionsUtils.hairstyle_options(hairstyle, gender)
         if style_text != "none":
             base_hair = style_text
         else:
@@ -105,7 +103,7 @@ def assemble_model_prompt(
     
     # 머리색이 지정되면 앞에 추가
     if hair_color and hair_color != "none":
-        color_text = hair_color_options(hair_color)
+        color_text = ModelOptionsUtils.hair_color_options(hair_color)
         if color_text != "none":
             # "black hair" 형태로 오므로 "hair" 제거하고 색상만 추출
             color_only = color_text.replace(" hair", "")
@@ -138,16 +136,16 @@ def assemble_model_prompt(
     if main_category == None:
         base_outfit = "outfit"
     else:
-        base_outfit = clothes_category(main_category=main_category, sub_category=sub_category)
+        base_outfit = ClothesOptionsUtils.clothes_category(main_category=main_category, sub_category=sub_category)
     
     # 옵션들을 앞에 붙이기 위해 수집
     modifiers = []
     if length and length != "none":
-        modifiers.append(length_options(length))
+        modifiers.append(ClothesOptionsUtils.length_options(length))
     if fit and fit != "none":
-        modifiers.append(fit_options(fit))
+        modifiers.append(ClothesOptionsUtils.fit_options(fit))
     if sleeve and sleeve != "none":
-        modifiers.append(sleeve_options(sleeve))
+        modifiers.append(ClothesOptionsUtils.sleeve_options(sleeve))
     
     # outfit_desc 구성
     if modifiers:
