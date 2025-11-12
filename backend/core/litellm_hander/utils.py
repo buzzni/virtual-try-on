@@ -788,12 +788,12 @@ class StyleCutOptions:
             "front": {
                 "name": "정면",
                 "desc": "정면에서 촬영",
-                "prompt": "front view"
+                "prompt": "front"
             },
             "side": {
                 "name": "측면",
                 "desc": "측면에서 촬영",
-                "prompt": "side view"
+                "prompt": "side"
             }
         }
         if key in options.keys():
@@ -931,24 +931,29 @@ class StyleCutOptions:
                 "prompt": "none"
             },
             "direct_sunlight": {
-                "name": "직사광선",
+                "name": "강한 직사광선",
                 "desc": "오후의 햇빛, 직사광선",
-                "prompt": "direct afternoon sunlight"
+                "prompt": "Strong afternoon sunlight streams on the objects, creating clear, bright highlights and defined shadows"
             },
             "natural_indoor": {
-                "name": "자연스러운 실내 조명",
-                "desc": "자연스러운 실내 조명",
-                "prompt": "natural indoor lighting"
+                "name": "자연스러운 조명",
+                "desc": "자연스러운 조명",
+                "prompt": "Neutral yet diffused lighting casts soft shadows"
+            },
+            "backlit": {
+                "name": "역광",
+                "desc": "역광 조명",
+                "prompt": "The lighting creates a soft glow around the person"
             },
             "studio_high_contrast": {
-                "name": "스튜디오 조명",
+                "name": "스튜디오 조명 (주황/파랑)",
                 "desc": "대비가 큰 스튜디오 조명",
-                "prompt": "high contrast studio lighting"
+                "prompt": "Dramatic dual-tone cinematic lighting 一 warm orange glow on one side, cool blue rim highlights on the other, creating striking contrast and mood"
             },
             "night_flash": {
                 "name": "야간 플래시",
                 "desc": "야간 플래시 조명",
-                "prompt": "night flash photography"
+                "prompt": "Night flash makes intense, sharp highlights and shadows"
             }
         }
         if key in options.keys():
