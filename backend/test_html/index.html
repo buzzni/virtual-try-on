@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VTO Auth Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { margin-bottom: 20px; color: #333; }
+        h2 { margin-bottom: 15px; color: #666; font-size: 18px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .token-display { margin-top: 10px; padding: 10px; background: #e7f3ff; border-radius: 4px; }
+        .token-display strong { display: block; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 VTO Auth API Test</h1>
+
+        <!-- Signup Test -->
+        <div class="section">
+            <h2>📝 Sign Up</h2>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="signupEmail" value="test@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="signupPassword" value="password123">
+            </div>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="signupName" value="John">
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" id="signupLastName" value="Doe">
+            </div>
+            <div class="form-group">
+                <label>Language</label>
+                <select id="signupLanguage" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="ko">한국어</option>
+                    <option value="en">English</option>
+                    <option value="ja">日本語</option>
+                </select>
+            </div>
+            <button onclick="testSignup()">Sign Up</button>
+            <div id="signupResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Login Test -->
+        <div class="section">
+            <h2>📧 Email Login Test</h2>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" value="test@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" value="password123">
+            </div>
+            <button onclick="testLogin()">Login</button>
+            <div id="loginResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Google OAuth Test -->
+        <div class="section">
+            <h2>🔵 Google OAuth Test</h2>
+            <div class="form-group">
+                <label>Google Access Token</label>
+                <input type="text" id="googleToken" placeholder="Google access token">
+            </div>
+            <button onclick="testGoogleOAuth()">Test Google OAuth</button>
+            <div id="googleResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Kakao OAuth Test -->
+        <div class="section">
+            <h2>🟡 Kakao OAuth Test</h2>
+            <div class="form-group">
+                <label>Kakao Access Token</label>
+                <input type="text" id="kakaoToken" placeholder="Kakao access token">
+            </div>
+            <button onclick="testKakaoOAuth()">Test Kakao OAuth</button>
+            <div id="kakaoResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Saved Token -->
+        <div class="section" id="tokenSection" style="display: none;">
+            <h2>🔑 Saved Token</h2>
+            <div class="token-display">
+                <strong>Access Token:</strong>
+                <div id="savedToken" style="word-break: break-all;"></div>
+            </div>
+            <button onclick="clearToken()">Clear Token</button>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
+        <h1>👤 VTO User API Test</h1>
+
+        <!-- Get Me -->
+        <div class="section">
+            <h2>👁️ Get My Profile</h2>
+            <p style="margin-bottom: 15px; color: #666;">로그인 후 토큰이 있어야 사용 가능합니다.</p>
+            <button onclick="testGetMe()">Get My Info</button>
+            <div id="getMeResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Update Me -->
+        <div class="section">
+            <h2>✏️ Update My Profile</h2>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="updateName" value="Jane">
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" id="updateLastName" value="Smith">
+            </div>
+            <div class="form-group">
+                <label>Profile Picture URL</label>
+                <input type="text" id="updateProfilePic" placeholder="https://example.com/pic.jpg">
+            </div>
+            <div class="form-group">
+                <label>Language</label>
+                <select id="updateLanguage" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="ko">한국어</option>
+                    <option value="en">English</option>
+                    <option value="ja">日本語</option>
+                </select>
+            </div>
+            <button onclick="testUpdateMe()">Update Profile</button>
+            <div id="updateMeResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Delete Me -->
+        <div class="section">
+            <h2>🗑️ Delete My Account</h2>
+            <p style="margin-bottom: 15px; color: #d00;">⚠️ 계정 삭제 시 모든 관련 데이터(포인트, 구독, 프로젝트 등)가 영구 삭제됩니다.</p>
+            <button onclick="testDeleteMe()" style="background: #dc3545;">Delete My Account</button>
+            <div id="deleteMeResult" class="result" style="display: none;"></div>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
+        <h1>📊 VTO Project API Test</h1>
+
+        <!-- Create Project -->
+        <div class="section">
+            <h2>➕ Create Project</h2>
+            <p style="margin-bottom: 15px; color: #666;">로그인 후 토큰이 있어야 사용 가능합니다.</p>
+            <div class="form-group">
+                <label>Collection ID</label>
+                <input type="text" id="projectCollectionId" placeholder="collection-uuid">
+            </div>
+            <div class="form-group">
+                <label>Project Name</label>
+                <input type="text" id="projectName" value="My First Project">
+            </div>
+            <button onclick="testCreateProject()">Create Project</button>
+            <div id="createProjectResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Get Project -->
+        <div class="section">
+            <h2>🔍 Get Project</h2>
+            <div class="form-group">
+                <label>Project ID</label>
+                <input type="text" id="getProjectId" placeholder="project-uuid">
+            </div>
+            <button onclick="testGetProject()">Get Project</button>
+            <div id="getProjectResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Get Projects -->
+        <div class="section">
+            <h2>📋 Get Projects</h2>
+            <p style="margin-bottom: 15px; color: #666;">내 프로젝트 목록을 조회합니다.</p>
+            <button onclick="testGetProjects()">Get All Projects</button>
+            <div id="getProjectsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Get Projects by Collection -->
+        <div class="section">
+            <h2>🗂️ Get Projects by Collection</h2>
+            <div class="form-group">
+                <label>Collection ID</label>
+                <input type="text" id="filterCollectionId" placeholder="collection-uuid">
+            </div>
+            <button onclick="testGetProjectsByCollection()">Get Projects</button>
+            <div id="getProjectsByCollectionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
+        <h1>📁 VTO Collection API Test</h1>
+
+        <!-- Create Collection -->
+        <div class="section">
+            <h2>➕ Create Collection</h2>
+            <p style="margin-bottom: 15px; color: #666;">로그인 후 토큰이 있어야 사용 가능합니다.</p>
+            <div class="form-group">
+                <label>Collection Name</label>
+                <input type="text" id="collectionName" value="My First Collection">
+            </div>
+            <button onclick="testCreateCollection()">Create Collection</button>
+            <div id="createCollectionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Get Collections -->
+        <div class="section">
+            <h2>📋 Get Collections</h2>
+            <p style="margin-bottom: 15px; color: #666;">내 컬렉션 목록을 조회합니다.</p>
+            <button onclick="testGetCollections()">Get My Collections</button>
+            <div id="getCollectionsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Update Collection -->
+        <div class="section">
+            <h2>✏️ Update Collection</h2>
+            <div class="form-group">
+                <label>Collection ID</label>
+                <input type="text" id="updateCollectionId" placeholder="collection-uuid">
+            </div>
+            <div class="form-group">
+                <label>New Name</label>
+                <input type="text" id="updateCollectionName" value="Updated Collection">
+            </div>
+            <button onclick="testUpdateCollection()">Update Collection</button>
+            <div id="updateCollectionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
+        <h1>💎 VTO Subscription API Test</h1>
+
+        <!-- Create Subscription -->
+        <div class="section">
+            <h2>➕ Create Subscription</h2>
+            <p style="margin-bottom: 15px; color: #666;">새로운 구독을 시작합니다.</p>
+            <div class="form-group">
+                <label>Plan</label>
+                <select id="subscriptionPlan" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="basic">Basic</option>
+                    <option value="pro">Pro</option>
+                    <option value="enterprise">Enterprise</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Payment Info (JSON - 선택)</label>
+                <textarea id="subscriptionPayments" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px;" placeholder='{"method": "card", "last4": "1234"}'></textarea>
+            </div>
+            <button onclick="testCreateSubscription()">Create Subscription</button>
+            <div id="createSubscriptionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Cancel Subscription -->
+        <div class="section">
+            <h2>❌ Cancel Subscription</h2>
+            <p style="margin-bottom: 15px; color: #666;">현재 활성 구독을 취소합니다.</p>
+            <div class="form-group">
+                <label>Cancel Reason (선택)</label>
+                <input type="text" id="cancelReason" placeholder="취소 사유...">
+            </div>
+            <button onclick="testCancelSubscription()">Cancel Subscription</button>
+            <div id="cancelSubscriptionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Change Plan -->
+        <div class="section">
+            <h2>🔄 Change Subscription Plan</h2>
+            <p style="margin-bottom: 15px; color: #666;">구독 플랜을 변경합니다.</p>
+            <div class="form-group">
+                <label>New Plan</label>
+                <select id="changePlan" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="basic">Basic</option>
+                    <option value="pro">Pro</option>
+                    <option value="enterprise">Enterprise</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Payment Info (JSON - 선택)</label>
+                <textarea id="changePlanPayments" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px;" placeholder='{"method": "card", "last4": "5678"}'></textarea>
+            </div>
+            <button onclick="testChangePlan()">Change Plan</button>
+            <div id="changePlanResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Get Subscription History -->
+        <div class="section">
+            <h2>📋 Get Subscription History</h2>
+            <p style="margin-bottom: 15px; color: #666;">구독 변경 이력을 조회합니다.</p>
+            <button onclick="testGetSubscriptionHistory()">Get History</button>
+            <div id="subscriptionHistoryResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Get My Subscription -->
+        <div class="section">
+            <h2>👁️ Get My Subscription Status</h2>
+            <p style="margin-bottom: 15px; color: #666;">현재 활성 구독 상태를 조회합니다.</p>
+            <button onclick="testGetMySubscription()">Get My Subscription</button>
+            <div id="mySubscriptionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
+        <h1>🎯 VTO Entitlement API Test</h1>
+
+        <!-- Get Entitlement -->
+        <div class="section">
+            <h2>👁️ Get My Entitlement</h2>
+            <p style="margin-bottom: 15px; color: #666;">Point와 Subscription을 조합하여 실시간으로 조회합니다.</p>
+            <button onclick="testGetEntitlement()">Get Entitlement</button>
+            <div id="getEntitlementResult" class="result" style="display: none;"></div>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
+        <h1>💰 VTO Point API Test</h1>
+
+        <!-- Get Points -->
+        <div class="section">
+            <h2>💳 Get My Points</h2>
+            <p style="margin-bottom: 15px; color: #666;">내 포인트 및 티켓 잔액을 조회합니다.</p>
+            <button onclick="testGetPoints()">Get Points</button>
+            <div id="getPointsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Update Points -->
+        <div class="section">
+            <h2>⬆️⬇️ Update Points (증감)</h2>
+            <p style="margin-bottom: 10px; color: #666;">양수: 충전, 음수: 차감</p>
+            <div class="form-group">
+                <label>Credit (예: 1000 or -100)</label>
+                <input type="number" id="updateCredit" value="1000">
+            </div>
+            <div class="form-group">
+                <label>LookBook Ticket (예: 10 or -1)</label>
+                <input type="number" id="updateLookBook" value="10">
+            </div>
+            <div class="form-group">
+                <label>Video Ticket (예: 5 or -1)</label>
+                <input type="number" id="updateVideo" value="5">
+            </div>
+            <div class="form-group">
+                <label>Usage Method (필수)</label>
+                <select id="updateUsageMethod" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="manual">Manual (수동)</option>
+                    <option value="user_use">User Use (사용자 사용)</option>
+                    <option value="purchase">Purchase (구매)</option>
+                    <option value="subscribe">Subscribe (구독)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Project ID (선택)</label>
+                <input type="text" id="updateProjectId" placeholder="project-uuid">
+            </div>
+            <div class="form-group">
+                <label>Reason (선택)</label>
+                <input type="text" id="updateReason" placeholder="상세 사유...">
+            </div>
+            <button onclick="testUpdatePoints()">Update Points</button>
+            <div id="updatePointsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Get Point Usage -->
+        <div class="section">
+            <h2>📜 Point Usage History</h2>
+            <p style="margin-bottom: 15px; color: #666;">포인트 사용 내역을 조회합니다.</p>
+            <div class="form-group">
+                <label>Limit</label>
+                <input type="number" id="usageLimit" value="10" min="1" max="100">
+            </div>
+            <button onclick="testGetPointUsage()">Get Usage History</button>
+            <div id="getPointUsageResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- API Settings -->
+        <div class="section">
+            <h2>⚙️ API Settings</h2>
+            <div class="form-group">
+                <label>API Base URL</label>
+                <input type="text" id="apiUrl" value="http://localhost:8000">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = () => document.getElementById('apiUrl').value;
+        let savedAccessToken = null;
+
+        function showResult(elementId, data, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result ' + (isSuccess ? 'success' : 'error');
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function saveToken(token, userId) {
+            savedAccessToken = token;
+            document.getElementById('tokenSection').style.display = 'block';
+            document.getElementById('savedToken').textContent = token;
+            localStorage.setItem('vto_access_token', token);
+            localStorage.setItem('vto_user_id', userId);
+        }
+
+        function clearToken() {
+            savedAccessToken = null;
+            document.getElementById('tokenSection').style.display = 'none';
+            localStorage.removeItem('vto_access_token');
+            localStorage.removeItem('vto_user_id');
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('loginResult', data, true);
+                    saveToken(data.access_token, data.user_id);
+                } else {
+                    showResult('loginResult', data, false);
+                }
+            } catch (error) {
+                showResult('loginResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGoogleOAuth() {
+            const token = document.getElementById('googleToken').value;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/auth/oauth/google`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        provider: 'google',
+                        access_token: token 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('googleResult', data, true);
+                    saveToken(data.access_token, data.user_id);
+                } else {
+                    showResult('googleResult', data, false);
+                }
+            } catch (error) {
+                showResult('googleResult', { error: error.message }, false);
+            }
+        }
+
+        async function testKakaoOAuth() {
+            const token = document.getElementById('kakaoToken').value;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/auth/oauth/kakao`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        provider: 'kakao',
+                        access_token: token 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('kakaoResult', data, true);
+                    saveToken(data.access_token, data.user_id);
+                } else {
+                    showResult('kakaoResult', data, false);
+                }
+            } catch (error) {
+                showResult('kakaoResult', { error: error.message }, false);
+            }
+        }
+
+        async function testSignup() {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const name = document.getElementById('signupName').value;
+            const lastName = document.getElementById('signupLastName').value;
+            const language = document.getElementById('signupLanguage').value;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/auth/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        email, 
+                        password,
+                        name,
+                        last_name: lastName,
+                        language
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('signupResult', data, true);
+                    saveToken(data.access_token, data.user_id);
+                } else {
+                    showResult('signupResult', data, false);
+                }
+            } catch (error) {
+                showResult('signupResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetMe() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('getMeResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/users/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('getMeResult', data, true);
+                } else {
+                    showResult('getMeResult', data, false);
+                }
+            } catch (error) {
+                showResult('getMeResult', { error: error.message }, false);
+            }
+        }
+
+        async function testUpdateMe() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('updateMeResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const name = document.getElementById('updateName').value;
+            const lastName = document.getElementById('updateLastName').value;
+            const profilePic = document.getElementById('updateProfilePic').value;
+            const language = document.getElementById('updateLanguage').value;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/users/me`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        name,
+                        last_name: lastName,
+                        profile_picture: profilePic || null,
+                        language
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('updateMeResult', data, true);
+                } else {
+                    showResult('updateMeResult', data, false);
+                }
+            } catch (error) {
+                showResult('updateMeResult', { error: error.message }, false);
+            }
+        }
+
+        async function testDeleteMe() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('deleteMeResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            if (!confirm('정말로 계정을 삭제하시겠습니까? 모든 데이터가 영구 삭제됩니다.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/users/me`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('deleteMeResult', data, true);
+                    // 토큰 삭제 및 토큰 섹션 숨기기
+                    localStorage.removeItem('vto_access_token');
+                    document.getElementById('tokenSection').style.display = 'none';
+                    alert('계정이 삭제되었습니다.');
+                } else {
+                    showResult('deleteMeResult', data, false);
+                }
+            } catch (error) {
+                showResult('deleteMeResult', { error: error.message }, false);
+            }
+        }
+
+        async function testCreateCollection() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('createCollectionResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const name = document.getElementById('collectionName').value;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/collections`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('createCollectionResult', data, true);
+                    // Collection ID를 update 폼에 자동 입력
+                    document.getElementById('updateCollectionId').value = data.id;
+                } else {
+                    showResult('createCollectionResult', data, false);
+                }
+            } catch (error) {
+                showResult('createCollectionResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetCollections() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('getCollectionsResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/collections`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('getCollectionsResult', data, true);
+                } else {
+                    showResult('getCollectionsResult', data, false);
+                }
+            } catch (error) {
+                showResult('getCollectionsResult', { error: error.message }, false);
+            }
+        }
+
+        async function testUpdateCollection() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('updateCollectionResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const collectionId = document.getElementById('updateCollectionId').value;
+            const name = document.getElementById('updateCollectionName').value;
+
+            if (!collectionId) {
+                showResult('updateCollectionResult', { error: 'Collection ID를 입력하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/collections/${collectionId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('updateCollectionResult', data, true);
+                } else {
+                    showResult('updateCollectionResult', data, false);
+                }
+            } catch (error) {
+                showResult('updateCollectionResult', { error: error.message }, false);
+            }
+        }
+
+        async function testCreateProject() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('createProjectResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const collectionId = document.getElementById('projectCollectionId').value;
+            const name = document.getElementById('projectName').value;
+
+            if (!collectionId) {
+                showResult('createProjectResult', { error: 'Collection ID를 입력하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/projects`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        collection_id: collectionId,
+                        name 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('createProjectResult', data, true);
+                    // Project ID 자동 입력
+                    document.getElementById('getProjectId').value = data.id;
+                } else {
+                    showResult('createProjectResult', data, false);
+                }
+            } catch (error) {
+                showResult('createProjectResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetProject() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('getProjectResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const projectId = document.getElementById('getProjectId').value;
+
+            if (!projectId) {
+                showResult('getProjectResult', { error: 'Project ID를 입력하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/projects/${projectId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('getProjectResult', data, true);
+                } else {
+                    showResult('getProjectResult', data, false);
+                }
+            } catch (error) {
+                showResult('getProjectResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetProjects() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('getProjectsResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/projects`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('getProjectsResult', data, true);
+                } else {
+                    showResult('getProjectsResult', data, false);
+                }
+            } catch (error) {
+                showResult('getProjectsResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetProjectsByCollection() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('getProjectsByCollectionResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const collectionId = document.getElementById('filterCollectionId').value;
+
+            if (!collectionId) {
+                showResult('getProjectsByCollectionResult', { error: 'Collection ID를 입력하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/projects?collection_id=${collectionId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('getProjectsByCollectionResult', data, true);
+                } else {
+                    showResult('getProjectsByCollectionResult', data, false);
+                }
+            } catch (error) {
+                showResult('getProjectsByCollectionResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetPoints() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('getPointsResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/points`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('getPointsResult', data, true);
+                } else {
+                    showResult('getPointsResult', data, false);
+                }
+            } catch (error) {
+                showResult('getPointsResult', { error: error.message }, false);
+            }
+        }
+
+        async function testUpdatePoints() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('updatePointsResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const credit = parseInt(document.getElementById('updateCredit').value) || 0;
+            const lookBook = parseInt(document.getElementById('updateLookBook').value) || 0;
+            const video = parseInt(document.getElementById('updateVideo').value) || 0;
+            const usageMethod = document.getElementById('updateUsageMethod').value;
+            const projectId = document.getElementById('updateProjectId').value;
+            const reason = document.getElementById('updateReason').value;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/points/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        credit: credit !== 0 ? credit : null,
+                        look_book_ticket: lookBook !== 0 ? lookBook : null,
+                        video_ticket: video !== 0 ? video : null,
+                        usage_method: usageMethod,
+                        project_id: projectId || null,
+                        reason: reason || null
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('updatePointsResult', data, true);
+                } else {
+                    showResult('updatePointsResult', data, false);
+                }
+            } catch (error) {
+                showResult('updatePointsResult', { error: error.message }, false);
+            }
+        }
+
+        async function testCreateSubscription() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('createSubscriptionResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const plan = document.getElementById('subscriptionPlan').value;
+            const paymentsText = document.getElementById('subscriptionPayments').value.trim();
+            
+            let payments = null;
+            if (paymentsText) {
+                try {
+                    payments = JSON.parse(paymentsText);
+                } catch (e) {
+                    showResult('createSubscriptionResult', { error: 'Invalid JSON format' }, false);
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/subscriptions`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ plan, payments })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('createSubscriptionResult', data, true);
+                } else {
+                    showResult('createSubscriptionResult', data, false);
+                }
+            } catch (error) {
+                showResult('createSubscriptionResult', { error: error.message }, false);
+            }
+        }
+
+        async function testCancelSubscription() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('cancelSubscriptionResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const cancelReason = document.getElementById('cancelReason').value;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/subscriptions/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cancel_reason: cancelReason || null })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('cancelSubscriptionResult', data, true);
+                } else {
+                    showResult('cancelSubscriptionResult', data, false);
+                }
+            } catch (error) {
+                showResult('cancelSubscriptionResult', { error: error.message }, false);
+            }
+        }
+
+        async function testChangePlan() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('changePlanResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const newPlan = document.getElementById('changePlan').value;
+            const paymentsText = document.getElementById('changePlanPayments').value.trim();
+            
+            let payments = null;
+            if (paymentsText) {
+                try {
+                    payments = JSON.parse(paymentsText);
+                } catch (e) {
+                    showResult('changePlanResult', { error: 'Invalid JSON format' }, false);
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/subscriptions/plan`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ new_plan: newPlan, payments })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('changePlanResult', data, true);
+                } else {
+                    showResult('changePlanResult', data, false);
+                }
+            } catch (error) {
+                showResult('changePlanResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetSubscriptionHistory() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('subscriptionHistoryResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/subscriptions/history`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('subscriptionHistoryResult', data, true);
+                } else {
+                    showResult('subscriptionHistoryResult', data, false);
+                }
+            } catch (error) {
+                showResult('subscriptionHistoryResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetMySubscription() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('mySubscriptionResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/subscriptions/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('mySubscriptionResult', data, true);
+                } else {
+                    showResult('mySubscriptionResult', data, false);
+                }
+            } catch (error) {
+                showResult('mySubscriptionResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetEntitlement() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('getEntitlementResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/entitlements/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('getEntitlementResult', data, true);
+                } else {
+                    showResult('getEntitlementResult', data, false);
+                }
+            } catch (error) {
+                showResult('getEntitlementResult', { error: error.message }, false);
+            }
+        }
+
+        async function testGetPointUsage() {
+            const token = localStorage.getItem('vto_access_token');
+            if (!token) {
+                showResult('getPointUsageResult', { error: '먼저 로그인하세요' }, false);
+                return;
+            }
+
+            const limit = parseInt(document.getElementById('usageLimit').value) || 10;
+
+            try {
+                const response = await fetch(`${API_URL()}/api/v1/points/usage?limit=${limit}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('getPointUsageResult', data, true);
+                } else {
+                    showResult('getPointUsageResult', data, false);
+                }
+            } catch (error) {
+                showResult('getPointUsageResult', { error: error.message }, false);
+            }
+        }
+
+        // Load saved token on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('vto_access_token');
+            const userId = localStorage.getItem('vto_user_id');
+            if (token) {
+                saveToken(token, userId);
+            }
+        });
+    </script>
+</body>
+</html>
