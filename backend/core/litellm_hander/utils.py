@@ -1012,6 +1012,11 @@ class StyleCutOptions:
                 "name": "폴라로이드",
                 "desc": "폴라로이드 카메라로 촬영",
                 "prompt": "polaroid camera"
+            },
+            "film_camera":{
+                "name": "필름 카메라",
+                "desc": "필름 카메라로 촬영",
+                "prompt": "old-style film camera"
             }
         }
         if key in options.keys():
