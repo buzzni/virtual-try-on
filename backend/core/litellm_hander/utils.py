@@ -788,12 +788,12 @@ class StyleCutOptions:
             "front": {
                 "name": "정면",
                 "desc": "정면에서 촬영",
-                "prompt": "front view"
+                "prompt": "front"
             },
             "side": {
                 "name": "측면",
                 "desc": "측면에서 촬영",
-                "prompt": "side view"
+                "prompt": "side"
             }
         }
         if key in options.keys():
@@ -809,20 +809,83 @@ class StyleCutOptions:
                 "desc": "포즈를 지정하지 않음",
                 "prompt": "none"
             },
-            "sitting": {
-                "name": "앉아있기",
-                "desc": "앉아있는 자세",
-                "prompt": "sitting pose"
+            "sitting_on_chair": {
+                "name": "의자에 앉아있기",
+                "desc": "의자에 앉아있는 자세",
+                "prompt": "sitting on a chair"
+            },
+            "sitting_on_floor": {
+                "name": "바닥에 앉아있기",
+                "desc": "바닥에 앉아있는 자세",
+                "prompt": "sitting on the floor"
             },
             "standing_hands_together": {
-                "name": "손을 모으고 서있기",
-                "desc": "손을 모으고 서있는 자세",
-                "prompt": "standing with hands together"
+                "name": "서있기",
+                "desc": "서있는 자세",
+                "prompt": "standing"
             },
             "leaning_wall": {
                 "name": "벽에 기대기",
                 "desc": "벽에 기대어 있는 자세",
-                "prompt": "leaning against wall"
+                "prompt": "leaning slightly forward near the wall"
+            }
+        }
+        if key in options.keys():
+            return options[key]["prompt"]
+        else:
+            return options
+    
+    @staticmethod
+    def arms_pose_options(key=None):
+        options = {
+            "none": {
+                "name": "설정 안 함",
+                "desc": "팔 포즈를 지정하지 않음",
+                "prompt": "none"
+            },
+            "hands_together": {
+                "name": "손을 모으고 있기",
+                "desc": "손을 모으고 있는 자세",
+                "prompt": "hands gently clapsed in front"
+            },
+            "hands_on_waist": {
+                "name": "허리에 손을 얹고 있기",
+                "desc": "허리에 손을 얹고 있는 자세",
+                "prompt": "hands gently resting on waist"
+            },
+            "cheek_resting_on_hand": {
+                "name": "턱을 괴고 있는 자세",
+                "desc": "턱을 괴고 있는 자세",
+                "prompt": "cheek resting gently on one hand in a thoughtful pose, the other hand relaxed by their side"
+            },
+        }
+        if key in options.keys():
+            return options[key]["prompt"]
+        else:
+            return options
+        
+    @staticmethod
+    def gaze_options(key=None):
+        options = {
+            "none": {
+                "name": "설정 안 함",
+                "desc": "시선을 지정하지 않음",
+                "prompt": "none"
+            },
+            "looking_camera": {
+                "name": "카메라를 보고 있는 자세",
+                "desc": "카메라를 보고 있는 자세",
+                "prompt": "looking at the camera"
+            },
+            "looking_light": {
+                "name": "빛을 보고 있는 자세",
+                "desc": "빛을 보고 있는 자세",
+                "prompt": "looking towrad the light"
+            },
+            "closed_eyes": {
+                "name": "눈을 감고 있는 자세",
+                "desc": "눈을 감고 있는 자세",
+                "prompt": "keeping eyes closed"
             }
         }
         if key in options.keys():
@@ -841,13 +904,18 @@ class StyleCutOptions:
             "neutral": {
                 "name": "중립/평온",
                 "desc": "중립적이고 평온하며 생각하는 표정",
-                "prompt": "neutral, calm, thoughtful expression"
+                "prompt": "a calm, thoughtful expression"
             },
             "smile": {
                 "name": "미소",
                 "desc": "미소 짓는 표정",
-                "prompt": "smiling expression"
-            }
+                "prompt": "a smile"
+            },
+            "confident": {
+                "name": "자신감 있는",
+                "desc": "자신감 있는 표정",
+                "prompt": "a confident smirk"
+            },
         }
         if key in options.keys():
             return options[key]["prompt"]
@@ -863,24 +931,29 @@ class StyleCutOptions:
                 "prompt": "none"
             },
             "direct_sunlight": {
-                "name": "직사광선",
+                "name": "강한 직사광선",
                 "desc": "오후의 햇빛, 직사광선",
-                "prompt": "direct afternoon sunlight"
+                "prompt": "Strong afternoon sunlight streams on the objects, creating clear, bright highlights and defined shadows"
             },
             "natural_indoor": {
-                "name": "자연스러운 실내 조명",
-                "desc": "자연스러운 실내 조명",
-                "prompt": "natural indoor lighting"
+                "name": "자연스러운 조명",
+                "desc": "자연스러운 조명",
+                "prompt": "Neutral yet diffused lighting casts soft shadows"
             },
+            # "backlit": {
+            #     "name": "역광",
+            #     "desc": "역광 조명",
+            #     "prompt": "The lighting creates a soft glow around the person"
+            # },
             "studio_high_contrast": {
-                "name": "스튜디오 조명",
+                "name": "스튜디오 조명 (주황/파랑)",
                 "desc": "대비가 큰 스튜디오 조명",
-                "prompt": "high contrast studio lighting"
+                "prompt": "Dramatic dual-tone cinematic lighting 一 warm orange glow on one side, cool blue rim highlights on the other, creating striking contrast and mood"
             },
             "night_flash": {
                 "name": "야간 플래시",
                 "desc": "야간 플래시 조명",
-                "prompt": "night flash photography"
+                "prompt": "Night flash makes intense, sharp highlights and shadows"
             }
         }
         if key in options.keys():
@@ -939,6 +1012,11 @@ class StyleCutOptions:
                 "name": "폴라로이드",
                 "desc": "폴라로이드 카메라로 촬영",
                 "prompt": "polaroid camera"
+            },
+            "film_camera":{
+                "name": "필름 카메라",
+                "desc": "필름 카메라로 촬영",
+                "prompt": "old-style film camera"
             }
         }
         if key in options.keys():
@@ -978,10 +1056,10 @@ class StyleCutOptions:
                 "desc": "사용자가 지정한 배경",
                 "prompt": "custom"
             },
-            "dummy": {
-                "name": "더미 배경",
-                "desc": "더미 배경",
-                "prompt": "dummy"
+            "same": {
+                "name": "동일 배경",
+                "desc": "동일 배경",
+                "prompt": "same background"
             }
         }
         if key in options.keys():

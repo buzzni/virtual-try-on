@@ -176,7 +176,7 @@ def update_model_prompt(view_type, gender, age, skin_tone, ethnicity, hairstyle,
         return f"오류 발생: {str(e)}"
 
 
-def update_style_cut_prompt(gender, age, shot_type, camera_angle, pose, facial_expression, background, lighting_style, color_tone, camera_specs, post_processing_keywords):
+def update_style_cut_prompt(gender, age, shot_type, camera_angle, pose, arms_pose, gaze, facial_expression, background, lighting_style, color_tone, camera_specs, post_processing_keywords):
     """
     선택된 옵션에 따라 스타일 컷 프롬프트를 업데이트하는 함수
     """
@@ -192,6 +192,8 @@ def update_style_cut_prompt(gender, age, shot_type, camera_angle, pose, facial_e
             shot_type=shot_type if shot_type != "none" else None,
             camera_angle=camera_angle if camera_angle != "none" else None,
             pose=pose if pose != "none" else None,
+            arms_pose=arms_pose if arms_pose != "none" else None,
+            gaze=gaze if gaze != "none" else None,
             facial_expression=facial_expression if facial_expression != "none" else None,
             background=background,
             lighting_style=lighting_style if lighting_style != "none" else None,
@@ -661,6 +663,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
             shot_type_opts = StyleCutOptionsUtils.shot_type_options()
             camera_angle_opts = StyleCutOptionsUtils.camera_angle_options()
             pose_opts = StyleCutOptionsUtils.pose_options()
+            arms_pose_opts = StyleCutOptionsUtils.arms_pose_options()
+            gaze_opts = StyleCutOptionsUtils.gaze_options()
             facial_expression_opts = StyleCutOptionsUtils.facial_expression_options()
             lighting_style_opts = StyleCutOptionsUtils.lighting_style_options()
             color_tone_opts = StyleCutOptionsUtils.color_tone_options()
@@ -710,6 +714,20 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         choices=[(pose_opts[key]["name"], key) for key in pose_opts.keys()],
                         value="none",
                         info=pose_opts["none"]["desc"]
+                    )
+                    
+                    style_cut_arms_pose_dropdown = gr.Dropdown(
+                        label="🤲 Arms Pose",
+                        choices=[(arms_pose_opts[key]["name"], key) for key in arms_pose_opts.keys()],
+                        value="none",
+                        info=arms_pose_opts["none"]["desc"]
+                    )
+                    
+                    style_cut_gaze_dropdown = gr.Dropdown(
+                        label="👁️ Gaze",
+                        choices=[(gaze_opts[key]["name"], key) for key in gaze_opts.keys()],
+                        value="none",
+                        info=gaze_opts["none"]["desc"]
                     )
                     
                     style_cut_facial_expression_dropdown = gr.Dropdown(
@@ -772,6 +790,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                 style_cut_shot_type_dropdown,
                 style_cut_camera_angle_dropdown,
                 style_cut_pose_dropdown,
+                style_cut_arms_pose_dropdown,
+                style_cut_gaze_dropdown,
                 style_cut_facial_expression_dropdown,
                 style_cut_background_dropdown,
                 style_cut_lighting_style_dropdown,
