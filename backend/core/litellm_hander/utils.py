@@ -880,7 +880,7 @@ class StyleCutOptions:
             "looking_light": {
                 "name": "빛을 보고 있는 자세",
                 "desc": "빛을 보고 있는 자세",
-                "prompt": "looking towrad the light"
+                "prompt": "looking towards the light"
             },
             "closed_eyes": {
                 "name": "눈을 감고 있는 자세",
@@ -1051,15 +1051,20 @@ class StyleCutOptions:
     @staticmethod
     def background_options(key=None):
         options = {
+            "none": {
+                "name": "설정 안 함",
+                "desc": "후보정 스타일을 지정하지 않음",
+                "prompt": "none"
+            },
             "custom": {
                 "name": "사용자 지정",
                 "desc": "사용자가 지정한 배경",
                 "prompt": "custom"
             },
-            "same": {
-                "name": "동일 배경",
-                "desc": "동일 배경",
-                "prompt": "same background"
+            "nighttime_park": {
+                "name": "야간 공원",
+                "desc": "야간 공원에서 촬영한 이미지",
+                "prompt": "a nighttime city park with direct camera flashlight"
             }
         }
         if key in options.keys():

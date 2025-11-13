@@ -65,8 +65,8 @@ def assemble_style_cut_prompt(
     # 기본 프롬프트 시작
     if background == "custom":
         prompt = f"Generate a photorealistic {image_desc} of a {person_desc} from the first image. The image is taken on a place described in the second image."
-    elif background == "same":
-        prompt = f"Generate a photorealistic {image_desc} of a {person_desc} from the image. The image is taken on the same place as the image."
+    elif background:
+        prompt = f"Generate a photorealistic {image_desc} of a {person_desc} from the image. The image is taken on {background}."
     else:
         prompt = f"Generate a photorealistic {image_desc} of a {person_desc} from the image."
     

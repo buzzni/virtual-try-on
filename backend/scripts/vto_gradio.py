@@ -690,8 +690,8 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                     style_cut_background_dropdown = gr.Dropdown(
                         label="🌆 배경",
                         choices=[(background_opts[key]["name"], key) for key in background_opts.keys()],
-                        value="custom",
-                        info=background_opts["custom"]["desc"]
+                        value="none",
+                        info=background_opts["none"]["desc"]
                     )
                 
                 with gr.Column(scale=1):
