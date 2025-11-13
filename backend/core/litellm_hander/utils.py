@@ -31,32 +31,26 @@ class ModelOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "피부색을 지정하지 않음",
                 "prompt": "none"
             },
             "fair": {
                 "name": "밝은 피부",
-                "desc": "밝은 피부톤",
                 "prompt": "fair skin"
             },
             "light": {
                 "name": "연한 피부",
-                "desc": "연한 피부톤",
                 "prompt": "light skin"
             },
             "medium": {
                 "name": "중간 피부",
-                "desc": "중간 피부톤",
                 "prompt": "medium skin"
             },
             "brown": {
                 "name": "갈색 피부",
-                "desc": "갈색 피부톤",
                 "prompt": "brown skin"
             },
             "dark": {
                 "name": "어두운 피부",
-                "desc": "어두운 피부톤",
                 "prompt": "dark skin"
             }
         }
@@ -70,27 +64,22 @@ class ModelOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "인종을 지정하지 않음",
                 "prompt": "none"
             },
             "asian": {
                 "name": "아시아인",
-                "desc": "한국, 중국, 일본 등",
                 "prompt": "East Asian"
             },
             "caucasian": {
                 "name": "백인",
-                "desc": "유럽계 백인",
                 "prompt": "Caucasian"
             },
             "african": {
                 "name": "아프리카계",
-                "desc": "아프리카계",
                 "prompt": "African"
             },
             "latino": {
                 "name": "라틴계",
-                "desc": "라틴 아메리카계",
                 "prompt": "Latino"
             }
         }
@@ -104,37 +93,30 @@ class ModelOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "나이를 지정하지 않음",
                 "prompt": "none"
             },
             "kid": {
                 "name": "어린이",
-                "desc": "10대 이하",
                 "prompt": "young"
             },
             "teen": {
                 "name": "10대",
-                "desc": "10대 청소년",
                 "prompt": "teenage"
             },
             "young": {
                 "name": "청년 (기본값)",
-                "desc": "20대~30대 초반",
                 "prompt": "young"
             },
             "middle_aged": {
                 "name": "중년",
-                "desc": "40대~50대",
                 "prompt": "middle-aged"
             },
             "mature": {
                 "name": "장년",
-                "desc": "50대~60대",
                 "prompt": "mature"
             },
             "senior": {
                 "name": "노년",
-                "desc": "60대 이상",
                 "prompt": "senior"
             }
         }
@@ -148,67 +130,54 @@ class ModelOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "머리색을 지정하지 않음",
                 "prompt": "none"
             },
             "black": {
                 "name": "검정색",
-                "desc": "검은색 머리",
                 "prompt": "black hair"
             },
             "dark_brown": {
                 "name": "진한 갈색",
-                "desc": "진한 갈색 머리",
                 "prompt": "dark brown hair"
             },
             "brown": {
                 "name": "갈색",
-                "desc": "갈색 머리",
                 "prompt": "brown hair"
             },
             "light_brown": {
                 "name": "밝은 갈색",
-                "desc": "밝은 갈색 머리",
                 "prompt": "light brown hair"
             },
             "light_brown_tint": {
                 "name": "밝은 갈색 (염색)",
-                "desc": "밝은 갈색 머리 (염색)",
                 "prompt": "light brown tinted hair"
             },
             "blonde": {
-                "name": "금발",
-                "desc": "금발 머리",
+                "name": "금발", 
                 "prompt": "blonde hair"
             },
             "blonde_tint": {
                 "name": "금발 (염색)",
-                "desc": "금발 머리 (염색)",
                 "prompt": "bleached light hair"
             },
             "platinum": {
                 "name": "플래티넘",
-                "desc": "백금색 머리",
                 "prompt": "platinum blonde hair"
             },
             "red": {
                 "name": "빨간색",
-                "desc": "빨간색 머리",
                 "prompt": "red hair"
             },
             "auburn": {
                 "name": "적갈색",
-                "desc": "적갈색 머리",
                 "prompt": "auburn hair"
             },
             "gray": {
                 "name": "회색",
-                "desc": "회색 머리",
                 "prompt": "gray hair"
             },
             "silver": {
                 "name": "은색",
-                "desc": "은색 머리",
                 "prompt": "silver hair"
             }
         }
@@ -319,22 +288,18 @@ class ClothesOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "핏 설정을 지정하지 않음",
                 "prompt": "none"
             },
             "regular": {
                 "name": "레귤러",
-                "desc": "일반적인 기본 핏",
                 "prompt": "regular fit"
             },
             "oversized": {
                 "name": "오버사이즈",
-                "desc": "여유있는 루즈한 핏",
                 "prompt": "oversized fit"
             },
             "slim": {
                 "name": "슬림핏",
-                "desc": "몸에 맞는 타이트한 핏",
                 "prompt": "slim fit"
             }
         }
@@ -349,22 +314,18 @@ class ClothesOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "소매 길이를 지정하지 않음",
                 "prompt": "none"
             },
             "short": {
                 "name": "반팔",
-                "desc": "짧은 소매 길이",
                 "prompt": "short-sleeve"
             },
             "long": {
                 "name": "긴팔",
-                "desc": "긴 소매 길이",
                 "prompt": "long-sleeve"
             },
             "sleeveless": {
                 "name": "민소매",
-                "desc": "소매가 없는 스타일",
                 "prompt": "sleeveless"
             }
         }
@@ -378,47 +339,38 @@ class ClothesOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "기장을 지정하지 않음",
                 "prompt": "none"
             },
             "crop": {
                 "name": "크롭",
-                "desc": "배꼽 위로 짧은 기장",
                 "prompt": "cropped"
             },
             "waist": {
                 "name": "허리",
-                "desc": "허리 라인 기장",
                 "prompt": "waist-length"
             },
             "hip": {
                 "name": "엉덩이",
-                "desc": "엉덩이를 덮는 기장",
                 "prompt": "hip-length"
             },
             "thigh": {
                 "name": "허벅지",
-                "desc": "허벅지 중간 기장",
                 "prompt": "thigh-length"
             },
             "knee": {
                 "name": "무릎",
-                "desc": "무릎 라인 기장",
                 "prompt": "knee-length"
             },
             "calf": {
                 "name": "종아리",
-                "desc": "종아리 중간 기장",
                 "prompt": "mid-calf-length"
             },
             "long": {
                 "name": "긴 기장",
-                "desc": "발목 근처까지 오는 긴 기장",
                 "prompt": "full-length"
             },
             "floor": {
                 "name": "바닥에 닿는 기장",
-                "desc": "바닥까지 닿는 매우 긴 기장",
                 "prompt": "floor-length"
             }
         }
@@ -748,27 +700,22 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "샷 타입을 지정하지 않음",
                 "prompt": "none"
             },
             "full_body": {
                 "name": "전신",
-                "desc": "전신이 나오는 구도",
                 "prompt": "full body shot"
             },
             "upper_body": {
                 "name": "상반신",
-                "desc": "상반신이 나오는 구도",
                 "prompt": "upper body shot"
             },
             "lower_body": {
                 "name": "하반신",
-                "desc": "하반신이 나오는 구도",
                 "prompt": "lower body shot"
             },
             "close_up": {
                 "name": "클로즈업",
-                "desc": "가까이서 찍은 구도",
                 "prompt": "close-up shot"
             }
         }
@@ -782,17 +729,14 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "카메라 각도를 지정하지 않음",
                 "prompt": "none"
             },
             "front": {
                 "name": "정면",
-                "desc": "정면에서 촬영",
                 "prompt": "front"
             },
             "side": {
                 "name": "측면",
-                "desc": "측면에서 촬영",
                 "prompt": "side"
             }
         }
@@ -806,27 +750,22 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "포즈를 지정하지 않음",
                 "prompt": "none"
             },
             "sitting_on_chair": {
                 "name": "의자에 앉아있기",
-                "desc": "의자에 앉아있는 자세",
                 "prompt": "sitting on a chair"
             },
             "sitting_on_floor": {
                 "name": "바닥에 앉아있기",
-                "desc": "바닥에 앉아있는 자세",
                 "prompt": "sitting on the floor"
             },
             "standing_hands_together": {
                 "name": "서있기",
-                "desc": "서있는 자세",
                 "prompt": "standing"
             },
             "leaning_wall": {
                 "name": "벽에 기대기",
-                "desc": "벽에 기대어 있는 자세",
                 "prompt": "leaning slightly forward near the wall"
             }
         }
@@ -840,22 +779,18 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "팔 포즈를 지정하지 않음",
                 "prompt": "none"
             },
             "hands_together": {
                 "name": "손을 모으고 있기",
-                "desc": "손을 모으고 있는 자세",
                 "prompt": "hands gently clapsed in front"
             },
             "hands_on_waist": {
                 "name": "허리에 손을 얹고 있기",
-                "desc": "허리에 손을 얹고 있는 자세",
                 "prompt": "hands gently resting on waist"
             },
             "cheek_resting_on_hand": {
                 "name": "턱을 괴고 있는 자세",
-                "desc": "턱을 괴고 있는 자세",
                 "prompt": "cheek resting gently on one hand in a thoughtful pose, the other hand relaxed by their side"
             },
         }
@@ -869,22 +804,22 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "시선을 지정하지 않음",
                 "prompt": "none"
             },
             "looking_camera": {
                 "name": "카메라를 보고 있는 자세",
-                "desc": "카메라를 보고 있는 자세",
                 "prompt": "looking at the camera"
             },
             "looking_light": {
-                "name": "빛을 보고 있는 자세",
-                "desc": "빛을 보고 있는 자세",
+                "name": "빛이 비추는 쪽을 보고 있는 자세",
                 "prompt": "looking towards the light"
+            },
+            "looking_sky": {
+                "name": "하늘을 보고 있는 자세",
+                "prompt": "looking towards the sky"
             },
             "closed_eyes": {
                 "name": "눈을 감고 있는 자세",
-                "desc": "눈을 감고 있는 자세",
                 "prompt": "keeping eyes closed"
             }
         }
@@ -898,22 +833,18 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "표정을 지정하지 않음",
                 "prompt": "none"
             },
             "neutral": {
                 "name": "중립/평온",
-                "desc": "중립적이고 평온하며 생각하는 표정",
                 "prompt": "a calm, thoughtful expression"
             },
             "smile": {
                 "name": "미소",
-                "desc": "미소 짓는 표정",
                 "prompt": "a smile"
             },
             "confident": {
                 "name": "자신감 있는",
-                "desc": "자신감 있는 표정",
                 "prompt": "a confident smirk"
             },
         }
@@ -927,17 +858,14 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "조명 스타일을 지정하지 않음",
                 "prompt": "none"
             },
             "direct_sunlight": {
-                "name": "강한 직사광선",
-                "desc": "오후의 햇빛, 직사광선",
+                "name": "오후의 햇빛, 직사광선",
                 "prompt": "Strong afternoon sunlight streams on the objects, creating clear, bright highlights and defined shadows"
             },
             "natural_indoor": {
                 "name": "자연스러운 조명",
-                "desc": "자연스러운 조명",
                 "prompt": "Neutral yet diffused lighting casts soft shadows"
             },
             # "backlit": {
@@ -946,13 +874,11 @@ class StyleCutOptions:
             #     "prompt": "The lighting creates a soft glow around the person"
             # },
             "studio_high_contrast": {
-                "name": "스튜디오 조명 (주황/파랑)",
-                "desc": "대비가 큰 스튜디오 조명",
+                "name": "대비가 큰 스튜디오 조명 (주황/파랑)",
                 "prompt": "Dramatic dual-tone cinematic lighting 一 warm orange glow on one side, cool blue rim highlights on the other, creating striking contrast and mood"
             },
             "night_flash": {
                 "name": "야간 플래시",
-                "desc": "야간 플래시 조명",
                 "prompt": "Night flash makes intense, sharp highlights and shadows"
             }
         }
@@ -966,22 +892,26 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "중립",
-                "desc": "색감을 지정하지 않음",
                 "prompt": "none"
             },
             "warm": {
                 "name": "따뜻하게",
-                "desc": "따릗한 색감",
                 "prompt": "warm color tone"
             },
             "cool": {
                 "name": "차갑게",
-                "desc": "차가운 색감",
                 "prompt": "cool color tone"
+            },
+            "sephia": {
+                "name": "세피아",
+                "prompt": "sepia color tone"
+            },
+            "저체도": {
+                "name": "낮은 대비, 저체도",
+                "prompt": "low contrast with desaturated color tone"
             },
             "black_white": {
                 "name": "흑백",
-                "desc": "흑백 색감",
                 "prompt": "black and white"
             }
         }
@@ -994,29 +924,32 @@ class StyleCutOptions:
     def camera_specs_options(key=None):
         options = {
             "none": {
-                "name": "설정 안 함",
-                "desc": "카메라 스펙을 지정하지 않음",
+                "name": "설정 안 함 (하이엔드 패션 촬영 세팅)",
                 "prompt": "none"
             },
-            "high_end": {
-                "name": "고성능 카메라",
-                "desc": "고성능 카메라로 촬영",
-                "prompt": "high-end camera"
+            "35mm_lens_f1.4": {
+                "name": "35mm f/1.4 (배경 부드럽게 날리기)",
+                "prompt": " 35mm lens with f/1.4 settings"
+            },
+            "85mm_lens_f2.0": {
+                "name": "85mm f/2.0 (실내 스튜디오 촬영에 적합)",
+                "prompt": "n 85mm lens with f/2.0 settings"
+            },
+            "135mm_lens_f4.0": {
+                "name": "135mm f/4.0 (망원, 전체적인 배경을 연출)",
+                "prompt": "n 135mm lens with f/4.0 settings"
             },
             "smartphone": {
-                "name": "휴대폰 카메라",
-                "desc": "휴대폰 카메라로 촬영",
-                "prompt": "smartphone camera"
+                "name": "iPhone 15 Pro Max",
+                "prompt": "n iPhone 15 Pro Max camera"
             },
             "polaroid": {
                 "name": "폴라로이드",
-                "desc": "폴라로이드 카메라로 촬영",
-                "prompt": "polaroid camera"
+                "prompt": " small polaroid camera with little lens blur"
             },
             "film_camera":{
                 "name": "필름 카메라",
-                "desc": "필름 카메라로 촬영",
-                "prompt": "old-style film camera"
+                "prompt": "n old, desaturated conventional film camera with little lens blur"
             }
         }
         if key in options.keys():
@@ -1029,17 +962,14 @@ class StyleCutOptions:
         options = {
             "none": {
                 "name": "설정 안 함",
-                "desc": "후보정 스타일을 지정하지 않음",
                 "prompt": "none"
             },
             "stylish_modern": {
                 "name": "스타일리쉬 앤 모던",
-                "desc": "스타일리쉬하고 모던한 느낌",
                 "prompt": "stylish and modern"
             },
             "analog_nostalgic": {
-                "name": "아날로그 느낌",
-                "desc": "아날로그 느낌, 그레인, 노스탤직",
+                "name": "아날로그 느낌, 그레인, 노스탤직",
                 "prompt": "analog feel, grainy, nostalgic"
             }
         }
@@ -1052,18 +982,15 @@ class StyleCutOptions:
     def background_options(key=None):
         options = {
             "none": {
-                "name": "설정 안 함",
-                "desc": "후보정 스타일을 지정하지 않음",
+                "name": "설정 안 함 (동일 배경)",
                 "prompt": "none"
             },
             "custom": {
-                "name": "사용자 지정",
-                "desc": "사용자가 지정한 배경",
+                "name": "사용자 지정 (추가 이미지 입력 필요)",
                 "prompt": "custom"
             },
             "nighttime_park": {
                 "name": "야간 공원",
-                "desc": "야간 공원에서 촬영한 이미지",
                 "prompt": "a nighttime city park with direct camera flashlight"
             }
         }

@@ -363,35 +363,35 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         label="🎂 나이",
                         choices=[(age_opts[key]["name"], key) for key in age_opts.keys()],
                         value="young",
-                        info=age_opts["young"]["desc"]
+                        info="모델의 연령대 설정"
                     )
                     
                     model_skin_dropdown = gr.Dropdown(
                         label="🎨 피부색",
                         choices=[(skin_opts[key]["name"], key) for key in skin_opts.keys()],
                         value="none",
-                        info=skin_opts["none"]["desc"]
+                        info="모델 피부톤 설정"
                     )
                     
                     model_ethnicity_dropdown = gr.Dropdown(
                         label="🌍 인종",
                         choices=[(ethnicity_opts[key]["name"], key) for key in ethnicity_opts.keys()],
                         value="none",
-                        info=ethnicity_opts["none"]["desc"]
+                        info="모델 인종 설정"
                     )
                     
                     model_hairstyle_dropdown = gr.Dropdown(
                         label="💇 헤어스타일",
                         choices=[(hair_opts[key]["name"], key) for key in hair_opts.keys()],
                         value="none",
-                        info=hair_opts["none"]["desc"]
+                        info="모델 헤어스타일 설정"
                     )
                     
                     model_hair_color_dropdown = gr.Dropdown(
                         label="🎨 머리색",
                         choices=[(hair_color_opts[key]["name"], key) for key in hair_color_opts.keys()],
                         value="none",
-                        info=hair_color_opts["none"]["desc"]
+                        info="모델 머리색 설정"
                     )
                     
                     model_height_number = gr.Number(
@@ -435,21 +435,21 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         label="👔 핏",
                         choices=[(fit_opts[key]["name"], key) for key in fit_opts.keys()],
                         value="none",
-                        info=fit_opts["none"]["desc"]
+                        info="옷의 핏 설정"
                     )
                     
                     model_sleeve_dropdown = gr.Dropdown(
                         label="👕 소매 길이",
                         choices=[(sleeve_opts[key]["name"], key) for key in sleeve_opts.keys()],
                         value="none",
-                        info=sleeve_opts["none"]["desc"]
+                        info="옷의 소매 길이 설정"
                     )
                     
                     model_length_dropdown = gr.Dropdown(
                         label="📏 기장",
                         choices=[(length_opts[key]["name"], key) for key in length_opts.keys()],
                         value="none",
-                        info=length_opts["none"]["desc"]
+                        info="옷의 기장 설정"
                     )
                     
                     model_wear_together_textbox = gr.Textbox(
@@ -684,14 +684,14 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         label="🎂 나이",
                         choices=[(age_opts[key]["name"], key) for key in age_opts.keys()],
                         value="young",
-                        info=age_opts["young"]["desc"]
+                        info="모델 연령대 설정"
                     )
                     
                     style_cut_background_dropdown = gr.Dropdown(
                         label="🌆 배경",
                         choices=[(background_opts[key]["name"], key) for key in background_opts.keys()],
                         value="none",
-                        info=background_opts["none"]["desc"]
+                        info="모델이 있는 배경 설정"
                     )
                 
                 with gr.Column(scale=1):
@@ -699,42 +699,42 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         label="📷 Shot Type",
                         choices=[(shot_type_opts[key]["name"], key) for key in shot_type_opts.keys()],
                         value="none",
-                        info=shot_type_opts["none"]["desc"]
+                        info="샷 타입 설정"
                     )
                     
                     style_cut_camera_angle_dropdown = gr.Dropdown(
                         label="📐 Camera Angle",
                         choices=[(camera_angle_opts[key]["name"], key) for key in camera_angle_opts.keys()],
                         value="none",
-                        info=camera_angle_opts["none"]["desc"]
+                        info="카메라 각도 설정"
                     )
                     
                     style_cut_pose_dropdown = gr.Dropdown(
                         label="🧍 Pose",
                         choices=[(pose_opts[key]["name"], key) for key in pose_opts.keys()],
                         value="none",
-                        info=pose_opts["none"]["desc"]
+                        info="모델 자세 설정"
                     )
                     
                     style_cut_arms_pose_dropdown = gr.Dropdown(
                         label="🤲 Arms Pose",
                         choices=[(arms_pose_opts[key]["name"], key) for key in arms_pose_opts.keys()],
                         value="none",
-                        info=arms_pose_opts["none"]["desc"]
+                        info="모델 팔 포즈 설정"
                     )
                     
                     style_cut_gaze_dropdown = gr.Dropdown(
                         label="👁️ Gaze",
                         choices=[(gaze_opts[key]["name"], key) for key in gaze_opts.keys()],
                         value="none",
-                        info=gaze_opts["none"]["desc"]
+                        info="모델 시선 설정"
                     )
                     
                     style_cut_facial_expression_dropdown = gr.Dropdown(
                         label="😊 Facial Expression",
                         choices=[(facial_expression_opts[key]["name"], key) for key in facial_expression_opts.keys()],
                         value="none",
-                        info=facial_expression_opts["none"]["desc"]
+                        info="모델 표정 설정"
                     )
                 
                 with gr.Column(scale=1):
@@ -742,28 +742,28 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         label="💡 Lighting Style",
                         choices=[(lighting_style_opts[key]["name"], key) for key in lighting_style_opts.keys()],
                         value="none",
-                        info=lighting_style_opts["none"]["desc"]
+                        info="조명 스타일 설정"
                     )
                     
                     style_cut_color_tone_dropdown = gr.Dropdown(
                         label="🎨 Color Tone",
                         choices=[(color_tone_opts[key]["name"], key) for key in color_tone_opts.keys()],
                         value="none",
-                        info=color_tone_opts["none"]["desc"]
+                        info="색감 설정"
                     )
                     
                     style_cut_camera_specs_dropdown = gr.Dropdown(
                         label="📸 Camera Specs",
                         choices=[(camera_specs_opts[key]["name"], key) for key in camera_specs_opts.keys()],
                         value="none",
-                        info=camera_specs_opts["none"]["desc"]
+                        info="카메라 스펙 설정"
                     )
                     
                     style_cut_post_processing_dropdown = gr.Dropdown(
                         label="✨ Post-processing",
                         choices=[(post_processing_opts[key]["name"], key) for key in post_processing_opts.keys()],
                         value="none",
-                        info=post_processing_opts["none"]["desc"]
+                        info="후보정 스타일 설정"
                     )
                 
                 with gr.Column(scale=2):

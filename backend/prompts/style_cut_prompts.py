@@ -115,12 +115,12 @@ def assemble_style_cut_prompt(
     
     # 카메라 스펙 및 후보정 추가
     if camera_specs and color_tone:
-        prompt += f"\nThis should be captured as if using an {camera_specs} setup with {color_tone}."
+        prompt += f"\nThis should be captured as if using a{camera_specs} with {color_tone}."
     elif camera_specs:
-        prompt += f"\nThis should be captured as if using an {camera_specs} setup."
+        prompt += f"\nThis should be captured as if using a{camera_specs}."
     elif color_tone:
-        prompt += f"\nApply {color_tone} to the output image."
+        prompt += f"\nThis should be captured as if using a high-end editorial fashion photography setup with {color_tone}."
     else:
-        prompt += "\nThis should be captured as if using an high-end editorial fashion photography setup."
+        prompt += "\nThis should be captured as if using a high-end editorial fashion photography setup."
     
     return prompt
