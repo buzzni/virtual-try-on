@@ -765,23 +765,23 @@ with gr.Blocks(title="제미나이 실험실") as demo:
                         value="none",
                         info=post_processing_opts["none"]["desc"]
                     )
-            
-            with gr.Row():
-                # 초기 프롬프트 생성
-                initial_model_options = ModelOptions(gender="woman", age="young")
-                initial_style_cut_options = StyleCutOptions()
-                initial_style_prompt = assemble_style_cut_prompt(
-                    model_options=initial_model_options,
-                    style_cut_options=initial_style_cut_options
-                )
                 
-                style_cut_prompt_display = gr.Textbox(
-                    label="📝 생성된 프롬프트",
-                    value=initial_style_prompt,
-                    lines=15,
-                    interactive=False,
-                    max_lines=20
-                )
+                with gr.Column(scale=2):
+                    # 초기 프롬프트 생성
+                    initial_model_options = ModelOptions(gender="woman", age="young")
+                    initial_style_cut_options = StyleCutOptions()
+                    initial_style_prompt = assemble_style_cut_prompt(
+                        model_options=initial_model_options,
+                        style_cut_options=initial_style_cut_options
+                    )
+                    
+                    style_cut_prompt_display = gr.Textbox(
+                        label="📝 생성된 프롬프트",
+                        value=initial_style_prompt,
+                        lines=15,
+                        interactive=False,
+                        max_lines=20
+                    )
             
             # 모든 옵션 변경 시 프롬프트 업데이트
             style_cut_option_inputs = [
