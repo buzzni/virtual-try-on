@@ -31,6 +31,16 @@ async def update_me(
         current_user.profile_picture = request.profile_picture
     if request.language is not None:
         current_user.language = request.language
+    if request.phone_number is not None:
+        current_user.phone_number = request.phone_number
+    if request.organization_name is not None:
+        current_user.organization_name = request.organization_name
+    if request.terms_agreed is not None:
+        current_user.terms_agreed = request.terms_agreed
+    if request.privacy_agreed is not None:
+        current_user.privacy_agreed = request.privacy_agreed
+    if request.marketing_agreed is not None:
+        current_user.marketing_agreed = request.marketing_agreed
     
     current_user.updated_at = datetime.utcnow()
     
@@ -47,11 +57,7 @@ async def delete_me(
 ):
     """
     현재 사용자 삭제 (Hard Delete)
-    - FK CASCADE로 연관된 모든 데이터 자동 삭제:
-      * entitlements
-      * points, point_usage
-      * collections, projects
-      * subscriptions, subscription_record
+    - FK CASCADE로 연관된 데이터 자동 삭제 (예: collections, projects)
     """
     await db.execute(
         delete(User).where(User.id == current_user.id)

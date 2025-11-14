@@ -9,8 +9,6 @@ from db.session import Base
 from models.user import User
 from models.collection import Collection
 from models.project import Project
-from models.point import Point, PointUsage
-from models.subscription import Subscription, SubscriptionRecord
 
 config = context.config
 settings = get_settings()

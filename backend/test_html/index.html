@@ -54,6 +54,31 @@
                     <option value="ja">日本語</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" id="signupPhoneNumber" placeholder="010-1234-5678">
+            </div>
+            <div class="form-group">
+                <label>Organization Name</label>
+                <input type="text" id="signupOrganizationName" placeholder="예: Buzzni">
+            </div>
+            <div class="form-group">
+                <label>Terms Agreement</label>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="signupTermsAgreed">
+                        <span>서비스 이용약관 동의 (필수)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="signupPrivacyAgreed">
+                        <span>개인정보 처리방침 동의 (필수)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="signupMarketingAgreed">
+                        <span>마케팅 정보 수신 동의 (선택)</span>
+                    </label>
+                </div>
+            </div>
             <button onclick="testSignup()">Sign Up</button>
             <div id="signupResult" class="result" style="display: none;"></div>
         </div>
@@ -138,6 +163,31 @@
                     <option value="en">English</option>
                     <option value="ja">日本語</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" id="updatePhoneNumber" placeholder="010-1234-5678">
+            </div>
+            <div class="form-group">
+                <label>Organization Name</label>
+                <input type="text" id="updateOrganizationName" placeholder="예: Buzzni">
+            </div>
+            <div class="form-group">
+                <label>Agreements</label>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="updateTermsAgreed">
+                        <span>서비스 이용약관 동의</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="updatePrivacyAgreed">
+                        <span>개인정보 처리방침 동의</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="updateMarketingAgreed">
+                        <span>마케팅 정보 수신 동의</span>
+                    </label>
+                </div>
             </div>
             <button onclick="testUpdateMe()">Update Profile</button>
             <div id="updateMeResult" class="result" style="display: none;"></div>
@@ -236,148 +286,6 @@
             </div>
             <button onclick="testUpdateCollection()">Update Collection</button>
             <div id="updateCollectionResult" class="result" style="display: none;"></div>
-        </div>
-
-        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
-        <h1>💎 VTO Subscription API Test</h1>
-
-        <!-- Create Subscription -->
-        <div class="section">
-            <h2>➕ Create Subscription</h2>
-            <p style="margin-bottom: 15px; color: #666;">새로운 구독을 시작합니다.</p>
-            <div class="form-group">
-                <label>Plan</label>
-                <select id="subscriptionPlan" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="basic">Basic</option>
-                    <option value="pro">Pro</option>
-                    <option value="enterprise">Enterprise</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Payment Info (JSON - 선택)</label>
-                <textarea id="subscriptionPayments" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px;" placeholder='{"method": "card", "last4": "1234"}'></textarea>
-            </div>
-            <button onclick="testCreateSubscription()">Create Subscription</button>
-            <div id="createSubscriptionResult" class="result" style="display: none;"></div>
-        </div>
-
-        <!-- Cancel Subscription -->
-        <div class="section">
-            <h2>❌ Cancel Subscription</h2>
-            <p style="margin-bottom: 15px; color: #666;">현재 활성 구독을 취소합니다.</p>
-            <div class="form-group">
-                <label>Cancel Reason (선택)</label>
-                <input type="text" id="cancelReason" placeholder="취소 사유...">
-            </div>
-            <button onclick="testCancelSubscription()">Cancel Subscription</button>
-            <div id="cancelSubscriptionResult" class="result" style="display: none;"></div>
-        </div>
-
-        <!-- Change Plan -->
-        <div class="section">
-            <h2>🔄 Change Subscription Plan</h2>
-            <p style="margin-bottom: 15px; color: #666;">구독 플랜을 변경합니다.</p>
-            <div class="form-group">
-                <label>New Plan</label>
-                <select id="changePlan" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="basic">Basic</option>
-                    <option value="pro">Pro</option>
-                    <option value="enterprise">Enterprise</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Payment Info (JSON - 선택)</label>
-                <textarea id="changePlanPayments" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px;" placeholder='{"method": "card", "last4": "5678"}'></textarea>
-            </div>
-            <button onclick="testChangePlan()">Change Plan</button>
-            <div id="changePlanResult" class="result" style="display: none;"></div>
-        </div>
-
-        <!-- Get Subscription History -->
-        <div class="section">
-            <h2>📋 Get Subscription History</h2>
-            <p style="margin-bottom: 15px; color: #666;">구독 변경 이력을 조회합니다.</p>
-            <button onclick="testGetSubscriptionHistory()">Get History</button>
-            <div id="subscriptionHistoryResult" class="result" style="display: none;"></div>
-        </div>
-
-        <!-- Get My Subscription -->
-        <div class="section">
-            <h2>👁️ Get My Subscription Status</h2>
-            <p style="margin-bottom: 15px; color: #666;">현재 활성 구독 상태를 조회합니다.</p>
-            <button onclick="testGetMySubscription()">Get My Subscription</button>
-            <div id="mySubscriptionResult" class="result" style="display: none;"></div>
-        </div>
-
-        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
-        <h1>🎯 VTO Entitlement API Test</h1>
-
-        <!-- Get Entitlement -->
-        <div class="section">
-            <h2>👁️ Get My Entitlement</h2>
-            <p style="margin-bottom: 15px; color: #666;">Point와 Subscription을 조합하여 실시간으로 조회합니다.</p>
-            <button onclick="testGetEntitlement()">Get Entitlement</button>
-            <div id="getEntitlementResult" class="result" style="display: none;"></div>
-        </div>
-
-        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">
-        <h1>💰 VTO Point API Test</h1>
-
-        <!-- Get Points -->
-        <div class="section">
-            <h2>💳 Get My Points</h2>
-            <p style="margin-bottom: 15px; color: #666;">내 포인트 및 티켓 잔액을 조회합니다.</p>
-            <button onclick="testGetPoints()">Get Points</button>
-            <div id="getPointsResult" class="result" style="display: none;"></div>
-        </div>
-
-        <!-- Update Points -->
-        <div class="section">
-            <h2>⬆️⬇️ Update Points (증감)</h2>
-            <p style="margin-bottom: 10px; color: #666;">양수: 충전, 음수: 차감</p>
-            <div class="form-group">
-                <label>Credit (예: 1000 or -100)</label>
-                <input type="number" id="updateCredit" value="1000">
-            </div>
-            <div class="form-group">
-                <label>LookBook Ticket (예: 10 or -1)</label>
-                <input type="number" id="updateLookBook" value="10">
-            </div>
-            <div class="form-group">
-                <label>Video Ticket (예: 5 or -1)</label>
-                <input type="number" id="updateVideo" value="5">
-            </div>
-            <div class="form-group">
-                <label>Usage Method (필수)</label>
-                <select id="updateUsageMethod" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="manual">Manual (수동)</option>
-                    <option value="user_use">User Use (사용자 사용)</option>
-                    <option value="purchase">Purchase (구매)</option>
-                    <option value="subscribe">Subscribe (구독)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Project ID (선택)</label>
-                <input type="text" id="updateProjectId" placeholder="project-uuid">
-            </div>
-            <div class="form-group">
-                <label>Reason (선택)</label>
-                <input type="text" id="updateReason" placeholder="상세 사유...">
-            </div>
-            <button onclick="testUpdatePoints()">Update Points</button>
-            <div id="updatePointsResult" class="result" style="display: none;"></div>
-        </div>
-
-        <!-- Get Point Usage -->
-        <div class="section">
-            <h2>📜 Point Usage History</h2>
-            <p style="margin-bottom: 15px; color: #666;">포인트 사용 내역을 조회합니다.</p>
-            <div class="form-group">
-                <label>Limit</label>
-                <input type="number" id="usageLimit" value="10" min="1" max="100">
-            </div>
-            <button onclick="testGetPointUsage()">Get Usage History</button>
-            <div id="getPointUsageResult" class="result" style="display: none;"></div>
         </div>
 
         <!-- API Settings -->
@@ -504,6 +412,16 @@
             const name = document.getElementById('signupName').value;
             const lastName = document.getElementById('signupLastName').value;
             const language = document.getElementById('signupLanguage').value;
+            const phoneNumber = document.getElementById('signupPhoneNumber').value;
+            const organizationName = document.getElementById('signupOrganizationName').value;
+            const termsAgreed = document.getElementById('signupTermsAgreed').checked;
+            const privacyAgreed = document.getElementById('signupPrivacyAgreed').checked;
+            const marketingAgreed = document.getElementById('signupMarketingAgreed').checked;
+
+            if (!termsAgreed || !privacyAgreed) {
+                showResult('signupResult', { error: '필수 약관 및 개인정보 동의를 체크해주세요.' }, false);
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_URL()}/api/v1/auth/signup`, {
@@ -516,7 +434,12 @@
                         password,
                         name,
                         last_name: lastName,
-                        language
+                        language,
+                        phone_number: phoneNumber || null,
+                        organization_name: organizationName || null,
+                        terms_agreed: termsAgreed,
+                        privacy_agreed: privacyAgreed,
+                        marketing_agreed: marketingAgreed
                     })
                 });
 
@@ -571,6 +494,11 @@
             const lastName = document.getElementById('updateLastName').value;
             const profilePic = document.getElementById('updateProfilePic').value;
             const language = document.getElementById('updateLanguage').value;
+            const phoneNumber = document.getElementById('updatePhoneNumber').value;
+            const organizationName = document.getElementById('updateOrganizationName').value;
+            const termsAgreed = document.getElementById('updateTermsAgreed').checked;
+            const privacyAgreed = document.getElementById('updatePrivacyAgreed').checked;
+            const marketingAgreed = document.getElementById('updateMarketingAgreed').checked;
 
             try {
                 const response = await fetch(`${API_URL()}/api/v1/users/me`, {
@@ -583,7 +511,12 @@
                         name,
                         last_name: lastName,
                         profile_picture: profilePic || null,
-                        language
+                        language,
+                        phone_number: phoneNumber || null,
+                        organization_name: organizationName || null,
+                        terms_agreed: termsAgreed,
+                        privacy_agreed: privacyAgreed,
+                        marketing_agreed: marketingAgreed
                     })
                 });
 
@@ -865,301 +798,6 @@
                 }
             } catch (error) {
                 showResult('getProjectsByCollectionResult', { error: error.message }, false);
-            }
-        }
-
-        async function testGetPoints() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('getPointsResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/points`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('getPointsResult', data, true);
-                } else {
-                    showResult('getPointsResult', data, false);
-                }
-            } catch (error) {
-                showResult('getPointsResult', { error: error.message }, false);
-            }
-        }
-
-        async function testUpdatePoints() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('updatePointsResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            const credit = parseInt(document.getElementById('updateCredit').value) || 0;
-            const lookBook = parseInt(document.getElementById('updateLookBook').value) || 0;
-            const video = parseInt(document.getElementById('updateVideo').value) || 0;
-            const usageMethod = document.getElementById('updateUsageMethod').value;
-            const projectId = document.getElementById('updateProjectId').value;
-            const reason = document.getElementById('updateReason').value;
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/points/update`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        credit: credit !== 0 ? credit : null,
-                        look_book_ticket: lookBook !== 0 ? lookBook : null,
-                        video_ticket: video !== 0 ? video : null,
-                        usage_method: usageMethod,
-                        project_id: projectId || null,
-                        reason: reason || null
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('updatePointsResult', data, true);
-                } else {
-                    showResult('updatePointsResult', data, false);
-                }
-            } catch (error) {
-                showResult('updatePointsResult', { error: error.message }, false);
-            }
-        }
-
-        async function testCreateSubscription() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('createSubscriptionResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            const plan = document.getElementById('subscriptionPlan').value;
-            const paymentsText = document.getElementById('subscriptionPayments').value.trim();
-            
-            let payments = null;
-            if (paymentsText) {
-                try {
-                    payments = JSON.parse(paymentsText);
-                } catch (e) {
-                    showResult('createSubscriptionResult', { error: 'Invalid JSON format' }, false);
-                    return;
-                }
-            }
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/subscriptions`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ plan, payments })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('createSubscriptionResult', data, true);
-                } else {
-                    showResult('createSubscriptionResult', data, false);
-                }
-            } catch (error) {
-                showResult('createSubscriptionResult', { error: error.message }, false);
-            }
-        }
-
-        async function testCancelSubscription() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('cancelSubscriptionResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            const cancelReason = document.getElementById('cancelReason').value;
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/subscriptions/cancel`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ cancel_reason: cancelReason || null })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('cancelSubscriptionResult', data, true);
-                } else {
-                    showResult('cancelSubscriptionResult', data, false);
-                }
-            } catch (error) {
-                showResult('cancelSubscriptionResult', { error: error.message }, false);
-            }
-        }
-
-        async function testChangePlan() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('changePlanResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            const newPlan = document.getElementById('changePlan').value;
-            const paymentsText = document.getElementById('changePlanPayments').value.trim();
-            
-            let payments = null;
-            if (paymentsText) {
-                try {
-                    payments = JSON.parse(paymentsText);
-                } catch (e) {
-                    showResult('changePlanResult', { error: 'Invalid JSON format' }, false);
-                    return;
-                }
-            }
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/subscriptions/plan`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ new_plan: newPlan, payments })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('changePlanResult', data, true);
-                } else {
-                    showResult('changePlanResult', data, false);
-                }
-            } catch (error) {
-                showResult('changePlanResult', { error: error.message }, false);
-            }
-        }
-
-        async function testGetSubscriptionHistory() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('subscriptionHistoryResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/subscriptions/history`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('subscriptionHistoryResult', data, true);
-                } else {
-                    showResult('subscriptionHistoryResult', data, false);
-                }
-            } catch (error) {
-                showResult('subscriptionHistoryResult', { error: error.message }, false);
-            }
-        }
-
-        async function testGetMySubscription() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('mySubscriptionResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/subscriptions/me`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('mySubscriptionResult', data, true);
-                } else {
-                    showResult('mySubscriptionResult', data, false);
-                }
-            } catch (error) {
-                showResult('mySubscriptionResult', { error: error.message }, false);
-            }
-        }
-
-        async function testGetEntitlement() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('getEntitlementResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/entitlements/me`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('getEntitlementResult', data, true);
-                } else {
-                    showResult('getEntitlementResult', data, false);
-                }
-            } catch (error) {
-                showResult('getEntitlementResult', { error: error.message }, false);
-            }
-        }
-
-        async function testGetPointUsage() {
-            const token = localStorage.getItem('vto_access_token');
-            if (!token) {
-                showResult('getPointUsageResult', { error: '먼저 로그인하세요' }, false);
-                return;
-            }
-
-            const limit = parseInt(document.getElementById('usageLimit').value) || 10;
-
-            try {
-                const response = await fetch(`${API_URL()}/api/v1/points/usage?limit=${limit}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showResult('getPointUsageResult', data, true);
-                } else {
-                    showResult('getPointUsageResult', data, false);
-                }
-            } catch (error) {
-                showResult('getPointUsageResult', { error: error.message }, false);
             }
         }
 

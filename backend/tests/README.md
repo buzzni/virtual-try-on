@@ -116,22 +116,3 @@ def test_endpoint_name():
 | GET /api/v1/projects/{id} | `test_get_project` |
 | GET /api/v1/projects | `test_get_projects` |
 | GET /api/v1/projects?collection_id | `test_get_projects_by_collection` |
-
-### test_points.py ✅ 5/5 PASS
-
-| 엔드포인트 | 테스트 함수 |
-|-----------|-----------|
-| GET /api/v1/points | `test_get_points` |
-| POST /api/v1/points/update | `test_update_points` |
-| GET /api/v1/points/usage | `test_get_point_usage` |
-| POST /api/v1/points/update (no project_id) | `test_update_points_user_use_without_project_id` |
-| POST /api/v1/points/update (invalid project) | `test_update_points_invalid_project_id` |
-
-### test_subscriptions.py ✅ 4/4 PASS
-
-| 엔드포인트 | 테스트 함수 |
-|-----------|-----------|
-| POST /api/v1/subscriptions | `test_create_subscription` |
-| POST /api/v1/subscriptions/cancel | `test_cancel_subscription` |
-| PATCH /api/v1/subscriptions/plan | `test_change_plan` |
-| GET /api/v1/subscriptions/history | `test_get_subscription_history` |

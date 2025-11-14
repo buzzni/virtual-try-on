@@ -6,20 +6,28 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
+from datetime import datetime
 from fast_api import app
 from db.session import get_db
+from models.user import User
+
+
+class MockResult:
+    def __init__(self, scalar=None):
+        self._scalar = scalar
+
+    def scalar_one_or_none(self):
+        return self._scalar
 
 
 async def get_mock_db_auth():
     """Mock DB session for Auth"""
     mock_db = AsyncMock()
     
-    # execute 기본 응답 설정
-    mock_result = AsyncMock()
-    mock_result.scalar_one_or_none = MagicMock(return_value=None)
-    mock_db.execute = AsyncMock(return_value=mock_result)
+    mock_db.execute = AsyncMock(return_value=MockResult())
     mock_db.add = MagicMock()
     mock_db.commit = AsyncMock()
+    mock_db.flush = AsyncMock()
     
     # refresh 시 ID 설정
     def mock_refresh(obj):
@@ -49,7 +57,12 @@ def test_signup():
             "password": "password123",
             "name": "John",
             "last_name": "Doe",
-            "language": "ko"
+            "language": "ko",
+            "phone_number": "01012345678",
+            "organization_name": "Buzzni",
+            "terms_agreed": True,
+            "privacy_agreed": True,
+            "marketing_agreed": False
         }
     )
     
@@ -100,3 +113,43 @@ def test_oauth_kakao():
     
     # 잘못된 토큰이므로 401
     assert response.status_code == 401
+
+
+def test_signup_duplicate_email():
+    """POST /api/v1/auth/signup - 이메일 중복 시 400"""
+    existing_user = User(
+        id=UUID("123e4567-e89b-12d3-a456-426614174111"),
+        email="newtest@example.com",
+        name="Existing",
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+
+    async def get_duplicate_db():
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=MockResult(scalar=existing_user))
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.flush = AsyncMock()
+        mock_db.refresh = AsyncMock()
+        yield mock_db
+
+    app.dependency_overrides[get_db] = get_duplicate_db
+
+    response = client.post(
+        "/api/v1/auth/signup",
+        json={
+            "email": "newtest@example.com",
+            "password": "password123",
+            "name": "John",
+            "last_name": "Doe",
+            "language": "ko",
+            "phone_number": "01012345678",
+            "organization_name": "Buzzni",
+            "terms_agreed": True,
+            "privacy_agreed": True,
+            "marketing_agreed": False
+        }
+    )
+
+    assert response.status_code == 400

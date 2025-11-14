@@ -5,10 +5,6 @@
 erDiagram
   USERS ||--o{ COLLECTIONS : owns
   USERS ||--o{ PROJECTS : owns
-  USERS ||--o{ SUBSCRIPTIONS : has
-  USERS ||--o{ SUBSCRIPTION_RECORD : has
-  USERS ||--o{ POINTS : has
-  USERS ||--o{ POINT_USAGE : logs
   USERS ||--o{ VTO_JOB : creates
 
   COLLECTIONS ||--o{ PROJECTS : contains
@@ -39,57 +35,7 @@ CREATE TABLE users (
   deleted_at timestamptz NULL
 );
 
--- 2) SUBSCRIPTIONS
-CREATE TABLE subscriptions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  plan varchar(64),
-  start_at timestamptz,
-  end_at timestamptz,
-  cancelled_at timestamptz,
-  next_billing_at timestamptz,
-  payments jsonb,
-  invoices jsonb,
-  cancel_reason text,
-  status varchar(20) DEFAULT 'active',
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
--- 3) SUBSCRIPTION_RECORD (구독 변경 이력)
-CREATE TABLE subscription_record (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES users(id),
-  subscription_id uuid REFERENCES subscriptions(id),
-  from_plan varchar(64),
-  to_plan varchar(64),
-  payments jsonb,
-  created_at timestamptz DEFAULT now()
-);
-
--- 4) POINTS (보유 포인트 + 티켓)
-CREATE TABLE points (
-  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  credit integer DEFAULT 0,
-  look_book_ticket integer DEFAULT 0,
-  video_ticket integer DEFAULT 0,
-  updated_at timestamptz DEFAULT now()
-);
-
--- 5) POINT_USAGE (포인트/티켓 사용 내역 - 회계ledger 역할)
-CREATE TABLE point_usage (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  job_id uuid NULL,   -- VTO job 등 사용이 연결된 경우
-  usage_type varchar(32) NOT NULL, -- credit | look_book_ticket | video_ticket
-  amount integer NOT NULL, -- -1, -5, +10 등
-  reason text, -- vto_use, refund, admin_grant etc
-  created_at timestamptz DEFAULT now()
-);
-
-CREATE INDEX ix_point_usage_user ON point_usage(user_id, created_at DESC);
-
--- 6) COLLECTIONS
+-- 2) COLLECTIONS
 CREATE TABLE collections (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES users(id) ON DELETE CASCADE,
@@ -180,7 +126,7 @@ CREATE TABLE vto_job (
   user_id uuid REFERENCES users(id) ON DELETE CASCADE,
   project_id uuid REFERENCES projects(id),
   status varchar(32) DEFAULT 'PENDING',
-  used_point_type varchar(32), -- credit | look_book_ticket | video_ticket | subscription
+  used_point_type varchar(32), -- reserved for future billing metadata
   used_amount integer DEFAULT 0,
   worker text,
   queued_at timestamptz,

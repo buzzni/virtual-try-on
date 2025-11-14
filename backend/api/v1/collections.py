@@ -5,9 +5,13 @@ from typing import List
 from db.session import get_db
 from models.collection import Collection
 from models.user import User
-from schemas.collection import CollectionCreateRequest, CollectionUpdateRequest, CollectionResponse
+from schemas.collection import (
+    CollectionCreateRequest,
+    CollectionUpdateRequest,
+    CollectionResponse,
+)
 from core.deps import get_current_user
-from core.exceptions import NotFoundException
+from core.exceptions import NotFoundException, BadRequestException
 from datetime import datetime
 
 router = APIRouter(prefix="/collections", tags=["collections"])
@@ -17,33 +21,41 @@ router = APIRouter(prefix="/collections", tags=["collections"])
 async def create_collection(
     request: CollectionCreateRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
-    new_collection = Collection(
-        user_id=current_user.id,
-        name=request.name
+    # 중복 이름 체크 (같은 사용자 내에서)
+    result = await db.execute(
+        select(Collection).where(
+            Collection.user_id == current_user.id,
+            Collection.name == request.name,
+            Collection.deleted_at.is_(None),
+        )
     )
-    
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        raise BadRequestException("Collection with this name already exists")
+
+    new_collection = Collection(user_id=current_user.id, name=request.name)
+
     db.add(new_collection)
     await db.commit()
     await db.refresh(new_collection)
-    
+
     return new_collection
 
 
 @router.get("", response_model=List[CollectionResponse])
 async def get_collections(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(Collection).where(
-            Collection.user_id == current_user.id,
-            Collection.deleted_at.is_(None)
-        ).order_by(Collection.created_at.desc())
+        select(Collection)
+        .where(Collection.user_id == current_user.id, Collection.deleted_at.is_(None))
+        .order_by(Collection.created_at.desc())
     )
     collections = result.scalars().all()
-    
+
     return collections
 
 
@@ -52,26 +64,26 @@ async def update_collection(
     collection_id: str,
     request: CollectionUpdateRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(Collection).where(
             Collection.id == collection_id,
             Collection.user_id == current_user.id,
-            Collection.deleted_at.is_(None)
+            Collection.deleted_at.is_(None),
         )
     )
     collection = result.scalar_one_or_none()
-    
+
     if not collection:
         raise NotFoundException("Collection not found")
-    
+
     if request.name is not None:
         collection.name = request.name
-    
+
     collection.updated_at = datetime.utcnow()
-    
+
     await db.commit()
     await db.refresh(collection)
-    
+
     return collection
