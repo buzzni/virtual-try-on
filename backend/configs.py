@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 class Settings(BaseSettings):
     # Environment
-    env: str = os.getenv("ENV", "local")
+    env: str = os.getenv("ENV_NAME", "local")
 
     # Database Configuration
     db_host: str = os.getenv("DB_HOST", "localhost")
@@ -73,7 +73,7 @@ class ProdSettings(Settings):
         return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 def get_settings():
-    env = os.getenv("ENV", "local")
+    env = os.getenv("ENV_NAME", "local")
     if env == "local":
         return LocalSettings()
     elif env == "dev":
