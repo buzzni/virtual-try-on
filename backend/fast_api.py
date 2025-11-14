@@ -1,12 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import os
 from api.v1 import auth, users, collections, projects, organizations
+
+# Use /api prefix only in non-local environments
+root_path = "/api" if os.getenv("ENV_NAME") != "local" else ""
 
 app = FastAPI(
     title="Virtual Try-On API",
     description="Virtual Try-On Backend API",
     version="1.0.0",
+    root_path=root_path,
 )
 
 app.add_middleware(

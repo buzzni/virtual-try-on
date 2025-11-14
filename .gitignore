@@ -63,6 +63,14 @@ logs/
 # Node modules (if any)
 node_modules/
 
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Claude Code
+.claude/
+
 # Temporary files
 *.tmp
 *.temp
