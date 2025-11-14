@@ -7,7 +7,7 @@ from models.project import Project
 from models.user import User
 from schemas.project import ProjectCreateRequest, ProjectResponse
 from core.deps import get_current_user
-from core.exceptions import NotFoundException
+from core.exceptions import NotFoundException, BadRequestException
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -18,6 +18,19 @@ async def create_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # 중복 이름 체크 (같은 사용자 내에서)
+    result = await db.execute(
+        select(Project).where(
+            Project.user_id == current_user.id,
+            Project.name == request.name,
+            Project.deleted_at.is_(None),
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        raise BadRequestException("Project with this name already exists")
+
     new_project = Project(
         collection_id=request.collection_id,
         user_id=current_user.id,

@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from db.session import get_db
 from models.user import User
-from models.point import Point
 from models.collection import Collection
 from schemas.auth import SignupRequest, LoginRequest, OAuthRequest, TokenResponse, UserResponse
 from core.security import create_access_token, get_password_hash, verify_password
@@ -33,14 +32,15 @@ async def signup(
         name=request.name,
         last_name=request.last_name,
         language=request.language,
+        phone_number=request.phone_number,
+        organization_name=request.organization_name,
+        terms_agreed=request.terms_agreed,
+        privacy_agreed=request.privacy_agreed,
+        marketing_agreed=request.marketing_agreed,
     )
     
     db.add(new_user)
     await db.flush()
-    
-    # Point 자동 생성
-    point = Point(user_id=new_user.id)
-    db.add(point)
     
     # 기본 Collection 자동 생성
     default_collection = Collection(
@@ -112,10 +112,6 @@ async def oauth_login(
         )
         db.add(user)
         await db.flush()
-        
-        # Point 자동 생성
-        point = Point(user_id=user.id)
-        db.add(point)
         
         # 기본 Collection 자동 생성
         default_collection = Collection(

@@ -14,45 +14,64 @@ from models.user import User
 from models.collection import Collection
 
 
-async def get_mock_db_collections():
-    """Mock DB session for Collections"""
+class MockResult:
+    def __init__(self, scalar=None, items=None):
+        self._scalar = scalar
+        self._items = items or []
+
+    def scalar_one_or_none(self):
+        return self._scalar
+
+    def scalars(self):
+        mock_scalars = MagicMock()
+        mock_scalars.all = MagicMock(return_value=self._items)
+        return mock_scalars
+
+
+@pytest.fixture
+def mock_db():
     mock_db = AsyncMock()
-    
-    # execute 기본 응답
-    mock_result = AsyncMock()
-    mock_result.scalar_one_or_none = MagicMock(return_value=None)
-    mock_result.scalars = MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))
-    mock_db.execute = AsyncMock(return_value=mock_result)
     mock_db.add = MagicMock()
     mock_db.commit = AsyncMock()
-    
-    # refresh 시 ID 설정
+    mock_db.execute = AsyncMock(return_value=MockResult())
+
     def mock_refresh(obj):
         obj.id = UUID("223e4567-e89b-12d3-a456-426614174000")
         obj.created_at = datetime.utcnow()
         obj.updated_at = datetime.utcnow()
+
     mock_db.refresh = AsyncMock(side_effect=mock_refresh)
-    
-    yield mock_db
+    return mock_db
 
 
-def get_mock_user_collections():
-    """Mock current user for Collections"""
-    mock_user = User(
+@pytest.fixture
+def mock_user():
+    return User(
         id=UUID("123e4567-e89b-12d3-a456-426614174000"),
         email="test@example.com",
         name="John",
         language="ko",
+        phone_number="01012345678",
+        organization_name="Buzzni",
+        terms_agreed=True,
+        privacy_agreed=True,
+        marketing_agreed=False,
+        user_type="user",
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
-    return mock_user
 
 
 @pytest.fixture(autouse=True)
-def setup_overrides():
-    app.dependency_overrides[get_db] = get_mock_db_collections
-    app.dependency_overrides[get_current_user] = get_mock_user_collections
+def setup_overrides(mock_db, mock_user):
+    async def _get_db_override():
+        yield mock_db
+
+    def _get_user_override():
+        return mock_user
+
+    app.dependency_overrides[get_db] = _get_db_override
+    app.dependency_overrides[get_current_user] = _get_user_override
     yield
     app.dependency_overrides.clear()
 
@@ -91,3 +110,22 @@ def test_update_collection():
     
     # Mock에서 collection이 없으므로 404
     assert response.status_code == 404
+
+
+def test_create_collection_duplicate_name(mock_db):
+    """POST /api/v1/collections - 중복 이름이면 400"""
+    existing = Collection(
+        id=UUID("323e4567-e89b-12d3-a456-426614174222"),
+        user_id=UUID("123e4567-e89b-12d3-a456-426614174000"),
+        name="My Collection",
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    mock_db.execute.return_value = MockResult(scalar=existing)
+
+    response = client.post(
+        "/api/v1/collections",
+        json={"name": "My Collection"}
+    )
+
+    assert response.status_code == 400

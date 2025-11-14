@@ -30,6 +30,12 @@ def get_mock_user():
         name="John",
         last_name="Doe",
         language="ko",
+        phone_number="01012345678",
+        organization_name="Buzzni",
+        terms_agreed=True,
+        privacy_agreed=True,
+        marketing_agreed=False,
+        user_type="user",
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
@@ -55,6 +61,12 @@ def test_get_me():
     assert response.status_code == 200
     assert response.json()["email"] == "test@example.com"
     assert response.json()["name"] == "John"
+    assert response.json()["phone_number"] == "01012345678"
+    assert response.json()["organization_name"] == "Buzzni"
+    assert response.json()["terms_agreed"] is True
+    assert response.json()["privacy_agreed"] is True
+    assert response.json()["marketing_agreed"] is False
+    assert response.json()["user_type"] == "user"
     assert "id" in response.json()
 
 
@@ -65,12 +77,19 @@ def test_update_me():
         json={
             "name": "Jane",
             "last_name": "Smith",
-            "language": "en"
+            "language": "en",
+            "phone_number": "01000000000",
+            "organization_name": "Buzzni Lab",
+            "marketing_agreed": True
         }
     )
     
     assert response.status_code == 200
-    assert "id" in response.json()
+    data = response.json()
+    assert "id" in data
+    assert data["phone_number"] == "01000000000"
+    assert data["organization_name"] == "Buzzni Lab"
+    assert data["marketing_agreed"] is True
 
 
 def test_delete_me():

@@ -50,10 +50,11 @@ class Settings(BaseSettings):
 
 class LocalSettings(Settings):
     env: str = "local"
+    local_db_port: int = 54322
     
     @property
     def database_url(self) -> str:
-        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.local_db_port}/{self.db_name}"
 
 
 class DevSettings(Settings):
